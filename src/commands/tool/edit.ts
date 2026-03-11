@@ -118,11 +118,11 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
         draftId: workingDraftId,
         config: {
           ...patchedConfig,
-          instruction: originalConfig.instruction || patchedConfig.instruction,
+          instruction: patchedConfig.instruction ?? originalConfig.instruction,
           updatedAt: new Date().toISOString(),
         },
         systemIds: patchedConfig.systemIds || [],
-        instruction: patchedConfig.instruction || "",
+        instruction: patchedConfig.instruction ?? "",
         createdAt: new Date().toISOString(),
       };
 

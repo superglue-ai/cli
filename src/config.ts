@@ -90,7 +90,9 @@ export function resolveConfig(flags: { apiKey?: string; endpoint?: string }): CL
 export function writeConfig(config: CLIConfig, preferLocal?: boolean): void {
   const dir = getConfigDir(preferLocal);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, "config.json"), JSON.stringify(config, null, 2) + "\n");
+  fs.writeFileSync(path.join(dir, "config.json"), JSON.stringify(config, null, 2) + "\n", {
+    mode: 0o600,
+  });
 }
 
 export function ensureConfigDirs(config: CLIConfig, preferLocal?: boolean): void {

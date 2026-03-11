@@ -16,13 +16,12 @@ export function registerListCommand(parent: Command, getContext: ContextFn): voi
     .option("--system-id <id>", "Filter by system ID")
     .option("--limit <n>", "Max results", "10")
     .option("--offset <n>", "Skip first N results", "0")
-    .option("--search <text>", "Full-text search")
     .action(async (opts) => {
       const { client } = getContext();
       try {
         const limit = Math.min(parseInt(opts.limit, 10) || 10, 50);
         const offset = parseInt(opts.offset, 10) || 0;
-        const page = Math.floor(offset / limit) + 1;
+        const page = Math.ceil((offset + 1) / limit);
         const requestSources = opts.source?.split(",").filter(Boolean) as any;
 
         const result = await client.listRuns({

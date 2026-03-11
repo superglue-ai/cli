@@ -13,14 +13,37 @@ interface HealthResponse {
   minCliVersion?: string;
 }
 
+function parseVersionPart(part: string): { numeric: number; prerelease: string | null } {
+  // Handle parts like "0", "1", "0-beta", "1-rc.1"
+  const match = part.match(/^(\d+)(?:-(.+))?$/);
+  if (match) {
+    return { numeric: parseInt(match[1], 10), prerelease: match[2] || null };
+  }
+  // Non-numeric part (shouldn't happen in valid semver, treat as 0 with prerelease)
+  return { numeric: 0, prerelease: part };
+}
+
 export function compareVersions(a: string, b: string): number {
-  const partsA = a.split(".").map(Number);
-  const partsB = b.split(".").map(Number);
-  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-    const numA = partsA[i] || 0;
-    const numB = partsB[i] || 0;
-    if (numA < numB) return -1;
-    if (numA > numB) return 1;
+  const partsA = a.split(".");
+  const partsB = b.split(".");
+  const maxLen = Math.max(partsA.length, partsB.length);
+
+  for (let i = 0; i < maxLen; i++) {
+    const parsedA = parseVersionPart(partsA[i] || "0");
+    const parsedB = parseVersionPart(partsB[i] || "0");
+
+    // Compare numeric parts first
+    if (parsedA.numeric < parsedB.numeric) return -1;
+    if (parsedA.numeric > parsedB.numeric) return 1;
+
+    // If numeric parts are equal, compare prerelease
+    // No prerelease > has prerelease (1.0.0 > 1.0.0-beta)
+    if (parsedA.prerelease === null && parsedB.prerelease !== null) return 1;
+    if (parsedA.prerelease !== null && parsedB.prerelease === null) return -1;
+    if (parsedA.prerelease !== null && parsedB.prerelease !== null) {
+      if (parsedA.prerelease < parsedB.prerelease) return -1;
+      if (parsedA.prerelease > parsedB.prerelease) return 1;
+    }
   }
   return 0;
 }

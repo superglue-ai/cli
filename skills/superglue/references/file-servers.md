@@ -75,7 +75,7 @@ Downloaded files are all parsed automatically:
 
 - String → written as-is
 - Buffer → written directly
-- Object/Array → JSON.stringified with 2-space indent
+- Object/Array → `JSON.stringify` with 2-space indent
 
 ## Connection Details
 

@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { output, error, promptHidden, success, spinner, colors as c } from "../../output.js";
+import { output, error, promptHidden, success, spinner, colors as c, warn } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -76,7 +76,11 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
               url: opts.scrapeUrl,
               keywords,
             });
-          } catch {}
+          } catch (scrapeErr: unknown) {
+            const errMsg =
+              scrapeErr instanceof Error ? scrapeErr.message : String(scrapeErr || "Unknown error");
+            warn(`Documentation scrape failed for ${opts.scrapeUrl}: ${errMsg}`);
+          }
         }
 
         spin.stop();

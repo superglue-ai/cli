@@ -22,8 +22,8 @@ export function registerSaveCommand(parent: Command, getContext: ContextFn): voi
       }
 
       const toolId = opts.id || draft.config.id;
+      const spin = spinner(`Saving tool ${c.bold}${toolId}${c.reset}...`);
       try {
-        const spin = spinner(`Saving tool ${c.bold}${toolId}${c.reset}...`);
         const saved = await client.upsertWorkflow(toolId, {
           ...draft.config,
           id: toolId,
@@ -45,6 +45,7 @@ export function registerSaveCommand(parent: Command, getContext: ContextFn): voi
           console.log("");
         }
       } catch (err: any) {
+        spin.stop();
         error(err.message);
         process.exit(1);
       }

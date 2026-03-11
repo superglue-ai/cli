@@ -84,10 +84,10 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
           if (template.oauth.client_id) oauthCreds.client_id = template.oauth.client_id;
         }
         systemInput = {
-          name: systemInput.name || template.name,
-          url: template.apiUrl,
-          templateName: opts.template,
           ...systemInput,
+          name: systemInput.name || template.name,
+          url: systemInput.url || template.apiUrl,
+          templateName: opts.template,
           credentials: { ...oauthCreds, ...systemInput.credentials },
         };
       }
