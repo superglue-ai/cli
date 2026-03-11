@@ -227,14 +227,14 @@ sg system oauth --system-id my_api --grant-type client_credentials --scopes "rea
     {
       "id": "unique-step-id",
       "config": {
-        "systemId": "system-id",
-        "url": "https://api.example.com/endpoint?param=<<payload.field>>",
+        "systemId": "example_system",
+        "url": "https://api.example.com/endpoint?param=<<payload_field>>",
         "method": "GET",
         "headers": {
-          "Authorization": "Bearer <<system-id_access_token>>"
+          "Authorization": "Bearer <<example_system_access_token>>"
         },
         "queryParams": { "limit": "10" },
-        "body": "{ \"key\": \"<<payload.field>>\" }"
+        "body": "{ \"key\": \"<<payload_field>>\" }"
       },
       "dataSelector": "(sourceData) => sourceData.previousStep.data.items",
       "transformCode": "(items) => items.map(i => ({ id: i.id, name: i.name }))",

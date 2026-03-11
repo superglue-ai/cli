@@ -14,9 +14,12 @@ function getDraftsDir(): string {
   return path.join(getConfigDir(), "drafts");
 }
 
+function encodeDraftId(draftId: string): string {
+  return Buffer.from(draftId, "utf-8").toString("base64url");
+}
+
 function getDraftPath(draftId: string): string {
-  const safeName = draftId.replace(/[^a-zA-Z0-9_-]/g, "_");
-  return path.join(getDraftsDir(), `${safeName}.json`);
+  return path.join(getDraftsDir(), `${encodeDraftId(draftId)}.json`);
 }
 
 export function writeDraft(draft: Draft): void {

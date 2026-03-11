@@ -45,14 +45,30 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
       if (body && Object.keys(filePayloads).length > 0) {
         try {
           let parsed = JSON.parse(body);
-          for (const [k, v] of Object.entries(parsed)) {
-            if (typeof v === "string" && v.startsWith("file::")) {
-              const key = v.slice(6);
-              if (key in filePayloads) parsed[k] = filePayloads[key];
+          const resolveFileRefs = (obj: any): any => {
+            if (typeof obj === "string" && obj.startsWith("file::")) {
+              const key = obj.slice(6);
+              if (key in filePayloads) return filePayloads[key];
+              error(
+                `Unresolved file reference: file::${key}. Available: ${Object.keys(filePayloads).join(", ") || "(none)"}`,
+              );
+              process.exit(1);
             }
-          }
+            if (Array.isArray(obj)) return obj.map(resolveFileRefs);
+            if (obj && typeof obj === "object") {
+              const result: any = {};
+              for (const [k, v] of Object.entries(obj)) {
+                result[k] = resolveFileRefs(v);
+              }
+              return result;
+            }
+            return obj;
+          };
+          parsed = resolveFileRefs(parsed);
           body = JSON.stringify(parsed);
-        } catch {}
+        } catch (err: any) {
+          if (err.message?.startsWith("Unresolved file reference")) throw err;
+        }
       }
 
       const autoExec =

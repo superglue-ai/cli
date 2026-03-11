@@ -1,6 +1,6 @@
 {
   "name": "@superglue/cli",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "bin": {
     "sg": "./dist/cli.js"
   },
@@ -20,7 +20,7 @@
     "typescript": "^5.0.0"
   },
   "scripts": {
-    "build": "tsup && cp -r skills dist/ 2>/dev/null || true",
+    "build": "tsup && (cp -r skills dist/ 2>/dev/null || true)",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run build"

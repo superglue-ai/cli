@@ -97,12 +97,26 @@ function findSubcommand(argv: string[]): string | undefined {
   return undefined;
 }
 
+// Extract flag value supporting both "--flag value" and "--flag=value" syntax
+function extractFlagValue(argv: string[], flag: string): string | undefined {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    // Handle --flag=value syntax
+    if (arg.startsWith(`${flag}=`)) {
+      return arg.slice(flag.length + 1);
+    }
+    // Handle --flag value syntax
+    if (arg === flag && i + 1 < argv.length) {
+      return argv[i + 1];
+    }
+  }
+  return undefined;
+}
+
 const subcommand = findSubcommand(process.argv);
 if (subcommand && commandsRequiringServer.includes(subcommand)) {
-  const apiKeyIdx = process.argv.indexOf("--api-key");
-  const endpointIdx = process.argv.indexOf("--endpoint");
-  const cliApiKey = apiKeyIdx !== -1 ? process.argv[apiKeyIdx + 1] : undefined;
-  const cliEndpoint = endpointIdx !== -1 ? process.argv[endpointIdx + 1] : undefined;
+  const cliApiKey = extractFlagValue(process.argv, "--api-key");
+  const cliEndpoint = extractFlagValue(process.argv, "--endpoint");
   const config = resolveConfig({ apiKey: cliApiKey, endpoint: cliEndpoint });
   if (config.apiKey) {
     checkVersionCompatibility(config.endpoint).then(() => program.parse());

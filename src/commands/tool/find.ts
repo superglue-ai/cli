@@ -44,7 +44,7 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
           output({ success: true, tool });
           return;
         }
-        const searchQuery = query || "*";
+        const searchQuery = (query || "").trim() || "*";
         if (searchQuery === "*") {
           const { items } = await client.listWorkflows(100);
           const tools = items

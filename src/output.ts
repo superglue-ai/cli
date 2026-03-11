@@ -1,4 +1,5 @@
 import * as readline from "node:readline";
+import { CLI_VERSION } from "./version.js";
 
 const isJsonMode = (): boolean => process.argv.includes("--json") || !process.stdout.isTTY;
 
@@ -64,7 +65,7 @@ export function banner(): void {
     const after = line.slice(last + 1);
     console.log(`  ${before}${inv}${inside}${rst}${after}`);
   });
-  console.log(`  ${d}  CLI v0.1.0${rst}`);
+  console.log(`  ${d}  CLI v${CLI_VERSION}${rst}`);
   console.log("");
 }
 
@@ -377,22 +378,25 @@ export async function promptHidden(message: string): Promise<string> {
     let input = "";
     const onData = (ch: Buffer) => {
       const s = ch.toString();
-      if (s === "\n" || s === "\r") {
-        if (process.stdin.isTTY) process.stdin.setRawMode(false);
-        process.stdin.removeListener("data", onData);
-        process.stdout.write("\n");
-        rl.close();
-        resolve(input);
-      } else if (s === "\u0003") {
-        process.exit(0);
-      } else if (s === "\u007f" || s === "\b") {
-        if (input.length > 0) {
-          input = input.slice(0, -1);
-          process.stdout.write("\b \b");
+      for (const char of s) {
+        if (char === "\n" || char === "\r") {
+          if (process.stdin.isTTY) process.stdin.setRawMode(false);
+          process.stdin.removeListener("data", onData);
+          process.stdout.write("\n");
+          rl.close();
+          resolve(input);
+          return;
+        } else if (char === "\u0003") {
+          process.exit(130);
+        } else if (char === "\u007f" || char === "\b") {
+          if (input.length > 0) {
+            input = input.slice(0, -1);
+            process.stdout.write("\b \b");
+          }
+        } else {
+          input += char;
+          process.stdout.write(`${c.dim}•${c.reset}`);
         }
-      } else {
-        input += s;
-        process.stdout.write(`${c.dim}•${c.reset}`);
       }
     };
     process.stdin.on("data", onData);
