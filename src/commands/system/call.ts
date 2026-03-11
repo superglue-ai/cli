@@ -23,6 +23,7 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
     .description("Call a system (API, database, file server)")
     .requiredOption("--url <url>", "Full URL including protocol")
     .option("--system-id <id>", "System ID for credential injection")
+    .option("--env <environment>", "Environment for system credentials: dev or prod")
     .option("--method <method>", "HTTP method", "GET")
     .option("--headers <json>", "HTTP headers JSON")
     .option("--body <string>", "Request body")
@@ -124,7 +125,8 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
       };
 
       try {
-        const result = await client.executeStep({ step, payload: {} });
+        const mode = opts.env === "dev" || opts.env === "prod" ? opts.env : undefined;
+        const result = await client.executeStep({ step, payload: {}, mode });
         const responseData = result.data?.data !== undefined ? result.data.data : result.data;
         output({
           success: result.success,

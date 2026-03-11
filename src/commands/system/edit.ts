@@ -10,6 +10,7 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
     .command("edit")
     .description("Edit an existing system")
     .requiredOption("--id <id>", "System ID")
+    .option("--env <environment>", "Environment: dev or prod")
     .option("--name <name>", "New name")
     .option("--url <url>", "New URL")
     .option("--instructions <text>", "New specific instructions")
@@ -55,8 +56,10 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
       }
 
       try {
+        const envOption =
+          opts.env === "dev" || opts.env === "prod" ? { environment: opts.env } : undefined;
         const spin = spinner(`Updating system ${c.bold}${opts.id}${c.reset}...`);
-        const existing = await client.getSystem(opts.id);
+        const existing = await client.getSystem(opts.id, envOption);
         if (!existing) {
           spin.stop();
           error(`System not found: ${opts.id}`);
@@ -67,7 +70,7 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
           patchPayload.credentials = { ...existing.credentials, ...patchPayload.credentials };
         }
 
-        const result = await client.updateSystem(opts.id, patchPayload);
+        const result = await client.updateSystem(opts.id, patchPayload, envOption);
 
         if (opts.scrapeUrl) {
           try {
