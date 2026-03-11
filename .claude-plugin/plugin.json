@@ -1,0 +1,19 @@
+{
+  "name": "superglue",
+  "description": "Build, test, and manage superglue API integration tools via the sg CLI. Use when working with superglue tools, systems, APIs, or the sg command.",
+  "version": "1.0.1",
+  "author": {
+    "name": "superglue",
+    "email": "hello@superglue.cloud"
+  },
+  "homepage": "https://superglue.cloud",
+  "repository": "https://github.com/superglue-ai/cli",
+  "license": "MIT",
+  "keywords": [
+    "api",
+    "integration",
+    "cli",
+    "tools",
+    "automation"
+  ]
+}
