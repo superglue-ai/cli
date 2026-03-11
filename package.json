@@ -1,0 +1,31 @@
+{
+  "name": "@superglue/cli",
+  "version": "1.0.1",
+  "bin": {
+    "sg": "./dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "skills/",
+    "skills.md"
+  ],
+  "dependencies": {
+    "commander": "^13.0.0",
+    "fast-json-patch": "^3.1.1"
+  },
+  "devDependencies": {
+    "@superglue/shared": "file:../shared",
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "build": "tsup && cp -r skills dist/ 2>/dev/null || true",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
