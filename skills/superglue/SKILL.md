@@ -1,6 +1,6 @@
 ---
 name: superglue
-description: Build, test, deploy, and integrate superglue API tools via the sg CLI. Use when working with superglue tools, systems, APIs, the sg command, or integrating tools into codebases (SDK, REST API, webhooks). Covers tool configuration, credential management, OAuth, pagination, multi-step workflows, and production deployment.
+description: "Build, test, deploy and integrate superglue tools via the sg CLI and superglue SDKs. IMPORTANT — you MUST invoke this skill and read the full reference BEFORE running ANY sg command or writing ANY superglue SDK/REST/webhook integration code. Before using the sg CLI, verify that it is configured: check that sg init has been run or that SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT environment variables are set. If not, guide the user through setup first. After reading the SKILL.md file, also read the relevant references/ files for the specific topic (databases, file servers, transforms, integration/SDK)."
 ---
 
 # superglue CLI (`sg`) — Agent Reference
@@ -50,26 +50,83 @@ sg system call --system-id notion --url "https://api.notion.com/v1/search" \
 
 ---
 
-## Quick Start
+## Installation & Setup
+
+### Installing the CLI
 
 ```bash
 npm install -g @superglue/cli
-sg init                        # guided setup
+```
+
+After installation, the `sg` command is available globally.
+
+### Initialization (REQUIRED before first use)
+
+The CLI **will not work** until configured with an API key and endpoint. Without configuration, all commands fail with `fetch failed` or similar connection errors.
+
+**Option A: Interactive setup (recommended for humans)**
+
+```bash
+sg init
+```
+
+This prompts for:
+
+1. **API Key** (required) — get one at https://app.superglue.cloud/admin?view=api-keys
+2. **API Endpoint** — defaults to `https://api.superglue.cloud`
+3. **Web Endpoint** — for OAuth callbacks, auto-derived from API endpoint
+4. **Output mode** — `stdout` (default) or `stdout+file`
+5. **Config location** — project-local (`.superglue/config.json`) or global (`~/.superglue/config.json`)
+
+It verifies the connection before saving. On success it creates the config file, a `drafts/` directory, and updates `.gitignore` if using local config.
+
+**Option B: Environment variables (recommended for CI and AI agents)**
+
+If `sg init` is not practical (non-interactive environments, CI, AI agents), set these env vars instead:
+
+```bash
+export SUPERGLUE_API_KEY="your-api-key"
+export SUPERGLUE_API_ENDPOINT="https://api.superglue.cloud"  # optional, this is the default
+```
+
+With these set, all `sg` commands work without a config file.
+
+**Option C: CLI flags (per-command override)**
+
+```bash
+sg system list --api-key "your-key" --endpoint "https://api.superglue.cloud"
+```
+
+### Config Resolution Order
+
+CLI flags > environment variables > config file (local `.superglue/config.json` > global `~/.superglue/config.json`).
+
+### Verifying Setup
+
+After configuring, verify the connection works:
+
+```bash
+sg system list    # should return a list (possibly empty) without errors
+```
+
+If you see `fetch failed`, `ECONNREFUSED`, or authentication errors, double-check your API key and endpoint.
+
+---
+
+## Quick Start
+
+```bash
 sg system list                 # verify connection
 sg tool build --config '{"id":"...","instruction":"...","steps":[...]}'
 sg tool run --draft <draftId>
 sg tool save --draft <draftId>
 ```
 
-**Config:** `SUPERGLUE_API_KEY` + `SUPERGLUE_API_ENDPOINT` env vars, or `.superglue/config.json` (created by `sg init`).
-**Priority:** CLI flags > env vars > config file.
-
 ## Global Flags
 
 | Flag               | Description                                 |
 | ------------------ | ------------------------------------------- |
 | `--json`           | Force JSON output (auto-enabled in non-TTY) |
-| `-y, --yes`        | Auto-accept all confirmations               |
 | `--api-key <key>`  | Override API key                            |
 | `--endpoint <url>` | Override API endpoint                       |
 
@@ -79,7 +136,7 @@ sg tool save --draft <draftId>
 
 ### `sg init`
 
-Interactive setup — API key, endpoint, output mode, policies. Creates `.superglue/`.
+Interactive setup — API key, endpoint, output mode. Creates `.superglue/`.
 
 ### Tool Commands
 
@@ -98,7 +155,7 @@ sg tool build --id my-tool --instruction "..." --steps steps.json --payload '{"k
 | `--payload <json>` | Sample payload (generates inputSchema) |
 | `--file <key=path>` | Attach file reference (repeatable) |
 
-**`sg tool run`** — Execute a draft or saved tool.
+**`sg tool run`** — Execute a draft or saved tool. Streams live execution logs to the terminal.
 
 ```bash
 sg tool run --draft <draftId> --payload '{"userId":"123"}'
@@ -149,9 +206,10 @@ sg system create --id my_api --url https://api.example.com --credentials '{"api_
 | `--credentials <json>` | Non-sensitive credentials |
 | `--sensitive-credentials <fields>` | Comma-separated fields to prompt for securely |
 | `--docs-url <url>` | Documentation URL to scrape |
+| `--env <environment>` | Environment: `dev` or `prod` (default: prod) |
 
-**`sg system edit`** — Update system config or credentials.
-**`sg system list` / `sg system find`** — List or search systems.
+**`sg system edit`** — Update system config or credentials. Supports `--env dev|prod`.
+**`sg system list` / `sg system find`** — List or search systems. `find` supports `--env dev|prod`.
 
 **`sg system call`** — **CRITICAL for tool building.** Make authenticated calls to APIs, databases, and file servers. Use this to:
 
@@ -191,12 +249,13 @@ sg system call --url "sftp://<<my_sftp_host>>:22/data" \
 | `--method <method>` | HTTP method (GET, POST, PUT, DELETE, PATCH)               |
 | `--headers <json>`  | HTTP headers JSON with credential placeholders            |
 | `--body <string>`   | Request body (JSON string)                                |
+| `--env <env>`       | Environment: `dev` or `prod`                              |
 | `--file <key=path>` | File references (repeatable)                              |
 
-**`sg system docs`** — Search system documentation.
+**`sg system search-docs`** — Search system documentation.
 
 ```bash
-sg system docs --system-id slack --keywords "send message channels"
+sg system search-docs --system-id slack -k "send message channels"
 ```
 
 **`sg system oauth`** — Authenticate via OAuth.
@@ -582,7 +641,7 @@ When an outputTransform or dataSelector fails, the executor retries with an LLM-
 1. **Create system** → `sg system create --id my_api --url ... --sensitive-credentials api_key`
 2. **Authenticate** → `sg system oauth` (if OAuth) or credentials are already set
 3. **Test auth** → `sg system call` to verify credentials work
-4. **Explore API** → `sg system docs` + more `sg system call` to test endpoints
+4. **Explore API** → `sg system search-docs` + more `sg system call` to test endpoints
 5. **Build tool** → Construct full config JSON, `sg tool build --config '...'`
 6. **Test** → `sg tool run --draft <id> --include-step-results`
 7. **Iterate** → `sg tool edit --draft <id> --patches '[...]' --test`
@@ -660,16 +719,15 @@ sg tool run --draft <id> --payload '{"data": "file::mysheet"}' --file mysheet=da
 
 ## Configuration
 
-`.superglue/config.json`:
+Created by `sg init` at `.superglue/config.json` (project-local) or `~/.superglue/config.json` (global):
 
 ```json
 {
   "apiKey": "...",
   "endpoint": "https://api.superglue.cloud",
-  "output": { "mode": "stdout", "directory": ".superglue/output" },
-  "policies": { "callSystem": "ask_every_time", "editTool": "confirm" }
+  "webEndpoint": "https://app.superglue.cloud",
+  "output": { "mode": "stdout", "directory": ".superglue/output" }
 }
 ```
 
-**callSystem:** `ask_every_time` | `run_gets_only` | `run_everything`
-**editTool:** `confirm` | `auto_accept`
+Config file is optional if `SUPERGLUE_API_KEY` and `SUPERGLUE_API_ENDPOINT` env vars are set. See **Installation & Setup** above.

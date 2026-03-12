@@ -3,13 +3,11 @@
 [![npm](https://img.shields.io/npm/v/@superglue/cli?style=flat-square&logo=npm)](https://www.npmjs.com/package/@superglue/cli)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-Build, test, and manage superglue API integration tools from the command line.
+Build, test, and manage superglue tools from the command line.
 
 ## What is superglue?
 
 - AI-powered tool builder that works with any API, database or file storage server
-- Abstracts away authentication, documentation handling and data mapping between systems
-- Self-heals tools: when steps fail due to upstream API changes, superglue can auto-repair failures
 
 ## Installation
 
@@ -22,8 +20,20 @@ sg --help
 
 ### As Claude Code Plugin
 
+From the official Anthropic marketplace:
+
 ```
-/plugin install github:superglue-ai/cli
+/plugin install superglue@claude-plugins-official
+```
+
+Or install from GitHub (development):
+
+```bash
+# Add the marketplace
+/plugin marketplace add superglue-ai/cli
+
+# Install the plugin
+/plugin install superglue@superglue-ai-cli
 ```
 
 ## Quick Start
@@ -53,9 +63,9 @@ sg tool save --draft <id>      # save it
 - `sg system edit` — Edit system config
 - `sg system list` — List systems
 - `sg system find` — Search systems
-- `sg system call` — Make authenticated API calls
+- `sg system call` — Make authenticated system calls
 - `sg system oauth` — Authenticate via OAuth
-- `sg system docs` — Search system documentation
+- `sg system search-docs` — Search system documentation
 
 ### Runs
 

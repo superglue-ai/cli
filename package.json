@@ -5,9 +5,10 @@
     "sg": "./dist/cli.js"
   },
   "files": [
+    ".claude-plugin/",
     "dist/",
     "skills/",
-    "skills.md"
+    "LICENSE"
   ],
   "dependencies": {
     "commander": "^13.0.0",
