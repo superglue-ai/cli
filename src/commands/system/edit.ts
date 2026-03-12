@@ -1,4 +1,4 @@
-import type { Command } from "commander";
+import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
 import { output, error, promptHidden, success, spinner, colors as c, warn } from "../../output.js";
@@ -17,6 +17,9 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
     .option("--sensitive-credentials <fields>", "Comma-separated sensitive credential field names")
     .option("--scrape-url <url>", "Documentation URL to scrape")
     .option("--scrape-keywords <keywords>", "Space-separated scrape keywords")
+    .addOption(
+      new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
+    )
     .action(async (opts) => {
       const { client } = getContext();
 
@@ -55,8 +58,10 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
       }
 
       try {
+        const envOption =
+          opts.env === "dev" || opts.env === "prod" ? { environment: opts.env } : undefined;
         const spin = spinner(`Updating system ${c.bold}${opts.id}${c.reset}...`);
-        const existing = await client.getSystem(opts.id);
+        const existing = await client.getSystem(opts.id, envOption);
         if (!existing) {
           spin.stop();
           error(`System not found: ${opts.id}`);
@@ -67,7 +72,7 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
           patchPayload.credentials = { ...existing.credentials, ...patchPayload.credentials };
         }
 
-        const result = await client.updateSystem(opts.id, patchPayload);
+        const result = await client.updateSystem(opts.id, patchPayload, envOption);
 
         if (opts.scrapeUrl) {
           try {

@@ -1,15 +1,15 @@
 import * as fs from "node:fs";
+import * as crypto from "node:crypto";
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
+import { RequestSource } from "@superglue/shared";
 import { normalizeToolSchemas } from "@superglue/shared";
 import * as jsonpatch from "fast-json-patch";
 import type { Operation } from "fast-json-patch";
-import type { CLIConfig } from "../../config.js";
 import { readDraft, writeDraft } from "../../drafts.js";
 import {
   output,
   error,
-  confirm,
   renderDiffs,
   success,
   heading,
@@ -17,7 +17,7 @@ import {
   colors as c,
 } from "../../output.js";
 
-type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
+type ContextFn = () => { client: SuperglueClient };
 
 export function registerEditCommand(parent: Command, getContext: ContextFn): void {
   parent
@@ -29,7 +29,7 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
     .option("--payload <json>", "Test payload JSON")
     .option("--test", "Run the patched tool after accepting")
     .action(async (opts) => {
-      const { config, client } = getContext();
+      const { client } = getContext();
 
       if (!opts.draft && !opts.tool) {
         error("Provide --draft or --tool");
@@ -101,19 +101,6 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
         console.log("");
       }
 
-      const autoAccept =
-        process.argv.includes("--yes") ||
-        process.argv.includes("-y") ||
-        config.policies.editTool === "auto_accept";
-
-      if (!autoAccept) {
-        const accepted = await confirm("Accept changes?");
-        if (!accepted) {
-          output({ success: false, rejected: true, message: "Changes rejected" });
-          process.exit(1);
-        }
-      }
-
       const draft = {
         draftId: workingDraftId,
         config: {
@@ -136,9 +123,22 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
           error(`Invalid --payload JSON: ${err.message}`);
           process.exit(1);
         }
+        const traceId = crypto.randomUUID();
         const spin = spinner("Running test...");
+        const logSub = await client
+          .subscribeToLogsSSE({
+            traceId,
+            onLog: (log) => spin.log(`${c.dim}${log.message}${c.reset}`),
+          })
+          .catch(() => ({ unsubscribe: () => {} }));
         try {
-          const testResult = await client.runToolConfig({ tool: draft.config, payload });
+          const testResult = await client.runToolConfig({
+            tool: draft.config,
+            payload,
+            options: { requestSource: RequestSource.CLI },
+            traceId,
+          });
+          logSub.unsubscribe();
           spin.stop();
           if (testResult.success) {
             success("Test passed");
@@ -160,6 +160,7 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
             output(testResult.data);
           }
         } catch (err: any) {
+          logSub.unsubscribe();
           spin.stop();
           error(`Test error: ${err.message}`);
           output({
