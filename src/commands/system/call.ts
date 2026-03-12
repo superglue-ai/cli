@@ -1,21 +1,10 @@
-import type { Command } from "commander";
+import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import { getConnectionProtocol } from "@superglue/shared";
-import type { CLIConfig } from "../../config.js";
 import { parseFileFlags } from "../../files.js";
-import { output, error, confirm, heading, colors as c } from "../../output.js";
+import { output, error, colors as c } from "../../output.js";
 
-type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
-
-function shouldAutoExecute(policy: string, method: string, url: string): boolean {
-  if (policy === "run_everything") return true;
-  if (policy === "ask_every_time") return false;
-  if (policy === "run_gets_only") {
-    const protocol = getConnectionProtocol(url);
-    return protocol === "http" && method.toUpperCase() === "GET";
-  }
-  return false;
-}
+type ContextFn = () => { client: SuperglueClient };
 
 export function registerCallCommand(parent: Command, getContext: ContextFn): void {
   parent
@@ -35,8 +24,11 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
       },
       [],
     )
+    .addOption(
+      new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
+    )
     .action(async (opts) => {
-      const { config, client } = getContext();
+      const { client } = getContext();
       const method = opts.method || "GET";
 
       const filePayloads = await parseFileFlags(opts.file, client);
@@ -71,36 +63,6 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
         }
       }
 
-      const autoExec =
-        process.argv.includes("--yes") ||
-        process.argv.includes("-y") ||
-        shouldAutoExecute(config.policies.callSystem, method, opts.url);
-
-      if (!autoExec) {
-        const methodColors: Record<string, string> = {
-          GET: c.green,
-          POST: c.yellow,
-          PUT: c.blue,
-          PATCH: c.magenta,
-          DELETE: c.red,
-        };
-        const mc = methodColors[method.toUpperCase()] || c.white;
-        console.log("");
-        console.log(`  ${mc}${c.bold}${method.toUpperCase()}${c.reset} ${opts.url}`);
-        if (opts.systemId) console.log(`  ${c.dim}system:${c.reset} ${opts.systemId}`);
-        if (opts.headers) console.log(`  ${c.dim}headers:${c.reset} ${opts.headers}`);
-        if (body) {
-          const preview = body.length > 200 ? body.slice(0, 200) + `${c.dim}...${c.reset}` : body;
-          console.log(`  ${c.dim}body:${c.reset} ${preview}`);
-        }
-        console.log("");
-        const accepted = await confirm("Execute this request?");
-        if (!accepted) {
-          output({ success: false, cancelled: true, message: "Request cancelled" });
-          process.exit(0);
-        }
-      }
-
       let headers: Record<string, string> | undefined;
       if (opts.headers) {
         try {
@@ -124,7 +86,8 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
       };
 
       try {
-        const result = await client.executeStep({ step, payload: {} });
+        const mode = opts.env === "dev" || opts.env === "prod" ? opts.env : undefined;
+        const result = await client.executeStep({ step, payload: {}, mode });
         const responseData = result.data?.data !== undefined ? result.data.data : result.data;
         output({
           success: result.success,

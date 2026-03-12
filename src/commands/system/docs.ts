@@ -7,10 +7,10 @@ type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
 export function registerDocsCommand(parent: Command, getContext: ContextFn): void {
   parent
-    .command("docs")
-    .description("Search system documentation")
+    .command("search-docs")
+    .description("Search system documentation by keywords")
     .requiredOption("--system-id <id>", "System ID")
-    .requiredOption("--keywords <keywords>", "Search keywords")
+    .requiredOption("-k, --keywords <keywords>", "Search keywords")
     .action(async (opts) => {
       const { client } = getContext();
       try {

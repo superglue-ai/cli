@@ -1,4 +1,4 @@
-import type { Command } from "commander";
+import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import { findTemplateForSystem } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
@@ -12,6 +12,7 @@ function filterSystemFields(system: any) {
     id: system.id,
     name: system.name,
     url: system.url,
+    environment: system.environment,
     specificInstructions: system.specificInstructions,
     credentialPlaceholders: credentialKeys.map((k: string) => `<<${system.id}_${k}>>`),
   };
@@ -21,17 +22,20 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
   parent
     .command("list")
     .description("List all systems")
-    .action(async () => {
+    .option("--mode <mode>", "Filter by environment: dev, prod, or all (default: all)")
+    .action(async (opts) => {
       const { client } = getContext();
       try {
-        const { items } = await client.listSystems(100);
+        const mode = opts.mode === "dev" || opts.mode === "prod" ? opts.mode : "all";
+        const { items } = await client.listSystems(100, 1, { mode });
         table(
           items.map((s: any) => ({
             id: s.id,
             name: s.name || "",
+            env: s.environment || "prod",
             url: (s.url || "").slice(0, 50),
           })),
-          ["id", "name", "url"],
+          ["id", "name", "env", "url"],
         );
       } catch (err: any) {
         error(err.message);
@@ -43,11 +47,16 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
     .command("find [query]")
     .description("Find systems by query or exact ID")
     .option("--id <exactId>", "Exact system ID lookup")
+    .addOption(
+      new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
+    )
     .action(async (query: string | undefined, opts) => {
       const { client } = getContext();
       try {
         if (opts.id) {
-          const system = await client.getSystem(opts.id);
+          const envOption =
+            opts.env === "dev" || opts.env === "prod" ? { environment: opts.env } : undefined;
+          const system = await client.getSystem(opts.id, envOption);
           if (!system) {
             error(`System not found: ${opts.id}`);
             process.exit(1);
@@ -61,8 +70,9 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
           return;
         }
 
+        const listMode = opts.env ? { mode: opts.env as "dev" | "prod" } : undefined;
         const rawQuery = (query || "*").trim();
-        const { items } = await client.listSystems(100);
+        const { items } = await client.listSystems(100, 1, listMode);
 
         if (rawQuery === "*") {
           output({

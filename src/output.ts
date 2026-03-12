@@ -28,6 +28,11 @@ const c = {
 
 export { c as colors };
 
+export function link(url: string, label?: string): string {
+  const text = label || url;
+  return `\x1b]8;;${url}\x07${c.underline}${c.cyan}${text}${c.reset}\x1b]8;;\x07`;
+}
+
 // ── Banner ──
 export function banner(): void {
   if (isJsonMode()) return;
@@ -73,21 +78,29 @@ export function banner(): void {
 export function spinner(message: string): {
   stop: (finalMsg?: string) => void;
   update: (msg: string) => void;
+  log: (line: string) => void;
 } {
-  if (isJsonMode()) return { stop: () => {}, update: () => {} };
+  if (isJsonMode()) return { stop: () => {}, update: () => {}, log: () => {} };
   const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
   let i = 0;
   let currentMsg = message;
-  const interval = setInterval(() => {
+  const clearLine = () => process.stdout.write(`\r\x1b[2K`);
+  const drawSpinner = () => {
     process.stdout.write(`\r  ${c.cyan}${frames[i++ % frames.length]}${c.reset} ${currentMsg}`);
-  }, 80);
+  };
+  const interval = setInterval(drawSpinner, 80);
   return {
     update: (msg: string) => {
       currentMsg = msg;
     },
+    log: (line: string) => {
+      clearLine();
+      console.log(`  ${c.dim}│${c.reset} ${line}`);
+      drawSpinner();
+    },
     stop: (finalMsg?: string) => {
       clearInterval(interval);
-      process.stdout.write(`\r${"".padEnd(currentMsg.length + 10)}\r`);
+      clearLine();
       if (finalMsg) console.log(`  ${finalMsg}`);
     },
   };
@@ -346,16 +359,6 @@ export function renderDiffs(
 }
 
 // ── Interactive prompts ──
-export async function confirm(message: string): Promise<boolean> {
-  if (process.argv.includes("--yes") || process.argv.includes("-y")) return true;
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(`  ${message} ${c.dim}[y/N]${c.reset} `, (answer) => {
-      rl.close();
-      resolve(answer.toLowerCase() === "y" || answer.toLowerCase() === "yes");
-    });
-  });
-}
 
 export async function prompt(message: string, defaultValue?: string): Promise<string> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -370,23 +373,30 @@ export async function prompt(message: string, defaultValue?: string): Promise<st
 
 export async function promptHidden(message: string): Promise<string> {
   return new Promise((resolve) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    process.stdout.write(`  ${message}: `);
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode(true);
+    process.stdout.write(`${message}: `);
+    if (!process.stdin.isTTY) {
+      const rl = readline.createInterface({ input: process.stdin });
+      rl.once("line", (line) => {
+        rl.close();
+        resolve(line.trim());
+      });
+      return;
     }
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
     let input = "";
     const onData = (ch: Buffer) => {
       const s = ch.toString();
       for (const char of s) {
         if (char === "\n" || char === "\r") {
-          if (process.stdin.isTTY) process.stdin.setRawMode(false);
+          process.stdin.setRawMode(false);
           process.stdin.removeListener("data", onData);
+          process.stdin.pause();
           process.stdout.write("\n");
-          rl.close();
           resolve(input);
           return;
         } else if (char === "\u0003") {
+          process.stdin.setRawMode(false);
           process.exit(130);
         } else if (char === "\u007f" || char === "\b") {
           if (input.length > 0) {
@@ -400,7 +410,6 @@ export async function promptHidden(message: string): Promise<string> {
       }
     };
     process.stdin.on("data", onData);
-    process.stdin.resume();
   });
 }
 
@@ -410,14 +419,58 @@ export async function choose(
   defaultIndex = 0,
 ): Promise<number> {
   if (!process.stdout.isTTY) return defaultIndex;
-  console.log("");
-  for (let i = 0; i < options.length; i++) {
-    const marker = i === defaultIndex ? `${c.cyan}❯${c.reset}` : " ";
-    const label =
-      i === defaultIndex ? `${c.bold}${options[i]}${c.reset}` : `${c.dim}${options[i]}${c.reset}`;
-    console.log(`    ${marker} ${c.dim}(${i + 1})${c.reset} ${label}`);
-  }
-  const answer = await prompt(`  ${message}`, String(defaultIndex + 1));
-  const idx = parseInt(answer, 10) - 1;
-  return idx >= 0 && idx < options.length ? idx : defaultIndex;
+
+  let selected = defaultIndex;
+
+  const render = () => {
+    for (let i = 0; i < options.length; i++) {
+      const marker = i === selected ? `${c.cyan}❯${c.reset}` : " ";
+      const label =
+        i === selected ? `${c.bold}${options[i]}${c.reset}` : `${c.dim}${options[i]}${c.reset}`;
+      console.log(`    ${marker} ${label}`);
+    }
+  };
+
+  const moveUp = () => {
+    process.stdout.write(`\x1b[${options.length}A\r`);
+    for (let i = 0; i < options.length; i++) {
+      process.stdout.write(`\x1b[2K`);
+      if (i < options.length - 1) process.stdout.write(`\n`);
+    }
+    process.stdout.write(`\x1b[${options.length - 1}A\r`);
+  };
+
+  console.log(
+    `\n  ${c.bold}${message}${c.reset} ${c.dim}(↑/↓ to select, enter to confirm)${c.reset}`,
+  );
+  render();
+
+  return new Promise((resolve) => {
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    const onData = (ch: Buffer) => {
+      const s = ch.toString();
+      if (s === "\r" || s === "\n") {
+        process.stdin.setRawMode(false);
+        process.stdin.removeListener("data", onData);
+        process.stdin.pause();
+        resolve(selected);
+        return;
+      }
+      if (s === "\u0003") {
+        process.stdin.setRawMode(false);
+        process.exit(130);
+      }
+      if (s === "\x1b[A" || s === "k") {
+        selected = (selected - 1 + options.length) % options.length;
+      } else if (s === "\x1b[B" || s === "j") {
+        selected = (selected + 1) % options.length;
+      } else {
+        return;
+      }
+      moveUp();
+      render();
+    };
+    process.stdin.on("data", onData);
+  });
 }

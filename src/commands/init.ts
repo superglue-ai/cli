@@ -14,6 +14,7 @@ import {
   promptHidden,
   choose,
   spinner,
+  link,
   colors as c,
 } from "../output.js";
 
@@ -27,6 +28,10 @@ export function registerInitCommand(program: Command): void {
       console.log(`  ${c.dim}Let's get you connected in a few steps.${c.reset}\n`);
 
       heading("Authentication");
+      console.log(
+        `  ${c.dim}Get your API key at${c.reset} ${link("https://app.superglue.cloud/admin?view=api-keys")}`,
+      );
+      console.log("");
       const apiKey = await promptHidden("  API Key");
       if (!apiKey) {
         error("API key is required");
@@ -66,27 +71,6 @@ export function registerInitCommand(program: Command): void {
         outputDir = await prompt("  Output directory", ".superglue/output");
       }
 
-      heading("Execution Policies");
-      console.log(`  ${c.dim}These control when the CLI asks for confirmation.${c.reset}\n`);
-
-      const callPolicyIdx = await choose(
-        "API call confirmation",
-        ["Ask every time", "Auto-run GET requests only", "Auto-run everything"],
-        0,
-      );
-      const callPolicies = [
-        "ask_every_time" as const,
-        "run_gets_only" as const,
-        "run_everything" as const,
-      ];
-
-      const editPolicyIdx = await choose(
-        "Tool edit confirmation",
-        ["Show diff and ask to confirm", "Auto-accept all changes"],
-        0,
-      );
-      const editPolicies = ["confirm" as const, "auto_accept" as const];
-
       heading("Config Location");
       const homeDir = os.homedir();
       const localPath = path.join(process.cwd(), ".superglue");
@@ -106,10 +90,6 @@ export function registerInitCommand(program: Command): void {
         endpoint,
         webEndpoint,
         output: { mode: outputMode, directory: outputDir },
-        policies: {
-          callSystem: callPolicies[callPolicyIdx],
-          editTool: editPolicies[editPolicyIdx],
-        },
       };
 
       writeConfig(config, preferLocal);
