@@ -1,6 +1,6 @@
 {
   "name": "superglue",
-  "description": "Build, test, and manage superglue API integration tools via the sg CLI. Use when working with superglue tools, systems, APIs, or the sg command.",
+  "description": "Build, test, and manage superglue tools via the sg CLI. Use when working with superglue tools, systems, APIs, SDKs, or the sg command.",
   "version": "1.1.1",
   "author": {
     "name": "superglue",
@@ -10,10 +10,11 @@
   "repository": "https://github.com/superglue-ai/cli",
   "license": "MIT",
   "keywords": [
-    "api",
+    "systems",
     "integration",
     "cli",
     "tools",
-    "automation"
+    "automation",
+    "api"
   ]
 }

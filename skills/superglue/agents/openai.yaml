@@ -1,0 +1,7 @@
+interface:
+  display_name: "superglue"
+  short_description: "Build, test, deploy, and integrate superglue API tools via the sg CLI and SDK"
+  icon_small: "./assets/superglue.png"
+  icon_large: "./assets/superglue.png"
+  brand_color: "#FFA500"
+  default_prompt: "I need help building a superglue integration tool"
