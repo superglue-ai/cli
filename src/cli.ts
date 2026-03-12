@@ -17,45 +17,43 @@ program
   .option("--api-key <key>", "superglue API key")
   .option("--endpoint <url>", "superglue API endpoint")
   .option("--json", "force JSON output")
-  .option("-y, --yes", "auto-accept all confirmations")
   .addHelpText(
     "after",
     `
 All Commands:
-  sg init                                     Set up CLI configuration
+  sg init                                        Set up CLI configuration
 
-  sg tool build --config <file>               Build a tool from a JSON config file
-  sg tool build --id <id> --instruction <t>   Build a tool from flags (requires --steps <file>)
-  sg tool run --draft <id> [--payload <json>] Run a draft tool
-  sg tool run --tool <id> [--payload <json>]  Run a saved tool
-  sg tool edit --tool <id> --patches <json>   Edit a tool via JSON Patch operations
-  sg tool edit --draft <id> --patches <json>  Edit a draft via JSON Patch operations
-  sg tool save <id>                           Save a draft tool to the server
-  sg tool list                                List all saved tools (IDs + instructions)
-  sg tool find [query]                        Search tools by keyword
-  sg tool find --id <id>                      Get full config of a specific tool
+  sg tool build --config <file>                  Build a tool from a JSON config
+  sg tool build --id <id> --instruction <text>   Build a tool from flags (requires --steps)
+  sg tool run --tool <id> [--payload <json>]     Run a saved tool
+  sg tool run --draft <id> [--payload <json>]    Run a draft tool
+  sg tool edit --tool <id> --patches <json>      Edit a tool via JSON Patch
+  sg tool edit --draft <id> --patches <json>     Edit a draft via JSON Patch
+  sg tool save <id>                              Save a draft to the server
+  sg tool list                                   List all saved tools
+  sg tool find [query]                           Search tools by keyword
+  sg tool find --id <id>                         Get full config of a tool
 
-  sg system create --config <file>            Create a system from a JSON config file
-  sg system create --id <id> --url <url>      Create a system from flags
-  sg system edit <id>                         Edit a system's configuration
-  sg system list                              List all systems
-  sg system find [query]                      Search systems by keyword
-  sg system find --id <id>                    Get full config of a specific system
-  sg system call --url <url> [--method GET]   Call an API/DB/file server with credential injection
-  sg system docs <id>                         View system documentation
-  sg system oauth <id>                        Authenticate a system via OAuth
+  sg system create --config <file>               Create a system from JSON config
+  sg system create --id <id> --url <url>         Create a system from flags
+  sg system edit --id <id>                       Edit a system's configuration
+  sg system list                                 List all systems
+  sg system find [query]                         Search systems by keyword
+  sg system find --id <id>                       Get full config of a system
+  sg system call --url <url> [--method GET]      Call an API, database, or file server
+  sg system search-docs --system-id <id> -k <kw> Search system documentation
+  sg system oauth <id>                           Authenticate a system via OAuth
 
-  sg run list [toolId]                        List execution runs, optionally filtered by tool
-  sg run get <runId>                          Get details of a specific run
+  sg run list [toolId]                           List runs, optionally filtered by tool
+  sg run get <runId>                             Get details of a specific run
 
-  sg update                                   Update CLI to latest version
-  sg update --check                           Check for available updates
+  sg update                                      Update CLI to latest version
+  sg update --check                              Check for available updates
 
 Global Flags:
-  --api-key <key>   Override API key from config
-  --endpoint <url>  Override API endpoint from config
-  --json            Force JSON output (default in non-TTY)
-  -y, --yes         Auto-accept all confirmations
+  --api-key <key>    Override API key from config
+  --endpoint <url>   Override API endpoint from config
+  --json             Force JSON output (default in non-TTY)
 `,
   );
 
@@ -77,7 +75,7 @@ registerRunCommands(program, getContext);
 // returns empty values before parse() is called
 const commandsRequiringServer = ["tool", "system", "run"];
 const globalFlagsWithValues = ["--api-key", "--endpoint"];
-const globalFlagsNoValue = ["--json", "-y", "--yes", "-h", "--help", "-V", "--version"];
+const globalFlagsNoValue = ["--json", "-h", "--help", "-V", "--version"];
 
 // Find the first subcommand, skipping global flags and their values
 function findSubcommand(argv: string[]): string | undefined {

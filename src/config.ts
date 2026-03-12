@@ -7,18 +7,10 @@ export interface CLIConfig {
   endpoint: string;
   webEndpoint: string;
   output: { mode: "stdout" | "stdout+file"; directory: string };
-  policies: {
-    callSystem: "ask_every_time" | "run_gets_only" | "run_everything";
-    editTool: "confirm" | "auto_accept";
-  };
 }
 
 const DEFAULT_CONFIG: Omit<CLIConfig, "apiKey" | "endpoint" | "webEndpoint"> = {
   output: { mode: "stdout", directory: ".superglue/output" },
-  policies: {
-    callSystem: "ask_every_time",
-    editTool: "confirm",
-  },
 };
 
 export function getConfigDir(preferLocal?: boolean): string {
@@ -83,7 +75,6 @@ export function resolveConfig(flags: { apiKey?: string; endpoint?: string }): CL
     endpoint,
     webEndpoint,
     output: { ...DEFAULT_CONFIG.output, ...file.output },
-    policies: { ...DEFAULT_CONFIG.policies, ...file.policies },
   };
 }
 

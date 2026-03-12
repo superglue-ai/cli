@@ -1,7 +1,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as crypto from "node:crypto";
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
+import { RequestSource } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
 import { readDraft } from "../../drafts.js";
 import { parseFileFlags, resolvePayloadWithFiles } from "../../files.js";
@@ -54,13 +56,25 @@ export function registerRunCommand(parent: Command, getContext: ContextFn): void
 
       let result: any;
       const toolLabel = opts.tool || opts.draft;
+      const traceId = crypto.randomUUID();
       const spin = spinner(`Running ${c.bold}${toolLabel}${c.reset}...`);
+
+      const logSub = await client.subscribeToLogsSSE({
+        traceId,
+        onLog: (log) => spin.log(`${c.dim}${log.message}${c.reset}`),
+      });
 
       if (opts.tool) {
         try {
-          result = await client.runTool({ toolId: opts.tool, payload });
+          result = await client.runTool({
+            toolId: opts.tool,
+            payload,
+            options: { requestSource: RequestSource.CLI, traceId },
+          });
+          logSub.unsubscribe();
           spin.stop();
         } catch (err: any) {
+          logSub.unsubscribe();
           spin.stop();
           error(err.message);
           process.exit(1);
@@ -68,14 +82,22 @@ export function registerRunCommand(parent: Command, getContext: ContextFn): void
       } else {
         const draft = readDraft(opts.draft);
         if (!draft) {
+          logSub.unsubscribe();
           spin.stop();
           error(`Draft not found: ${opts.draft}`);
           process.exit(1);
         }
         try {
-          result = await client.runToolConfig({ tool: draft.config, payload });
+          result = await client.runToolConfig({
+            tool: draft.config,
+            payload,
+            options: { requestSource: RequestSource.CLI },
+            traceId,
+          });
+          logSub.unsubscribe();
           spin.stop();
         } catch (err: any) {
+          logSub.unsubscribe();
           spin.stop();
           error(err.message);
           process.exit(1);
