@@ -1,6 +1,6 @@
 ---
 name: superglue
-description: "Build, test, deploy and integrate superglue tools via the sg CLI and superglue SDKs. IMPORTANT — you MUST invoke this skill and read the full reference BEFORE running ANY sg command or writing ANY superglue SDK/REST/webhook integration code. Before using the sg CLI, verify that it is configured: check that sg init has been run or that SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT environment variables are set. If not, guide the user through setup first. After reading the SKILL.md file, also read the relevant references/ files for the specific topic (databases, file servers, transforms, integration/SDK)."
+description: "Build, test, deploy and integrate superglue tools via the sg CLI and superglue SDKs. IMPORTANT — you MUST invoke this skill and read the full reference BEFORE running ANY sg command or writing ANY superglue SDK/REST/webhook integration code. Before using the sg CLI, first check that it is installed (run sg --version; if not found, install with npm install -g @superglue/cli), then verify it is configured (check that sg init has been run or that SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT environment variables are set). If not, guide the user through setup first. After reading the SKILL.md file, also read the relevant references/ files for the specific topic (databases, file servers, transforms, integration/SDK)."
 ---
 
 # superglue CLI (`sg`) — Agent Reference
@@ -51,6 +51,13 @@ sg system call --system-id notion --url "https://api.notion.com/v1/search" \
 ---
 
 ## Installation & Setup
+
+### Prerequisites Check
+
+Before running any `sg` command, verify the CLI is installed and configured:
+
+1. **Check CLI exists**: Run `sg --version`. If it fails with `command not found`, install it: `npm install -g @superglue/cli`
+2. **Check config exists**: Run `sg system list`. If it fails with `fetch failed` or auth errors, the CLI needs configuration (see below).
 
 ### Installing the CLI
 

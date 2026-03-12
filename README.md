@@ -18,6 +18,22 @@ npm install -g @superglue/cli
 sg --help
 ```
 
+### As AI Agent Skill
+
+Install the superglue skill for any supported AI agent ([35+ agents supported](https://skills.sh)):
+
+```bash
+npx skills add superglue-ai/cli
+```
+
+Or target a specific agent:
+
+```bash
+npx skills add superglue-ai/cli -g -a claude-code
+npx skills add superglue-ai/cli -g -a codex
+npx skills add superglue-ai/cli -g -a cursor
+```
+
 ### As Claude Code Plugin
 
 From the official Anthropic marketplace:
@@ -26,14 +42,10 @@ From the official Anthropic marketplace:
 /plugin install superglue@claude-plugins-official
 ```
 
-Or install from GitHub (development):
+Or load from local install for development:
 
 ```bash
-# Add the marketplace
-/plugin marketplace add superglue-ai/cli
-
-# Install the plugin
-/plugin install superglue@superglue-ai-cli
+claude --plugin-dir $(npm root -g)/@superglue/cli
 ```
 
 ## Quick Start
@@ -72,8 +84,14 @@ sg tool save --draft <id>      # save it
 - `sg run list` — List execution runs
 - `sg run get` — Get run details
 
+### Other
+
+- `sg init` — Interactive setup (API key, endpoint, output mode)
+- `sg update` — Update CLI to latest version
+
 ## Documentation
 
+- [Agent-Driven Development](https://docs.superglue.cloud/getting-started/llm-driven-development) — Skill installation and agent setup
 - [Full CLI Reference](./skills/superglue/SKILL.md) — Complete command documentation
 - [superglue Docs](https://docs.superglue.cloud) — Platform documentation
 - [API Reference](https://docs.superglue.cloud/api-reference/) — REST API docs
