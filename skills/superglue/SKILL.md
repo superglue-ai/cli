@@ -69,7 +69,6 @@ sg tool save --draft <draftId>
 | Flag               | Description                                 |
 | ------------------ | ------------------------------------------- |
 | `--json`           | Force JSON output (auto-enabled in non-TTY) |
-| `-y, --yes`        | Auto-accept all confirmations               |
 | `--api-key <key>`  | Override API key                            |
 | `--endpoint <url>` | Override API endpoint                       |
 
@@ -79,7 +78,7 @@ sg tool save --draft <draftId>
 
 ### `sg init`
 
-Interactive setup — API key, endpoint, output mode, policies. Creates `.superglue/`.
+Interactive setup — API key, endpoint, output mode. Creates `.superglue/`.
 
 ### Tool Commands
 
@@ -98,7 +97,7 @@ sg tool build --id my-tool --instruction "..." --steps steps.json --payload '{"k
 | `--payload <json>` | Sample payload (generates inputSchema) |
 | `--file <key=path>` | Attach file reference (repeatable) |
 
-**`sg tool run`** — Execute a draft or saved tool.
+**`sg tool run`** — Execute a draft or saved tool. Streams live execution logs to the terminal.
 
 ```bash
 sg tool run --draft <draftId> --payload '{"userId":"123"}'
@@ -149,9 +148,10 @@ sg system create --id my_api --url https://api.example.com --credentials '{"api_
 | `--credentials <json>` | Non-sensitive credentials |
 | `--sensitive-credentials <fields>` | Comma-separated fields to prompt for securely |
 | `--docs-url <url>` | Documentation URL to scrape |
+| `--env <environment>` | Environment: `dev` or `prod` (default: prod) |
 
-**`sg system edit`** — Update system config or credentials.
-**`sg system list` / `sg system find`** — List or search systems.
+**`sg system edit`** — Update system config or credentials. Supports `--env dev|prod`.
+**`sg system list` / `sg system find`** — List or search systems. `find` supports `--env dev|prod`.
 
 **`sg system call`** — **CRITICAL for tool building.** Make authenticated calls to APIs, databases, and file servers. Use this to:
 
@@ -191,12 +191,13 @@ sg system call --url "sftp://<<my_sftp_host>>:22/data" \
 | `--method <method>` | HTTP method (GET, POST, PUT, DELETE, PATCH)               |
 | `--headers <json>`  | HTTP headers JSON with credential placeholders            |
 | `--body <string>`   | Request body (JSON string)                                |
+| `--env <env>`       | Environment: `dev` or `prod`                              |
 | `--file <key=path>` | File references (repeatable)                              |
 
-**`sg system docs`** — Search system documentation.
+**`sg system search-docs`** — Search system documentation.
 
 ```bash
-sg system docs --system-id slack --keywords "send message channels"
+sg system search-docs --system-id slack -k "send message channels"
 ```
 
 **`sg system oauth`** — Authenticate via OAuth.
@@ -582,7 +583,7 @@ When an outputTransform or dataSelector fails, the executor retries with an LLM-
 1. **Create system** → `sg system create --id my_api --url ... --sensitive-credentials api_key`
 2. **Authenticate** → `sg system oauth` (if OAuth) or credentials are already set
 3. **Test auth** → `sg system call` to verify credentials work
-4. **Explore API** → `sg system docs` + more `sg system call` to test endpoints
+4. **Explore API** → `sg system search-docs` + more `sg system call` to test endpoints
 5. **Build tool** → Construct full config JSON, `sg tool build --config '...'`
 6. **Test** → `sg tool run --draft <id> --include-step-results`
 7. **Iterate** → `sg tool edit --draft <id> --patches '[...]' --test`
@@ -666,10 +667,6 @@ sg tool run --draft <id> --payload '{"data": "file::mysheet"}' --file mysheet=da
 {
   "apiKey": "...",
   "endpoint": "https://api.superglue.cloud",
-  "output": { "mode": "stdout", "directory": ".superglue/output" },
-  "policies": { "callSystem": "ask_every_time", "editTool": "confirm" }
+  "output": { "mode": "stdout", "directory": ".superglue/output" }
 }
 ```
-
-**callSystem:** `ask_every_time` | `run_gets_only` | `run_everything`
-**editTool:** `confirm` | `auto_accept`

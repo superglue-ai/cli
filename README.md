@@ -22,8 +22,20 @@ sg --help
 
 ### As Claude Code Plugin
 
+From the official Anthropic marketplace:
+
 ```
-/plugin install github:superglue-ai/cli
+/plugin install superglue@claude-plugins-official
+```
+
+Or install from GitHub (development):
+
+```bash
+# Add the marketplace
+/plugin marketplace add superglue-ai/cli
+
+# Install the plugin
+/plugin install superglue@superglue-ai-cli
 ```
 
 ## Quick Start
@@ -55,7 +67,7 @@ sg tool save --draft <id>      # save it
 - `sg system find` — Search systems
 - `sg system call` — Make authenticated API calls
 - `sg system oauth` — Authenticate via OAuth
-- `sg system docs` — Search system documentation
+- `sg system search-docs` — Search system documentation
 
 ### Runs
 
