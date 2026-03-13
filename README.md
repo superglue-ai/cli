@@ -5,10 +5,6 @@
 
 Build, test, and manage superglue tools from the command line.
 
-## What is superglue?
-
-- AI-powered integration builder that works with any API, database or file storage server
-
 ## Installation
 
 ### As npm package
