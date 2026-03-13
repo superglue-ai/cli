@@ -1,21 +1,11 @@
 import * as fs from "node:fs";
-import * as crypto from "node:crypto";
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
-import { RequestSource } from "@superglue/shared";
 import { normalizeToolSchemas } from "@superglue/shared";
 import * as jsonpatch from "fast-json-patch";
 import type { Operation } from "fast-json-patch";
 import { readDraft, writeDraft } from "../../drafts.js";
-import {
-  output,
-  error,
-  renderDiffs,
-  success,
-  heading,
-  spinner,
-  colors as c,
-} from "../../output.js";
+import { output, error, renderDiffs, success, heading, colors as c } from "../../output.js";
 
 type ContextFn = () => { client: SuperglueClient };
 
@@ -26,8 +16,6 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
     .option("--draft <id>", "Draft ID to edit")
     .option("--tool <id>", "Saved tool ID to edit")
     .option("--patches <json-or-file>", "JSON Patch array (inline JSON or file path)")
-    .option("--payload <json>", "Test payload JSON")
-    .option("--test", "Run the patched tool after accepting")
     .action(async (opts) => {
       const { client } = getContext();
 
@@ -115,68 +103,11 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
 
       writeDraft(draft);
 
-      if (opts.test) {
-        let payload: any;
-        try {
-          payload = opts.payload ? JSON.parse(opts.payload) : {};
-        } catch (err: any) {
-          error(`Invalid --payload JSON: ${err.message}`);
-          process.exit(1);
-        }
-        const traceId = crypto.randomUUID();
-        const spin = spinner("Running test...");
-        const logSub = await client
-          .subscribeToLogsSSE({
-            traceId,
-            onLog: (log) => spin.log(`${c.dim}${log.message}${c.reset}`),
-          })
-          .catch(() => ({ unsubscribe: () => {} }));
-        try {
-          const testResult = await client.runToolConfig({
-            tool: draft.config,
-            payload,
-            options: { requestSource: RequestSource.CLI },
-            traceId,
-          });
-          logSub.unsubscribe();
-          spin.stop();
-          if (testResult.success) {
-            success("Test passed");
-          } else {
-            error(`Test failed: ${testResult.error || "Unknown error"}`);
-          }
-          if (process.argv.includes("--json") || !process.stdout.isTTY) {
-            output({
-              success: true,
-              draftId: workingDraftId,
-              diffs,
-              testResult: {
-                success: testResult.success,
-                data: testResult.data,
-                error: testResult.error,
-              },
-            });
-          } else {
-            output(testResult.data);
-          }
-        } catch (err: any) {
-          logSub.unsubscribe();
-          spin.stop();
-          error(`Test error: ${err.message}`);
-          output({
-            success: true,
-            draftId: workingDraftId,
-            diffs,
-            testResult: { success: false, error: err.message },
-          });
-        }
+      if (process.argv.includes("--json") || !process.stdout.isTTY) {
+        output({ success: true, draftId: workingDraftId, diffs });
       } else {
-        if (process.argv.includes("--json") || !process.stdout.isTTY) {
-          output({ success: true, draftId: workingDraftId, diffs });
-        } else {
-          success(`Draft updated: ${c.bold}${workingDraftId}${c.reset}`);
-          console.log("");
-        }
+        success(`Draft updated: ${c.bold}${workingDraftId}${c.reset}`);
+        console.log("");
       }
     });
 }

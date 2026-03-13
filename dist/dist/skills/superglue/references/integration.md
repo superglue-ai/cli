@@ -15,7 +15,7 @@ export SUPERGLUE_API_ENDPOINT="https://api.superglue.cloud"
 curl -X POST "$SUPERGLUE_API_ENDPOINT/v1/tools/my-tool-id/run" \
   -H "Authorization: Bearer $SUPERGLUE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"inputs": {"userId": "123"}, "options": {"async": false}}'
+  -d '{"inputs": {"userId": "123"}}'
 
 # Run a tool (async - returns immediately)
 curl -X POST "$SUPERGLUE_API_ENDPOINT/v1/tools/my-tool-id/run" \
@@ -50,6 +50,7 @@ curl -X POST "$SUPERGLUE_API_ENDPOINT/v1/runs/{runId}/cancel" \
   "toolId": "my-tool-id",
   "status": "success",
   "data": { "result": "..." },
+  "stepResults": [{ "stepId": "step-1", "success": true, "data": {} }],
   "metadata": {
     "startedAt": "2024-01-15T10:00:00Z",
     "completedAt": "2024-01-15T10:00:05Z",
@@ -80,103 +81,118 @@ npm install @superglue/client
 pip install superglue-client
 ```
 
+Both SDKs are auto-generated from the OpenAPI spec (JS via orval, Python via openapi-python-client).
+
 ## TypeScript/JavaScript Usage
 
+The JS SDK exports: `configure`, `listTools`, `getTool`, `runTool`, `getRun`, `cancelRun`, `triggerWebhook`, `listRuns`.
+
 ```typescript
-import { configure, listTools, runTool, getRun } from "@superglue/client";
+import { configure, runTool, getRun, listTools, getTool } from "@superglue/client";
 
-// Configure once at startup
 configure({
-  apiKey: process.env.SUPERGLUE_API_KEY,
-  baseUrl: "https://api.superglue.cloud/v1", // or your self-hosted endpoint
+  apiKey: process.env.SUPERGLUE_API_KEY!,
+  baseUrl: "https://api.superglue.cloud/v1",
 });
+```
 
-// Run a tool (sync - waits for completion)
-const { data: result } = await runTool("my-tool-id", {
+### Run a Tool (Sync)
+
+```typescript
+const response = await runTool("my-tool-id", {
   inputs: { userId: "123", date: "2024-01-15" },
-  options: { async: false },
 });
 
-if (result.status === "success") {
-  console.log(result.data);
+if (response.status === 200) {
+  const run = response.data;
+  console.log(run.status); // "success" | "failed"
+  console.log(run.data); // tool output
 } else {
-  console.error(result.error);
+  console.error("Error:", response.data);
 }
 ```
+
+The response is `{ data: Run, status: number, headers: Headers }`. The `Run` object has: `runId`, `toolId`, `status`, `data`, `error`, `stepResults`, `metadata`.
 
 ### Async Execution (Fire-and-Forget)
 
 ```typescript
-// Run async - returns immediately
-const { data: run } = await runTool("my-tool-id", {
+const response = await runTool("my-tool-id", {
   inputs: { userId: "123" },
   options: { async: true },
 });
 
-console.log(`Run started: ${run.runId}`);
+if (response.status === 202) {
+  const run = response.data;
+  console.log(`Run started: ${run.runId}`);
 
-// Poll for completion if needed
-let status = run;
-while (status.status === "running") {
-  await new Promise((r) => setTimeout(r, 1000));
-  const { data } = await getRun(status.runId);
-  status = data;
+  let latest = run;
+  while (latest.status === "running") {
+    await new Promise((r) => setTimeout(r, 1000));
+    const poll = await getRun(latest.runId);
+    latest = poll.data;
+  }
 }
 ```
 
 ### List and Discover Tools
 
 ```typescript
-import { listTools, getTool, listSystems } from "@superglue/client";
-
-// List all tools
 const { data: tools } = await listTools({ page: 1, limit: 50 });
 console.log(tools.data);
 
-// Get tool details (including inputSchema)
 const { data: tool } = await getTool("my-tool-id");
 console.log(tool.inputSchema);
-
-// List systems
-const { data: systems } = await listSystems();
 ```
 
 ## Python Usage
 
+The Python SDK uses `AuthenticatedClient` with httpx. Functions are in `superglue_client.api.tools` and `superglue_client.api.runs`.
+
 ```python
 import os
-from superglue_client import SuperglueClient
+from superglue_client import AuthenticatedClient
 from superglue_client.api.tools import run_tool, list_tools, get_tool
 from superglue_client.api.runs import get_run
+from superglue_client.models.run_request import RunRequest
+from superglue_client.models.run_request_inputs import RunRequestInputs
 
-# Create authenticated client
-client = SuperglueClient(
+client = AuthenticatedClient(
     base_url="https://api.superglue.cloud/v1",
-    token=os.environ["SUPERGLUE_API_KEY"]
+    token=os.environ["SUPERGLUE_API_KEY"],
 )
+```
 
-# Run a tool (sync)
+### Run a Tool (Sync)
+
+```python
 with client as c:
     result = run_tool.sync(
+        "my-tool-id",
         client=c,
-        tool_id="my-tool-id",
-        body={"inputs": {"userId": "123"}, "options": {"async": False}}
+        body=RunRequest(
+            inputs=RunRequestInputs.from_dict({"userId": "123"}),
+        ),
     )
 
-    if result.status == "success":
+    if hasattr(result, "status") and result.status == "success":
         print(result.data)
-    else:
+    elif hasattr(result, "error"):
         print(result.error)
 ```
+
+`sync()` returns `Run | Error | None`. Use `sync_detailed()` for the full `Response` wrapper with status code and headers.
 
 ### Async Python
 
 ```python
 async with client as c:
     result = await run_tool.asyncio(
+        "my-tool-id",
         client=c,
-        tool_id="my-tool-id",
-        body={"inputs": {"userId": "123"}}
+        body=RunRequest(
+            inputs=RunRequestInputs.from_dict({"userId": "123"}),
+        ),
     )
 ```
 
@@ -226,32 +242,21 @@ curl "https://api.superglue.cloud/v1/runs/{runId}" \
 ```typescript
 async function runToolWithRetry(toolId: string, inputs: Record<string, any>, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const { data: result } = await runTool(toolId, { inputs, options: { async: false } });
+    const response = await runTool(toolId, { inputs });
 
-    if (result.status === "success") return result;
+    if (response.status === 200 && response.data.status === "success") {
+      return response.data;
+    }
 
-    // Don't retry on validation errors
-    if (result.error?.includes("validation")) throw new Error(result.error);
+    if (response.data.error?.includes("validation")) {
+      throw new Error(response.data.error);
+    }
 
-    // Exponential backoff for transient errors
     if (attempt < maxRetries) {
       await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
     }
   }
   throw new Error(`Tool ${toolId} failed after ${maxRetries} attempts`);
-}
-```
-
-### Fallback Pattern
-
-```typescript
-async function runWithFallback(inputs: Record<string, any>) {
-  const { data: primary } = await runTool("primary-tool", { inputs, options: { async: false } });
-  if (primary.status === "success") return primary;
-
-  console.warn("Primary tool failed, using fallback");
-  const { data: fallback } = await runTool("fallback-tool", { inputs, options: { async: false } });
-  return fallback;
 }
 ```
 
