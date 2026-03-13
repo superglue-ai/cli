@@ -1850,16 +1850,16 @@ var require_types = __commonJS({
       RunStatus2["FAILED"] = "FAILED";
       RunStatus2["ABORTED"] = "ABORTED";
     })(RunStatus || (exports2.RunStatus = RunStatus = {}));
-    var RequestSource3;
-    (function(RequestSource4) {
-      RequestSource4["API"] = "api";
-      RequestSource4["FRONTEND"] = "frontend";
-      RequestSource4["SCHEDULER"] = "scheduler";
-      RequestSource4["MCP"] = "mcp";
-      RequestSource4["TOOL_CHAIN"] = "tool-chain";
-      RequestSource4["WEBHOOK"] = "webhook";
-      RequestSource4["CLI"] = "cli";
-    })(RequestSource3 || (exports2.RequestSource = RequestSource3 = {}));
+    var RequestSource2;
+    (function(RequestSource3) {
+      RequestSource3["API"] = "api";
+      RequestSource3["FRONTEND"] = "frontend";
+      RequestSource3["SCHEDULER"] = "scheduler";
+      RequestSource3["MCP"] = "mcp";
+      RequestSource3["TOOL_CHAIN"] = "tool-chain";
+      RequestSource3["WEBHOOK"] = "webhook";
+      RequestSource3["CLI"] = "cli";
+    })(RequestSource2 || (exports2.RequestSource = RequestSource2 = {}));
     var FilterTarget;
     (function(FilterTarget2) {
       FilterTarget2["KEYS"] = "KEYS";
@@ -2986,10 +2986,15 @@ If the user has or creates an OAuth app in their Google Cloud project:
 4. After system creation, use authenticate_oauth - user completes Google sign-in in popup
 5. Superglue auto-refreshes tokens - no manual token management needed
 
-OPTION 2: Service Account Token (Manual refresh required)
-If the user has a service account JSON file:
-- Superglue does NOT support JWT token generation from service account JSON (on roadmap)
-- User must generate an access token on their machine using gcloud CLI:
+OPTION 2: Service Account JWT (Advanced)
+If the user has a service account JSON file, you can generate JWTs dynamically using a transform step:
+- Extract private_key and client_email from the service account JSON
+- Build the JWT header and claims, then sign with crypto.sign('sha256', data, privateKey, 'base64url')
+- Exchange the JWT for an access token via POST to https://oauth2.googleapis.com/token
+
+OPTION 3: Service Account Token via CLI (Manual refresh required)
+If the user prefers to generate tokens externally:
+- User generates an access token on their machine using gcloud CLI:
   1. Activate the service account: gcloud auth activate-service-account --key-file=/path/to/service-account.json
   2. Print the token: gcloud auth print-access-token
 - The token is valid for 1 hour only
@@ -21233,7 +21238,7 @@ var require_superglue_client = __commonJS({
        * Execute a single step without creating a run in the database.
        * Used for individual step testing in the playground.
        */
-      async executeStep({ step, payload, previousResults, credentials, options, runId, mode }) {
+      async executeStep({ step, payload, previousResults, credentials, options, runId, mode, systemIds }) {
         return this.restRequest("POST", "/v1/tools/step/run", {
           step,
           payload,
@@ -21241,7 +21246,8 @@ var require_superglue_client = __commonJS({
           credentials,
           options,
           runId,
-          mode
+          mode,
+          systemIds
         });
       }
       /**
@@ -22614,12 +22620,10 @@ function registerRunCommand(parent, getContext2) {
 
 // src/commands/tool/edit.ts
 var fs7 = __toESM(require("fs"));
-var crypto3 = __toESM(require("crypto"));
 var import_shared5 = __toESM(require_dist2());
-var import_shared6 = __toESM(require_dist2());
 var jsonpatch = __toESM(require("fast-json-patch"));
 function registerEditCommand(parent, getContext2) {
-  parent.command("edit").description("Edit a tool using JSON Patch operations").option("--draft <id>", "Draft ID to edit").option("--tool <id>", "Saved tool ID to edit").option("--patches <json-or-file>", "JSON Patch array (inline JSON or file path)").option("--payload <json>", "Test payload JSON").option("--test", "Run the patched tool after accepting").action(async (opts) => {
+  parent.command("edit").description("Edit a tool using JSON Patch operations").option("--draft <id>", "Draft ID to edit").option("--tool <id>", "Saved tool ID to edit").option("--patches <json-or-file>", "JSON Patch array (inline JSON or file path)").action(async (opts) => {
     const { client } = getContext2();
     if (!opts.draft && !opts.tool) {
       error("Provide --draft or --tool");
@@ -22666,7 +22670,7 @@ function registerEditCommand(parent, getContext2) {
     try {
       const copy = JSON.parse(JSON.stringify(originalConfig));
       const result = jsonpatch.applyPatch(copy, patches, true, true);
-      patchedConfig = (0, import_shared6.normalizeToolSchemas)(result.newDocument || copy);
+      patchedConfig = (0, import_shared5.normalizeToolSchemas)(result.newDocument || copy);
     } catch (err) {
       error(`Patch failed: ${err.message}`);
       process.exit(1);
@@ -22694,67 +22698,11 @@ function registerEditCommand(parent, getContext2) {
       createdAt: (/* @__PURE__ */ new Date()).toISOString()
     };
     writeDraft(draft);
-    if (opts.test) {
-      let payload;
-      try {
-        payload = opts.payload ? JSON.parse(opts.payload) : {};
-      } catch (err) {
-        error(`Invalid --payload JSON: ${err.message}`);
-        process.exit(1);
-      }
-      const traceId = crypto3.randomUUID();
-      const spin = spinner("Running test...");
-      const logSub = await client.subscribeToLogsSSE({
-        traceId,
-        onLog: (log) => spin.log(`${c.dim}${log.message}${c.reset}`)
-      }).catch(() => ({ unsubscribe: () => {
-      } }));
-      try {
-        const testResult = await client.runToolConfig({
-          tool: draft.config,
-          payload,
-          options: { requestSource: import_shared5.RequestSource.CLI },
-          traceId
-        });
-        logSub.unsubscribe();
-        spin.stop();
-        if (testResult.success) {
-          success("Test passed");
-        } else {
-          error(`Test failed: ${testResult.error || "Unknown error"}`);
-        }
-        if (process.argv.includes("--json") || !process.stdout.isTTY) {
-          output({
-            success: true,
-            draftId: workingDraftId,
-            diffs,
-            testResult: {
-              success: testResult.success,
-              data: testResult.data,
-              error: testResult.error
-            }
-          });
-        } else {
-          output(testResult.data);
-        }
-      } catch (err) {
-        logSub.unsubscribe();
-        spin.stop();
-        error(`Test error: ${err.message}`);
-        output({
-          success: true,
-          draftId: workingDraftId,
-          diffs,
-          testResult: { success: false, error: err.message }
-        });
-      }
+    if (process.argv.includes("--json") || !process.stdout.isTTY) {
+      output({ success: true, draftId: workingDraftId, diffs });
     } else {
-      if (process.argv.includes("--json") || !process.stdout.isTTY) {
-        output({ success: true, draftId: workingDraftId, diffs });
-      } else {
-        success(`Draft updated: ${c.bold}${workingDraftId}${c.reset}`);
-        console.log("");
-      }
+      success(`Draft updated: ${c.bold}${workingDraftId}${c.reset}`);
+      console.log("");
     }
   });
 }
@@ -22871,7 +22819,7 @@ function registerToolCommands(program2, getContext2) {
 // src/commands/system/create.ts
 var fs8 = __toESM(require("fs"));
 var import_commander = require("commander");
-var import_shared7 = __toESM(require_dist2());
+var import_shared6 = __toESM(require_dist2());
 async function collectSensitiveCredentials(fields) {
   const creds = {};
   for (const field of fields) {
@@ -22928,10 +22876,10 @@ function registerCreateCommand(parent, getContext2) {
       };
     }
     if (opts.template) {
-      const template = import_shared7.systems[opts.template];
+      const template = import_shared6.systems[opts.template];
       if (!template) {
         error(
-          `Template not found: ${opts.template}. Available: ${Object.keys(import_shared7.systems).join(", ")}`
+          `Template not found: ${opts.template}. Available: ${Object.keys(import_shared6.systems).join(", ")}`
         );
         process.exit(1);
       }
@@ -23069,7 +23017,7 @@ function registerEditCommand2(parent, getContext2) {
 
 // src/commands/system/find.ts
 var import_commander3 = require("commander");
-var import_shared8 = __toESM(require_dist2());
+var import_shared7 = __toESM(require_dist2());
 function filterSystemFields(system) {
   const credentialKeys = Object.keys(system.credentials || {});
   return {
@@ -23113,7 +23061,7 @@ function registerFindCommand2(parent, getContext2) {
           error(`System not found: ${opts.id}`);
           process.exit(1);
         }
-        const templateMatch = (0, import_shared8.findTemplateForSystem)(system);
+        const templateMatch = (0, import_shared7.findTemplateForSystem)(system);
         output({
           success: true,
           system: filterSystemFields(system),
@@ -23149,7 +23097,7 @@ function registerFindCommand2(parent, getContext2) {
 
 // src/commands/system/call.ts
 var import_commander4 = require("commander");
-var import_shared9 = __toESM(require_dist2());
+var import_shared8 = __toESM(require_dist2());
 function registerCallCommand(parent, getContext2) {
   parent.command("call").description("Call a system (API, database, file server)").requiredOption("--url <url>", "Full URL including protocol").option("--system-id <id>", "System ID for credential injection").option("--method <method>", "HTTP method", "GET").option("--headers <json>", "HTTP headers JSON").option("--body <string>", "Request body").option(
     "--file <key=path...>",
@@ -23220,7 +23168,7 @@ function registerCallCommand(parent, getContext2) {
       const responseData = result.data?.data !== void 0 ? result.data.data : result.data;
       output({
         success: result.success,
-        protocol: (0, import_shared9.getConnectionProtocol)(opts.url),
+        protocol: (0, import_shared8.getConnectionProtocol)(opts.url),
         data: responseData,
         ...result.error ? { error: result.error } : {}
       });
@@ -23281,7 +23229,7 @@ function registerDocsCommand(parent, getContext2) {
 
 // src/commands/system/oauth.ts
 var import_node_child_process2 = require("child_process");
-var import_shared10 = __toESM(require_dist2());
+var import_shared9 = __toESM(require_dist2());
 function openBrowser(url) {
   const platform = process.platform;
   const cmd = platform === "darwin" ? "open" : platform === "win32" ? "cmd" : "xdg-open";
@@ -23317,7 +23265,7 @@ function registerOAuthCommand(parent, getContext2) {
       error(err.message);
       process.exit(1);
     }
-    const templateMatch = (0, import_shared10.findTemplateForSystem)(system);
+    const templateMatch = (0, import_shared9.findTemplateForSystem)(system);
     const templateOAuth = templateMatch?.template?.oauth;
     const clientId = system.credentials?.client_id ?? templateOAuth?.client_id;
     const authUrl = opts.authUrl ?? system.credentials?.auth_url ?? templateOAuth?.authUrl;
@@ -23395,7 +23343,7 @@ function registerOAuthCommand(parent, getContext2) {
       error(`Failed to get OAuth encryption secret: ${err.message}`);
       process.exit(1);
     }
-    const encryptedApiKey = (0, import_shared10.encryptCliApiKey)(config.apiKey, opts.systemId, encryptionSecret);
+    const encryptedApiKey = (0, import_shared9.encryptCliApiKey)(config.apiKey, opts.systemId, encryptionSecret);
     const redirectUri = `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`;
     const state = {
       systemId: opts.systemId,
