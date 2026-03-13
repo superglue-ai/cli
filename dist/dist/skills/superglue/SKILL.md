@@ -20,7 +20,7 @@ description: "Build, test, deploy and integrate superglue tools via the sg CLI a
 
 **Saving Tools:**
 
-- **NEVER save a tool without explicit user confirmation** — always ask "Should I save this tool?" first
+- **Don't save a tool without explicit user confirmation** — always ask "Should I save this tool?" first
 - After `sg tool build` + `sg tool run`, present results to the user and wait for approval
 - Only run `sg tool save --draft <id>` after the user explicitly confirms
 
@@ -120,9 +120,9 @@ Interactive setup — API key, endpoint, output mode. Creates `.superglue/`.
 **`sg tool build`** — Register a tool config. Returns a `draftId`. Not AI-powered — you provide the full config.
 
 ```bash
-sg tool build --config tool.json                    # from file
 sg tool build --config '{"id":"...","steps":[...]}'  # inline JSON
 sg tool build --id my-tool --instruction "..." --steps steps.json --payload '{"key":"val"}'
+sg tool build --config tool.json                    # from file
 ```
 
 | `--config <file-or-json>` | Full JSON config (file path or inline JSON string) |
@@ -549,46 +549,6 @@ Templates auto-populate endpoints and OAuth config. Use `sg system find` to disc
 2. Check each step's `data` field — is the API returning what you expect?
 3. Verify credential placeholders match `sg system find --id <systemId>` placeholder list
 4. **Test API calls directly with `sg system call`** — isolate whether the issue is auth, endpoint, or transform
-
----
-
-## Workflow Guide
-
-### Pre-Building: Test with `sg system call`
-
-1. **Verify authentication** — Test that credentials work:
-
-   ```bash
-   sg system call --url "https://api.example.com/me" \
-     --system-id my_api \
-     --headers '{"Authorization":"Bearer <<my_api_access_token>>"}'
-   ```
-
-2. **Explore response structure** — Understand what the API returns:
-
-   ```bash
-   sg system call --url "https://api.example.com/users?limit=2" \
-     --system-id my_api \
-     --headers '{"Authorization":"Bearer <<my_api_access_token>>"}'
-   ```
-
-   Look at the response to understand:
-   - Where is the data array?
-   - What fields are available?
-   - Is there pagination info? (`nextCursor`, `hasMore`, `total`?)
-
-3. **Test the exact endpoints your tool will use** — Don't guess.
-
-### Full Workflow
-
-1. **Create system** → `sg system create --id my_api --name "My API" --url ... --credentials '{"api_key":"..."}'` - optional, omit if the system is already set up
-2. **Authenticate** → `sg system oauth` (if OAuth) or credentials are already set
-3. **Test auth** → `sg system call` to verify credentials work
-4. **Explore API** → `sg system search-docs` + more `sg system call` to test endpoints
-5. **Build tool** → Construct full config JSON, `sg tool build --config '...'`
-6. **Test** → `sg tool run --draft <id> --include-step-results`
-7. **Iterate** → `sg tool edit --draft <id> --patches '[...]'`, then `sg tool run --draft <id>`
-8. **Save** → `sg tool save --draft <id>`
 
 ---
 
