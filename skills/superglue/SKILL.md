@@ -617,7 +617,7 @@ Drafts live in `.superglue/drafts/<draftId>.json`. Created by `build`, updated b
 
 ## File References
 
-Attach files with `--file key=path`. Reference in payloads with `file::<key>`. Auto-parsed via `/v1/extract`.
+Attach files with `--file key=path`. Reference in payloads with `file::<key>`. Auto-parsed to JSON.
 
 ```bash
 sg tool run --draft <id> --payload '{"data": "file::mysheet"}' --file mysheet=data.xlsx
