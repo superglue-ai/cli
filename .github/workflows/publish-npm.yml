@@ -26,20 +26,22 @@ jobs:
             exit 1
           fi
 
-      - name: Check if version exists
-        id: check
+      - name: Determine publish version
         run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          if npm view @superglue/cli@${PACKAGE_VERSION} version 2>/dev/null; then
-            echo "Version ${PACKAGE_VERSION} already exists"
-            echo "skip=true" >> $GITHUB_OUTPUT
+          CURRENT_NPM=$(npm view @superglue/cli version 2>/dev/null || echo "0.0.0")
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          PKG_MAJOR_MINOR=$(echo "$PKG_VERSION" | cut -d. -f1-2)
+          NPM_MAJOR_MINOR=$(echo "$CURRENT_NPM" | cut -d. -f1-2)
+          if [ "$PKG_MAJOR_MINOR" != "$NPM_MAJOR_MINOR" ]; then
+            PUBLISH_VERSION="$PKG_VERSION"
           else
-            echo "Publishing version ${PACKAGE_VERSION}"
-            echo "skip=false" >> $GITHUB_OUTPUT
+            NPM_PATCH=$(echo "$CURRENT_NPM" | cut -d. -f3)
+            PUBLISH_VERSION="${PKG_MAJOR_MINOR}.$((NPM_PATCH + 1))"
           fi
+          echo "Publishing as ${PUBLISH_VERSION} (npm current: ${CURRENT_NPM}, package.json: ${PKG_VERSION})"
+          npm version "${PUBLISH_VERSION}" --no-git-tag-version
 
       - name: Publish to npm
-        if: steps.check.outputs.skip != 'true'
         run: npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
