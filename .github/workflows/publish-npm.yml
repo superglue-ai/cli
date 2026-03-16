@@ -1,6 +1,7 @@
 name: Publish to npm
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -39,7 +40,7 @@ jobs:
             PUBLISH_VERSION="${PKG_MAJOR_MINOR}.$((NPM_PATCH + 1))"
           fi
           echo "Publishing as ${PUBLISH_VERSION} (npm current: ${CURRENT_NPM}, package.json: ${PKG_VERSION})"
-          npm version "${PUBLISH_VERSION}" --no-git-tag-version
+          npm version "${PUBLISH_VERSION}" --no-git-tag-version --allow-same-version
 
       - name: Publish to npm
         run: npm publish --access public --ignore-scripts
