@@ -6,7 +6,12 @@ import { registerToolCommands } from "./commands/tool/index.js";
 import { registerSystemCommands } from "./commands/system/index.js";
 import { registerRunCommands } from "./commands/run/index.js";
 import { registerUpdateCommand } from "./commands/update.js";
-import { CLI_VERSION, checkVersionCompatibility } from "./version.js";
+import {
+  CLI_VERSION,
+  checkVersionCompatibility,
+  startBackgroundUpdateCheck,
+  printUpdateNotification,
+} from "./version.js";
 
 const program = new Command();
 
@@ -27,6 +32,7 @@ All Commands:
   sg tool build --id <id> --instruction <text>   Build a tool from flags (requires --steps)
   sg tool run --tool <id> [--payload <json>]     Run a saved tool
   sg tool run --draft <id> [--payload <json>]    Run a draft tool
+  sg tool run --config <json> [--no-create-run]   Run inline config (logs run by default)
   sg tool edit --tool <id> --patches <json>      Edit a tool via JSON Patch
   sg tool edit --draft <id> --patches <json>     Edit a draft via JSON Patch
   sg tool save --draft <id>                     Save a draft to the server
@@ -35,7 +41,7 @@ All Commands:
   sg tool find --id <id>                         Get full config of a tool
 
   sg system create --config <file>               Create a system from JSON config
-  sg system create --id <id> --url <url>         Create a system from flags
+  sg system create --name <name> --url <url>     Create a system from flags
   sg system edit --id <id>                       Edit a system's configuration
   sg system list                                 List all systems
   sg system find [query]                         Search systems by keyword
@@ -112,15 +118,23 @@ function extractFlagValue(argv: string[], flag: string): string | undefined {
 }
 
 const subcommand = findSubcommand(process.argv);
+
+startBackgroundUpdateCheck();
+
+const runAndNotify = async (parsePromise: Promise<any>) => {
+  await parsePromise;
+  await printUpdateNotification();
+};
+
 if (subcommand && commandsRequiringServer.includes(subcommand)) {
   const cliApiKey = extractFlagValue(process.argv, "--api-key");
   const cliEndpoint = extractFlagValue(process.argv, "--endpoint");
   const config = resolveConfig({ apiKey: cliApiKey, endpoint: cliEndpoint });
   if (config.apiKey) {
-    checkVersionCompatibility(config.endpoint).then(() => program.parse());
+    runAndNotify(checkVersionCompatibility(config.endpoint).then(() => program.parseAsync()));
   } else {
-    program.parse();
+    runAndNotify(program.parseAsync());
   }
 } else {
-  program.parse();
+  runAndNotify(program.parseAsync());
 }

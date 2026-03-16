@@ -5329,6 +5329,75 @@ IMPORTANT: Sandbox and production use completely separate credentials and base U
         docsUrl: "https://ai.google.dev/api",
         // there is a openapi spec here: https://generativelanguage.googleapis.com/$discovery/OPENAPI3_0?version=v1beta&key=$GOOGLE_API_KEY - but you need your own google api key to access it
         preferredAuthType: "apikey"
+      },
+      tableau: {
+        name: "tableau",
+        apiUrl: "https://{your-server}.online.tableau.com",
+        regex: "^.*(tableau\\.com|online\\.tableau).*$",
+        icon: "lucide:plus",
+        docsUrl: "https://help.tableau.com/current/api/rest_api/en-us/REST/rest_api.htm",
+        preferredAuthType: "apikey",
+        keywords: [
+          "workbooks",
+          "views",
+          "datasources",
+          "projects",
+          "users",
+          "groups",
+          "permissions",
+          "sheets",
+          "published data sources",
+          "sites",
+          "jobs",
+          "favorites",
+          "flows",
+          "metrics",
+          "webhooks",
+          "connected apps",
+          "jwt",
+          "vizql",
+          "row-level security"
+        ],
+        systemSpecificInstructions: `Tableau supports two Connected App authentication methods:
+1. **Direct Trust**: Requires client_id, secret_id, and secret_value \u2014 you generate and sign JWTs yourself
+2. **OAuth 2.0**: Standard OAuth flow with client_id and client_secret
+
+DIRECT TRUST CREDENTIALS (from Settings > Connected Apps):
+- tableau_url: Server URL (e.g., https://prod-uk-a.online.tableau.com)
+- tableau_site_id: The content URL from browser (e.g., "mysite" from /site/mysite/)
+- tableau_client_id: Connected App ID
+- tableau_secret_id: The key ID you generated
+- tableau_client_secret: The secret value (only shown once when created)
+
+DIRECT TRUST AUTH FLOW:
+1. Generate a JWT signed with HMAC-SHA256 using the secret value. Include:
+   - Header: { alg: "HS256", typ: "JWT", kid: secret_id, iss: client_id }
+   - Payload: { iss: client_id, sub: "<username>", aud: "tableau", exp: <now+600>, jti: <uuid>, scp: ["tableau:content:read", "tableau:query:run"] }
+2. Exchange JWT for access token: POST /api/3.24/auth/signin with body: { credentials: { jwt: "<token>", site: { contentUrl: "<site_id>" } } }
+3. Use the returned token in X-Tableau-Auth header for all subsequent requests
+
+AVAILABLE APIs:
+- REST API (/api/3.24/...): Management & metadata \u2014 list datasources, workbooks, users, download view/dashboard data
+- Metadata API: GraphQL for relationships and lineage
+- VizQL Data Service (/api/v1/vizql-data-service/query-datasource): Query datasource rows directly
+
+ROW-LEVEL SECURITY: The JWT's "sub" claim determines which user's permissions apply. Data is automatically filtered based on that user's access.
+
+SUPERGLUE EXAMPLE - JWT generation in a transform step (Direct Trust):
+\`\`\`javascript
+(data) => {
+  const creds = data._credentials || {};
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT', kid: creds.tableau_secret_id, iss: creds.tableau_client_id }));
+  const payload = base64url(JSON.stringify({ iss: creds.tableau_client_id, sub: data.username, aud: 'tableau', exp: now + 600, jti: crypto.randomUUID(), scp: ['tableau:content:read', 'tableau:query:run'] }));
+  const signature = crypto.createHmac('sha256', creds.tableau_client_secret).update(header + '.' + payload).digest('base64url');
+  return { jwt: header + '.' + payload + '.' + signature };
+};
+\`\`\`
+
+EXAMPLE WORKFLOWS:
+- Generate JWT \u2192 Sign in \u2192 List datasources \u2192 Query via VizQL Data Service
+- Generate JWT \u2192 Sign in \u2192 Get workbook \u2192 Download view/dashboard data as CSV/PDF`
       }
     };
     exports2.systemOptions = [
@@ -19878,6 +19947,7 @@ var require_utils = __commonJS({
     exports2.validateExternalUrl = validateExternalUrl;
     exports2.flattenAndNamespaceCredentials = flattenAndNamespaceCredentials;
     exports2.flattenAndNamespaceSystemUrls = flattenAndNamespaceSystemUrls;
+    exports2.slugify = slugify2;
     exports2.generateUniqueId = generateUniqueId;
     exports2.waitForSystemProcessing = waitForSystemProcessing;
     exports2.inferJsonSchema = inferJsonSchema;
@@ -20085,6 +20155,10 @@ var require_utils = __commonJS({
         }
         return acc;
       }, {});
+    }
+    function slugify2(value) {
+      const slug = value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+      return slug || "system";
     }
     async function generateUniqueId({ baseId, exists }) {
       if (!await exists(baseId)) {
@@ -21210,7 +21284,8 @@ var require_superglue_client = __commonJS({
        * Used for SDK/playground testing
        */
       async runToolConfig(params) {
-        const response = await this.restRequest("POST", "/v1/tools/run", {
+        const path6 = params.createRun ? "/v1/tools/run?createRun=true" : "/v1/tools/run";
+        const response = await this.restRequest("POST", path6, {
           tool: params.tool,
           payload: params.payload,
           credentials: params.credentials,
@@ -21710,7 +21785,7 @@ var import_node_util = require("util");
 // package.json
 var package_default = {
   name: "@superglue/cli",
-  version: "1.1.3",
+  version: "1.1.4",
   bin: {
     sg: "./dist/cli.js"
   },
@@ -21798,6 +21873,28 @@ async function getLatestNpmVersion() {
   } catch {
     return null;
   }
+}
+var updateCheckPromise = null;
+function startBackgroundUpdateCheck() {
+  updateCheckPromise = getLatestNpmVersion();
+}
+async function printUpdateNotification() {
+  if (!updateCheckPromise) return;
+  try {
+    const timeout = new Promise((resolve4) => {
+      const timer = setTimeout(() => resolve4(null), 2e3);
+      timer.unref();
+    });
+    const latest = await Promise.race([updateCheckPromise, timeout]);
+    if (latest && compareVersions(CLI_VERSION, latest) < 0) {
+      console.error("");
+      console.error(`${c.cyan}${c.bold}  Update available: ${CLI_VERSION} \u2192 ${latest}${c.reset}`);
+      console.error(`${c.cyan}  Run ${c.bold}sg update${c.reset}${c.cyan} to upgrade${c.reset}`);
+      console.error("");
+    }
+  } catch {
+  }
+  updateCheckPromise = null;
 }
 async function updateCli() {
   const latestVersion = await getLatestNpmVersion();
@@ -22514,7 +22611,7 @@ function registerRunCommand(parent, getContext2) {
       return arr;
     },
     []
-  ).option("--include-step-results", "Include raw step results").option("--include-config", "Include full tool config").action(async (opts) => {
+  ).option("--include-step-results", "Include raw step results").option("--include-config", "Include full tool config").option("--no-create-run", "Skip creating a run record in the backend").action(async (opts) => {
     const { config, client } = getContext2();
     const selectors = [opts.tool, opts.draft, opts.config, opts.configFile].filter(Boolean);
     if (selectors.length === 0) {
@@ -22523,6 +22620,10 @@ function registerRunCommand(parent, getContext2) {
     }
     if (selectors.length > 1) {
       error("Only one of --tool, --draft, --config, or --config-file can be used");
+      process.exit(1);
+    }
+    if (opts.tool && opts.createRun === false) {
+      error("--no-create-run is not supported with --tool (saved tools always create runs)");
       process.exit(1);
     }
     const filePayloads = await parseFileFlags(opts.file, client);
@@ -22550,7 +22651,8 @@ function registerRunCommand(parent, getContext2) {
           tool: toolConfig,
           payload,
           options: { requestSource: import_shared4.RequestSource.CLI },
-          traceId
+          traceId,
+          createRun: opts.createRun !== false
         });
         logSub.unsubscribe();
         spin.stop();
@@ -22837,7 +22939,7 @@ async function collectSensitiveCredentials(fields) {
   return creds;
 }
 function registerCreateCommand(parent, getContext2) {
-  parent.command("create").description("Create a new system").option("--config <file>", "JSON config file").option("--id <id>", "System ID").option("--name <name>", "Human-readable name").option("--url <url>", "API URL").option("--template <id>", "Template ID").option("--instructions <text>", "Specific instructions").option("--credentials <json>", "Non-sensitive credentials JSON").option("--sensitive-credentials <fields>", "Comma-separated sensitive credential field names").option("--docs-url <url>", "Documentation URL to scrape").option("--openapi-url <url>", "OpenAPI spec URL").addOption(
+  parent.command("create").description("Create a new system").option("--config <file>", "JSON config file").option("--id <id>", "System ID (derived from name if omitted)").option("--name <name>", "Human-readable name (required)").option("--url <url>", "API URL").option("--template <id>", "Template ID").option("--instructions <text>", "Specific instructions").option("--credentials <json>", "Non-sensitive credentials JSON").option("--sensitive-credentials <fields>", "Comma-separated sensitive credential field names").option("--docs-url <url>", "Documentation URL to scrape").option("--openapi-url <url>", "OpenAPI spec URL").addOption(
     new import_commander.Option("--env <environment>", "Environment: dev or prod (default: prod)").choices([
       "dev",
       "prod"
@@ -22903,9 +23005,16 @@ function registerCreateCommand(parent, getContext2) {
       const sensitive = await collectSensitiveCredentials(fields);
       systemInput.credentials = { ...systemInput.credentials, ...sensitive };
     }
-    if (!systemInput.id) {
-      error("System ID is required (--id)");
+    if (typeof systemInput.name !== "string" || systemInput.name.trim() === "") {
+      error("System name is required (--name)");
       process.exit(1);
+    }
+    if (!systemInput.id) {
+      systemInput.id = (0, import_shared6.slugify)(systemInput.name.trim());
+      if (!systemInput.id) {
+        error("System ID could not be derived from name; use --id with letters or numbers");
+        process.exit(1);
+      }
     }
     try {
       const spin = spinner(`Creating system ${c.bold}${systemInput.id}${c.reset}...`);
@@ -23530,6 +23639,7 @@ All Commands:
   sg tool build --id <id> --instruction <text>   Build a tool from flags (requires --steps)
   sg tool run --tool <id> [--payload <json>]     Run a saved tool
   sg tool run --draft <id> [--payload <json>]    Run a draft tool
+  sg tool run --config <json> [--no-create-run]   Run inline config (logs run by default)
   sg tool edit --tool <id> --patches <json>      Edit a tool via JSON Patch
   sg tool edit --draft <id> --patches <json>     Edit a draft via JSON Patch
   sg tool save --draft <id>                     Save a draft to the server
@@ -23538,7 +23648,7 @@ All Commands:
   sg tool find --id <id>                         Get full config of a tool
 
   sg system create --config <file>               Create a system from JSON config
-  sg system create --id <id> --url <url>         Create a system from flags
+  sg system create --name <name> --url <url>     Create a system from flags
   sg system edit --id <id>                       Edit a system's configuration
   sg system list                                 List all systems
   sg system find [query]                         Search systems by keyword
@@ -23602,15 +23712,20 @@ function extractFlagValue(argv, flag) {
   return void 0;
 }
 var subcommand = findSubcommand(process.argv);
+startBackgroundUpdateCheck();
+var runAndNotify = async (parsePromise) => {
+  await parsePromise;
+  await printUpdateNotification();
+};
 if (subcommand && commandsRequiringServer.includes(subcommand)) {
   const cliApiKey = extractFlagValue(process.argv, "--api-key");
   const cliEndpoint = extractFlagValue(process.argv, "--endpoint");
   const config = resolveConfig({ apiKey: cliApiKey, endpoint: cliEndpoint });
   if (config.apiKey) {
-    checkVersionCompatibility(config.endpoint).then(() => program.parse());
+    runAndNotify(checkVersionCompatibility(config.endpoint).then(() => program.parseAsync()));
   } else {
-    program.parse();
+    runAndNotify(program.parseAsync());
   }
 } else {
-  program.parse();
+  runAndNotify(program.parseAsync());
 }

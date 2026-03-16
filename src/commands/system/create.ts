@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
-import { systems } from "@superglue/shared";
+import { systems, slugify } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
 import { output, error, promptHidden, success, spinner, colors as c } from "../../output.js";
 
@@ -29,8 +29,8 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
     .command("create")
     .description("Create a new system")
     .option("--config <file>", "JSON config file")
-    .option("--id <id>", "System ID")
-    .option("--name <name>", "Human-readable name")
+    .option("--id <id>", "System ID (derived from name if omitted)")
+    .option("--name <name>", "Human-readable name (required)")
     .option("--url <url>", "API URL")
     .option("--template <id>", "Template ID")
     .option("--instructions <text>", "Specific instructions")
@@ -113,9 +113,16 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
         systemInput.credentials = { ...systemInput.credentials, ...sensitive };
       }
 
-      if (!systemInput.id) {
-        error("System ID is required (--id)");
+      if (typeof systemInput.name !== "string" || systemInput.name.trim() === "") {
+        error("System name is required (--name)");
         process.exit(1);
+      }
+      if (!systemInput.id) {
+        systemInput.id = slugify(systemInput.name.trim());
+        if (!systemInput.id) {
+          error("System ID could not be derived from name; use --id with letters or numbers");
+          process.exit(1);
+        }
       }
 
       try {

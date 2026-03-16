@@ -12,6 +12,11 @@ description: "Build, test, deploy and integrate superglue tools via the sg CLI a
 1. **Check CLI exists**: Run `sg --version`. If it fails with `command not found`, install it: `npm install -g @superglue/cli`
 2. **Check superglue CLI config exists**: Run `sg system list`. If it fails with `fetch failed` or auth errors, the CLI needs configuration via `sg init` (see below).
 
+**Calling systems and running tools**
+
+1. ALWAYS make sure you pull the relevant system context using `sg system find` before calling system endpoints and running inline JSON tools or building new tools.
+2. Use `sg system search-docs` to do a targeted keyword search of system docs if you're unsure about how a system works.
+
 **Authentication & Credentials:**
 
 - **Auth headers MUST be set explicitly** — credentials are NEVER auto-injected into requests or tool steps
@@ -173,34 +178,33 @@ sg tool find --id my-tool       # exact ID lookup (full config)
 
 **Required flags:**
 
-- `--id <id>` — System ID (lowercase, underscores only, no hyphens)
 - `--name <name>` — Human-readable display name
 - `--url <url>` — API base URL (auto-filled when using `--template`)
 
-**At least one of:**
+**Optional:**
 
+- `--id <id>` — System ID (lowercase, underscores only, no hyphens). Derived from `--name` if omitted.
 - `--template <id>` — Pre-configured template (auto-fills name and url if not provided)
-- `--url <url>` + `--name <name>` manually
 
 **Example with credentials (non-interactive — use this in AI agent / CI contexts):**
 
 ```bash
-sg system create --id my_api --name "My API" --url https://api.example.com \
+sg system create --name "My API" --url https://api.example.com \
   --credentials '{"api_key":"sk-xxx"}'
 ```
 
 **With template:**
 
 ```bash
-sg system create --id slack --name "Slack" --template slack
+sg system create --name "Slack" --template slack
 ```
 
 **Full flag reference:**
 
 | Flag                               | Description                                                                  |
 | ---------------------------------- | ---------------------------------------------------------------------------- |
-| `--id <id>`                        | System ID (lowercase, underscores only) — **REQUIRED**                       |
 | `--name <name>`                    | Human-readable name — **REQUIRED**                                           |
+| `--id <id>`                        | System ID (lowercase, underscores only) — derived from name if omitted       |
 | `--url <url>`                      | API base URL — **REQUIRED** (auto-filled by `--template`)                    |
 | `--template <id>`                  | Template ID (stripe, shopify, slack, etc.)                                   |
 | `--credentials <json>`             | Credentials JSON (use for ALL creds in non-interactive mode)                 |
@@ -530,7 +534,7 @@ Templates auto-populate endpoints and OAuth config. Use `sg system find` to disc
 
 ### OAuth Flow
 
-1. `sg system create --id gmail --url https://gmail.googleapis.com --credentials '{"auth_url":"...","token_url":"..."}' --sensitive-credentials client_id,client_secret`
+1. `sg system create --name "Gmail" --url https://gmail.googleapis.com --credentials '{"auth_url":"...","token_url":"..."}' --sensitive-credentials client_id,client_secret`
 2. `sg system oauth --system-id gmail --scopes "..."`
 3. User authenticates in browser → tokens saved automatically
 

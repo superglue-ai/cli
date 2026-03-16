@@ -87,7 +87,7 @@ sg tool save --draft <id>      # save it
 
 ## Documentation
 
-- [Agent-Driven Development](https://docs.superglue.cloud/getting-started/llm-driven-development) — Skill installation and agent setup
+- [CLI + Skills](https://docs.superglue.cloud/getting-started/cli-skills) — Skill installation and agent setup
 - [Full CLI Reference](./skills/superglue/SKILL.md) — Complete command documentation
 - [superglue Docs](https://docs.superglue.cloud) — Platform documentation
 - [API Reference](https://docs.superglue.cloud/api-reference/) — REST API docs
