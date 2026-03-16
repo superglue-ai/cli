@@ -5329,6 +5329,75 @@ IMPORTANT: Sandbox and production use completely separate credentials and base U
         docsUrl: "https://ai.google.dev/api",
         // there is a openapi spec here: https://generativelanguage.googleapis.com/$discovery/OPENAPI3_0?version=v1beta&key=$GOOGLE_API_KEY - but you need your own google api key to access it
         preferredAuthType: "apikey"
+      },
+      tableau: {
+        name: "tableau",
+        apiUrl: "https://{your-server}.online.tableau.com",
+        regex: "^.*(tableau\\.com|online\\.tableau).*$",
+        icon: "lucide:plus",
+        docsUrl: "https://help.tableau.com/current/api/rest_api/en-us/REST/rest_api.htm",
+        preferredAuthType: "apikey",
+        keywords: [
+          "workbooks",
+          "views",
+          "datasources",
+          "projects",
+          "users",
+          "groups",
+          "permissions",
+          "sheets",
+          "published data sources",
+          "sites",
+          "jobs",
+          "favorites",
+          "flows",
+          "metrics",
+          "webhooks",
+          "connected apps",
+          "jwt",
+          "vizql",
+          "row-level security"
+        ],
+        systemSpecificInstructions: `Tableau supports two Connected App authentication methods:
+1. **Direct Trust**: Requires client_id, secret_id, and secret_value \u2014 you generate and sign JWTs yourself
+2. **OAuth 2.0**: Standard OAuth flow with client_id and client_secret
+
+DIRECT TRUST CREDENTIALS (from Settings > Connected Apps):
+- tableau_url: Server URL (e.g., https://prod-uk-a.online.tableau.com)
+- tableau_site_id: The content URL from browser (e.g., "mysite" from /site/mysite/)
+- tableau_client_id: Connected App ID
+- tableau_secret_id: The key ID you generated
+- tableau_client_secret: The secret value (only shown once when created)
+
+DIRECT TRUST AUTH FLOW:
+1. Generate a JWT signed with HMAC-SHA256 using the secret value. Include:
+   - Header: { alg: "HS256", typ: "JWT", kid: secret_id, iss: client_id }
+   - Payload: { iss: client_id, sub: "<username>", aud: "tableau", exp: <now+600>, jti: <uuid>, scp: ["tableau:content:read", "tableau:query:run"] }
+2. Exchange JWT for access token: POST /api/3.24/auth/signin with body: { credentials: { jwt: "<token>", site: { contentUrl: "<site_id>" } } }
+3. Use the returned token in X-Tableau-Auth header for all subsequent requests
+
+AVAILABLE APIs:
+- REST API (/api/3.24/...): Management & metadata \u2014 list datasources, workbooks, users, download view/dashboard data
+- Metadata API: GraphQL for relationships and lineage
+- VizQL Data Service (/api/v1/vizql-data-service/query-datasource): Query datasource rows directly
+
+ROW-LEVEL SECURITY: The JWT's "sub" claim determines which user's permissions apply. Data is automatically filtered based on that user's access.
+
+SUPERGLUE EXAMPLE - JWT generation in a transform step (Direct Trust):
+\`\`\`javascript
+(data) => {
+  const creds = data._credentials || {};
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT', kid: creds.tableau_secret_id, iss: creds.tableau_client_id }));
+  const payload = base64url(JSON.stringify({ iss: creds.tableau_client_id, sub: data.username, aud: 'tableau', exp: now + 600, jti: crypto.randomUUID(), scp: ['tableau:content:read', 'tableau:query:run'] }));
+  const signature = crypto.createHmac('sha256', creds.tableau_client_secret).update(header + '.' + payload).digest('base64url');
+  return { jwt: header + '.' + payload + '.' + signature };
+};
+\`\`\`
+
+EXAMPLE WORKFLOWS:
+- Generate JWT \u2192 Sign in \u2192 List datasources \u2192 Query via VizQL Data Service
+- Generate JWT \u2192 Sign in \u2192 Get workbook \u2192 Download view/dashboard data as CSV/PDF`
       }
     };
     exports2.systemOptions = [
@@ -21710,7 +21779,7 @@ var import_node_util = require("util");
 // package.json
 var package_default = {
   name: "@superglue/cli",
-  version: "1.1.3",
+  version: "1.1.4",
   bin: {
     sg: "./dist/cli.js"
   },
