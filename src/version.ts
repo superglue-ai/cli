@@ -83,6 +83,30 @@ export async function getLatestNpmVersion(): Promise<string | null> {
   }
 }
 
+let updateCheckPromise: Promise<string | null> | null = null;
+
+export function startBackgroundUpdateCheck(): void {
+  updateCheckPromise = getLatestNpmVersion();
+}
+
+export async function printUpdateNotification(): Promise<void> {
+  if (!updateCheckPromise) return;
+  try {
+    const timeout = new Promise<null>((resolve) => {
+      const timer = setTimeout(() => resolve(null), 2000);
+      timer.unref();
+    });
+    const latest = await Promise.race([updateCheckPromise, timeout]);
+    if (latest && compareVersions(CLI_VERSION, latest) < 0) {
+      console.error("");
+      console.error(`${c.cyan}${c.bold}  Update available: ${CLI_VERSION} → ${latest}${c.reset}`);
+      console.error(`${c.cyan}  Run ${c.bold}sg update${c.reset}${c.cyan} to upgrade${c.reset}`);
+      console.error("");
+    }
+  } catch {}
+  updateCheckPromise = null;
+}
+
 export async function updateCli(): Promise<{ success: boolean; message: string }> {
   const latestVersion = await getLatestNpmVersion();
 

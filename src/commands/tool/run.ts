@@ -32,6 +32,7 @@ export function registerRunCommand(parent: Command, getContext: ContextFn): void
     )
     .option("--include-step-results", "Include raw step results")
     .option("--include-config", "Include full tool config")
+    .option("--no-create-run", "Skip creating a run record in the backend")
     .action(async (opts) => {
       const { config, client } = getContext();
 
@@ -42,6 +43,11 @@ export function registerRunCommand(parent: Command, getContext: ContextFn): void
       }
       if (selectors.length > 1) {
         error("Only one of --tool, --draft, --config, or --config-file can be used");
+        process.exit(1);
+      }
+
+      if (opts.tool && opts.createRun === false) {
+        error("--no-create-run is not supported with --tool (saved tools always create runs)");
         process.exit(1);
       }
 
@@ -80,6 +86,7 @@ export function registerRunCommand(parent: Command, getContext: ContextFn): void
             payload,
             options: { requestSource: RequestSource.CLI },
             traceId,
+            createRun: opts.createRun !== false,
           });
           logSub.unsubscribe();
           spin.stop();
