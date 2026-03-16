@@ -21785,7 +21785,7 @@ var import_node_util = require("util");
 // package.json
 var package_default = {
   name: "@superglue/cli",
-  version: "1.1.5",
+  version: "1.1.6",
   bin: {
     sg: "./dist/cli.js"
   },

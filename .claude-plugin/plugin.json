@@ -1,7 +1,7 @@
 {
   "name": "superglue",
   "description": "Build, test, and manage superglue tools via the sg CLI. Use when working with superglue tools, systems, APIs, SDKs, or the sg command.",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "author": {
     "name": "superglue",
     "email": "hello@superglue.cloud"
