@@ -2407,6 +2407,15 @@ var require_templates = __commonJS({
         preferredAuthType: "apikey",
         keywords: ["database", "sql", "postgres", "postgresql", "api key", "tables"]
       },
+      redis_direct: {
+        name: "redis_direct",
+        apiUrl: "redis://<<username>>:<<password>>@<<host>>:<<port>>/<<database>>",
+        regex: "^.*(rediss?://).*$",
+        icon: "redis",
+        docsUrl: "https://redis.io/docs/latest/commands/",
+        preferredAuthType: "apikey",
+        keywords: ["database", "cache", "redis", "key-value", "nosql", "api key"]
+      },
       stripe: {
         name: "stripe",
         apiUrl: "https://api.stripe.com",
@@ -19977,6 +19986,8 @@ var require_utils = __commonJS({
     var getConnectionProtocol2 = (url) => {
       if (url.startsWith("postgres://") || url.startsWith("postgresql://"))
         return "postgres";
+      if (url.startsWith("redis://") || url.startsWith("rediss://"))
+        return "redis";
       if (url.startsWith("ftp://") || url.startsWith("ftps://") || url.startsWith("sftp://"))
         return "sftp";
       if (url.startsWith("smb://"))
@@ -21785,7 +21796,7 @@ var import_node_util = require("util");
 // package.json
 var package_default = {
   name: "@superglue/cli",
-  version: "1.1.7",
+  version: "1.1.8",
   bin: {
     sg: "./dist/cli.js"
   },
