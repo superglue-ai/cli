@@ -32,10 +32,10 @@ All Commands:
   sg tool build --id <id> --instruction <text>   Build a tool from flags (requires --steps)
   sg tool run --tool <id> [--payload <json>]     Run a saved tool
   sg tool run --draft <id> [--payload <json>]    Run a draft tool
-  sg tool run --config <json> [--no-create-run]   Run inline config (logs run by default)
+  sg tool run --config <json> [--payload <json>] Run inline config
   sg tool edit --tool <id> --patches <json>      Edit a tool via JSON Patch
   sg tool edit --draft <id> --patches <json>     Edit a draft via JSON Patch
-  sg tool save --draft <id>                     Save a draft to the server
+  sg tool save --draft <id>                      Save a draft to the server
   sg tool list                                   List all saved tools
   sg tool find [query]                           Search tools by keyword
   sg tool find --id <id>                         Get full config of a tool
