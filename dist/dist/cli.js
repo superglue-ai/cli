@@ -21280,8 +21280,8 @@ var require_superglue_client = __commonJS({
         };
       }
       /**
-       * Execute a tool config without saving (no run record)
-       * Used for SDK/playground testing
+       * Execute a tool config directly without persisting the tool.
+       * Optionally creates a run record when `createRun` is true.
        */
       async runToolConfig(params) {
         const path6 = params.createRun ? "/v1/tools/run?createRun=true" : "/v1/tools/run";
@@ -21785,7 +21785,7 @@ var import_node_util = require("util");
 // package.json
 var package_default = {
   name: "@superglue/cli",
-  version: "1.1.6",
+  version: "1.1.7",
   bin: {
     sg: "./dist/cli.js"
   },
@@ -22611,7 +22611,7 @@ function registerRunCommand(parent, getContext2) {
       return arr;
     },
     []
-  ).option("--include-step-results", "Include raw step results").option("--include-config", "Include full tool config").option("--no-create-run", "Skip creating a run record in the backend").action(async (opts) => {
+  ).option("--include-step-results", "Include raw step results").option("--include-config", "Include full tool config").action(async (opts) => {
     const { config, client } = getContext2();
     const selectors = [opts.tool, opts.draft, opts.config, opts.configFile].filter(Boolean);
     if (selectors.length === 0) {
@@ -22620,10 +22620,6 @@ function registerRunCommand(parent, getContext2) {
     }
     if (selectors.length > 1) {
       error("Only one of --tool, --draft, --config, or --config-file can be used");
-      process.exit(1);
-    }
-    if (opts.tool && opts.createRun === false) {
-      error("--no-create-run is not supported with --tool (saved tools always create runs)");
       process.exit(1);
     }
     const filePayloads = await parseFileFlags(opts.file, client);
@@ -22652,7 +22648,7 @@ function registerRunCommand(parent, getContext2) {
           payload,
           options: { requestSource: import_shared4.RequestSource.CLI },
           traceId,
-          createRun: opts.createRun !== false
+          createRun: true
         });
         logSub.unsubscribe();
         spin.stop();
@@ -23639,10 +23635,10 @@ All Commands:
   sg tool build --id <id> --instruction <text>   Build a tool from flags (requires --steps)
   sg tool run --tool <id> [--payload <json>]     Run a saved tool
   sg tool run --draft <id> [--payload <json>]    Run a draft tool
-  sg tool run --config <json> [--no-create-run]   Run inline config (logs run by default)
+  sg tool run --config <json> [--payload <json>] Run inline config
   sg tool edit --tool <id> --patches <json>      Edit a tool via JSON Patch
   sg tool edit --draft <id> --patches <json>     Edit a draft via JSON Patch
-  sg tool save --draft <id>                     Save a draft to the server
+  sg tool save --draft <id>                      Save a draft to the server
   sg tool list                                   List all saved tools
   sg tool find [query]                           Search tools by keyword
   sg tool find --id <id>                         Get full config of a tool
