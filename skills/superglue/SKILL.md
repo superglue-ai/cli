@@ -235,21 +235,26 @@ sg system call --url "postgres://<<my_db_host>>:5432/mydb" \
   --system-id my_db \
   --body '{"query":"SELECT * FROM users LIMIT 5"}'
 
+# Redis command
+sg system call --url "redis://<<my_redis_host>>:6379/0" \
+  --system-id my_redis \
+  --body '{"command":"HGETALL","args":["user:123"]}'
+
 # File server (SFTP)
 sg system call --url "sftp://<<my_sftp_host>>:22/data" \
   --system-id my_sftp \
   --body '{"operation":"list","path":"/"}'
 ```
 
-| Flag                | Description                                               |
-| ------------------- | --------------------------------------------------------- |
-| `--url <url>`       | Full URL with protocol (http/https/postgres/sftp/ftp/smb) |
-| `--system-id <id>`  | System ID for credential injection                        |
-| `--method <method>` | HTTP method (GET, POST, PUT, DELETE, PATCH)               |
-| `--headers <json>`  | HTTP headers JSON with credential placeholders            |
-| `--body <string>`   | Request body (JSON string)                                |
-| `--env <env>`       | Environment: `dev` or `prod`                              |
-| `--file <key=path>` | File references (repeatable)                              |
+| Flag                | Description                                                            |
+| ------------------- | ---------------------------------------------------------------------- |
+| `--url <url>`       | Full URL with protocol (http/https/postgres/redis/rediss/sftp/ftp/smb) |
+| `--system-id <id>`  | System ID for credential injection                                     |
+| `--method <method>` | HTTP method (GET, POST, PUT, DELETE, PATCH)                            |
+| `--headers <json>`  | HTTP headers JSON with credential placeholders                         |
+| `--body <string>`   | Request body (JSON string)                                             |
+| `--env <env>`       | Environment: `dev` or `prod`                                           |
+| `--file <key=path>` | File references (repeatable)                                           |
 
 **`sg system search-docs`** — Search system documentation.
 
@@ -366,14 +371,25 @@ All step config fields support `<<variable>>` placeholders:
 | -------------------------- | --------------------------- |
 | `<<fieldName>>`            | Payload field or credential |
 | `<<systemId_credKey>>`     | System credential           |
+| `<<user_email>>`           | Email of authenticated user |
 | `<<(sourceData) => expr>>` | JavaScript expression       |
 
 **CRITICAL**: Simple `<<varName>>` only works for **top-level keys**. No dots, no nesting.
 
-- VALID: `<<userId>>`, `<<currentItem>>`, `<<stripe_api_key>>`
+- VALID: `<<userId>>`, `<<currentItem>>`, `<<stripe_api_key>>`, `<<user_email>>`
 - INVALID: `<<currentItem.id>>`, `<<sourceData.userId>>` — these FAIL at runtime
 
 For nested access, use arrow functions: `<<(sourceData) => sourceData.currentItem.id>>`
+
+### Context Variables
+
+Context variables provide information about the execution environment:
+
+- `<<user_email>>` — Email of the authenticated user who triggered the tool
+
+**Use case**: Personalize tool outputs based on who runs the tool (e.g., user-specific permissions, account lookups, audit logging).
+
+**Important**: `user_email` is NOT available in scheduled executions. Tools using `<<user_email>>` will fail if run via scheduler.
 
 ### sourceData Object
 
@@ -442,7 +458,7 @@ Empty arrays are valid — the step simply skips execution.
 
 ### Two Step Types
 
-**Request step** (HTTP, Postgres, FTP/SFTP/SMB) — makes an API call:
+**Request step** (HTTP, Postgres, Redis, FTP/SFTP/SMB) — makes an API call:
 
 ```json
 {
@@ -608,6 +624,7 @@ For detailed documentation on specific topics, read these files in the `referenc
 | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `references/integration.md`           | **READ THIS** when deploying tools to production - SDK usage, REST API, webhooks, error handling |
 | `references/databases.md`             | Building tools that query PostgreSQL/MySQL databases                                             |
+| `references/redis.md`                 | Building tools that interact with Redis (commands, pipelines, data types)                        |
 | `references/file-servers.md`          | Building tools that interact with FTP/SFTP/SMB file servers                                      |
 | `references/transforms-and-output.md` | Complex data transformations, output shaping, JS sandbox constraints                             |
 
