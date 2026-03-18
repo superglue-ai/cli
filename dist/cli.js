@@ -2407,6 +2407,15 @@ var require_templates = __commonJS({
         preferredAuthType: "apikey",
         keywords: ["database", "sql", "postgres", "postgresql", "api key", "tables"]
       },
+      redis_direct: {
+        name: "redis_direct",
+        apiUrl: "redis://<<username>>:<<password>>@<<host>>:<<port>>/<<database>>",
+        regex: "^.*(rediss?://).*$",
+        icon: "redis",
+        docsUrl: "https://redis.io/docs/latest/commands/",
+        preferredAuthType: "apikey",
+        keywords: ["database", "cache", "redis", "key-value", "nosql", "api key"]
+      },
       stripe: {
         name: "stripe",
         apiUrl: "https://api.stripe.com",
@@ -4784,8 +4793,146 @@ HEADERS: { "Authorization": "Bearer <<token>>", "Content-Type": "application/jso
     Tenant-Specific Endpoints: Multi-tenant apps need tenant ID in OAuth URLs (/04a63d67.../oauth2/v2.0/authorize) instead of /common endpoint
     Credentials Needed: Application (client) ID + Client Secret (generated under Certificates & secrets - copy the Value immediately, not the Secret ID)
     API Permissions: Add Microsoft Graph permissions (e.g., Sites.ReadWrite.All) under API permissions, then grant admin consent if you have admin rights
-    Scopes Must Include: Always add offline_access scope to get refresh tokens for long-term access without re-authentication 
+    Scopes Must Include: Always add offline_access scope to get refresh tokens for long-term access without re-authentication
     `
+      },
+      dynamics365_sales: {
+        name: "dynamics365_sales",
+        apiUrl: "https://<<org>>.crm<<region_number>>.dynamics.com/api/data/v9.2",
+        regex: "^.*(crm\\d*\\.dynamics\\.com|dynamicscrm).*$",
+        icon: "lucide:square-percent",
+        docsUrl: "https://learn.microsoft.com/en-us/power-apps/developer/data-platform/webapi/query-data-web-api",
+        preferredAuthType: "oauth",
+        oauth: {
+          authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+          tokenUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+          scopes: "https://<<org>>.crm<<region_number>>.dynamics.com/user_impersonation offline_access",
+          grant_type: "authorization_code"
+        },
+        keywords: [
+          "accounts",
+          "contacts",
+          "leads",
+          "opportunities",
+          "quotes",
+          "salesorders",
+          "salesorderdetails",
+          "products",
+          "incidents",
+          "campaigns",
+          "invoices",
+          "competitors",
+          "teams",
+          "systemusers",
+          "businessunits",
+          "odata",
+          "dynamics",
+          "crm",
+          "dynamics 365 sales",
+          "dataverse",
+          "oauth"
+        ],
+        systemSpecificInstructions: `Dynamics 365 Sales \u2014 Dataverse Web API v9.2
+
+REQUIRED HEADERS (in addition to Authorization):
+- OData-MaxVersion: 4.0
+- OData-Version: 4.0
+- If-None-Match: null (recommended \u2014 prevents stale cached data, especially on $expand queries)
+
+QUERY BEHAVIOR:
+- $skip is NOT supported. Use @odata.nextLink for pagination (default page size 5000, control with Prefer: odata.maxpagesize=<n>).
+- PAGINATION IN SUPERGLUE: Use cursorBased pagination with cursorPath "@odata.nextLink":
+  pagination: { type: "cursorBased", pageSize: "5000", cursorPath: "@odata.nextLink" }
+  The cursor is a full URL \u2014 use <<cursor>> as the step URL (set the initial URL via a "cursor" input variable).
+- $apply is supported for aggregations.
+- Lookup fields (foreign keys) are named _<field>_value \u2014 e.g. _parentaccountid_value, _customerid_value.
+- To get formatted/display values (e.g. option set labels, currency formatting), add header: Prefer: odata.include-annotations="OData.Community.Display.V1.FormattedValue"
+- FetchXML: GET /api/data/v9.2/<entity>?fetchXml=<url_encoded_xml> for complex aggregations and outer joins that OData $expand cannot express.
+- Max URL length is 32KB. For long queries, wrap in a $batch POST request (raises limit to 64KB).
+- Max individual OData URL segment is 260 chars \u2014 use parameter aliases (@p1=value) to shorten segments.
+
+WRITE SPECIFICS:
+- PATCH doubles as an upsert when the target record doesn't exist (by ID or alternate key). Use If-Match: * to prevent accidental creates. Use If-None-Match: * to prevent accidental updates.
+- Setting lookups on write: use @odata.bind \u2014 e.g. "parentaccountid@odata.bind": "/accounts(<guid>)"
+- Disassociating a lookup: set the navigation property to null (without @odata.bind), e.g. "parentcustomerid_account": null
+
+RATE LIMITS (Service Protection):
+- 429 Too Many Requests returned when limits exceeded. Always implement Retry-After handling.
+- Per-user limits per 5-min window: 6,000 requests, 20 min combined execution time, 52+ concurrent requests.
+- These are per web server \u2014 actual capacity varies by environment.
+
+DISCOVERING CUSTOM ENTITIES:
+GET /api/data/v9.2/EntityDefinitions?$filter=IsCustomEntity eq true&$select=LogicalName,DisplayName
+`
+      },
+      dynamics365_business_central: {
+        name: "dynamics365_business_central",
+        apiUrl: "https://api.businesscentral.dynamics.com/v2.0/<<environment>>/api/v2.0",
+        regex: "^.*(businesscentral\\.dynamics\\.com|business[\\s\\-]?central).*$",
+        icon: "lucide:landmark",
+        docsUrl: "https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/api-reference/v2.0/",
+        preferredAuthType: "oauth",
+        oauth: {
+          authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+          tokenUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+          scopes: "https://api.businesscentral.dynamics.com/.default offline_access",
+          grant_type: "authorization_code"
+        },
+        keywords: [
+          "customers",
+          "vendors",
+          "items",
+          "salesOrders",
+          "salesInvoices",
+          "salesQuotes",
+          "purchaseOrders",
+          "purchaseInvoices",
+          "generalLedgerEntries",
+          "journals",
+          "accounts",
+          "employees",
+          "dimensions",
+          "warehouses",
+          "inventory",
+          "odata",
+          "dynamics",
+          "erp",
+          "business central",
+          "finance",
+          "oauth"
+        ],
+        systemSpecificInstructions: `Dynamics 365 Business Central \u2014 API v2.0
+
+COMPANY SCOPING: All entities are scoped under a company. List companies first: GET /api/v2.0/companies, then access entities at /companies(<id>)/<entity>.
+
+WRITE SPECIFICS:
+- Updates REQUIRE an If-Match header with the entity's @odata.etag value \u2014 omitting it will fail.
+- Do NOT insert child records belonging to the same parent in parallel \u2014 causes locks. Use $batch to serialize them.
+- Transactional $batch: add Isolation: snapshot header for all-or-nothing batch operations. Max 100 operations per $batch.
+
+PAGINATION: Uses @odata.nextLink (a full URL for the next page). In superglue, use offsetBased pagination with $top and $skip since BC supports $skip:
+  pagination: { type: "offsetBased", pageSize: "1000" }
+  queryParams: { "$top": "<<limit>>", "$skip": "<<offset>>" }
+
+QUERY LIMITS:
+- Max page size: 20,000 entities per response (returns 413 if exceeded).
+- Max request body size: 350 MB.
+- Request timeout: 8 minutes \u2014 long-running requests get 408 or 504.
+- Use Data-Access-Intent: ReadOnly header on GET requests that don't need latest data (routes to read replica, reduces load).
+
+RATE LIMITS:
+- 429 Too Many Requests when limits exceeded. Always implement Retry-After handling.
+- Per-user: 6,000 requests per 5-min sliding window, 5 concurrent requests, 100 max connections.
+
+PERFORMANCE GOTCHAS:
+- Avoid temp-table-based API pages with >100 records \u2014 no caching, poor pagination.
+- Calculated/complex fields on API pages are expensive. Prefer stored values.
+- API pages/queries are up to 10x faster than SOAP endpoints \u2014 always prefer API v2.0.
+
+WEBHOOKS: Supports up to 200 webhook subscriptions for entity change notifications via /subscriptions.
+
+CUSTOM APIs: Publishers expose custom API pages at /api/{publisher}/{group}/{version}/companies(<id>)/<endpoint>, NOT under /api/v2.0/.
+`
       },
       redis: {
         name: "redis",
@@ -19977,6 +20124,8 @@ var require_utils = __commonJS({
     var getConnectionProtocol2 = (url) => {
       if (url.startsWith("postgres://") || url.startsWith("postgresql://"))
         return "postgres";
+      if (url.startsWith("redis://") || url.startsWith("rediss://"))
+        return "redis";
       if (url.startsWith("ftp://") || url.startsWith("ftps://") || url.startsWith("sftp://"))
         return "sftp";
       if (url.startsWith("smb://"))
@@ -21785,7 +21934,7 @@ var import_node_util = require("util");
 // package.json
 var package_default = {
   name: "@superglue/cli",
-  version: "1.1.7",
+  version: "1.1.8",
   bin: {
     sg: "./dist/cli.js"
   },
