@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import type { Command } from "commander";
+import { type Command, Option } from "commander";
 import { SuperglueClient } from "@superglue/shared";
 import { type CLIConfig, getConfigDir, writeConfig, ensureConfigDirs } from "../config.js";
 import {
@@ -22,68 +22,116 @@ export function registerInitCommand(program: Command): void {
   program
     .command("init")
     .description("Set up superglue CLI configuration")
-    .action(async () => {
-      banner();
-      console.log(`  ${c.bold}Welcome to the superglue CLI setup!${c.reset}`);
-      console.log(`  ${c.dim}Let's get you connected in a few steps.${c.reset}\n`);
+    .option("--api-key <key>", "API key (skips interactive prompt)")
+    .option("--endpoint <url>", "API endpoint", "https://api.superglue.cloud")
+    .option("--web-endpoint <url>", "Web endpoint for OAuth callbacks")
+    .addOption(
+      new Option("--output-mode <mode>", "Output mode: stdout or stdout+file")
+        .choices(["stdout", "stdout+file"])
+        .default("stdout"),
+    )
+    .option("--output-dir <dir>", "Output directory for stdout+file mode", ".superglue/output")
+    .option("--global", "Save config globally (~/.superglue/) instead of locally")
+    .action(async (opts) => {
+      const isNonInteractive = opts.apiKey || !process.stdin.isTTY;
 
-      heading("Authentication");
-      console.log(
-        `  ${c.dim}Get your API key at${c.reset} ${link("https://app.superglue.cloud/admin?view=api-keys")}`,
-      );
-      console.log("");
-      const apiKey = await promptHidden("  API Key");
-      if (!apiKey) {
-        error("API key is required");
-        process.exit(1);
+      let apiKey: string;
+      let endpoint: string;
+      let webEndpoint: string;
+      let outputMode: "stdout" | "stdout+file";
+      let outputDir: string;
+      let preferLocal: boolean;
+
+      if (isNonInteractive) {
+        // Non-interactive mode: use flags/defaults, skip all prompts
+        apiKey = opts.apiKey || process.env.SUPERGLUE_API_KEY;
+        if (!apiKey) {
+          error("API key is required (--api-key or SUPERGLUE_API_KEY)");
+          process.exit(1);
+        }
+        endpoint = opts.endpoint;
+        const defaultWeb = endpoint
+          .replace(/:3002\b/, ":3001")
+          .replace(/api\.superglue/, "app.superglue");
+        webEndpoint = opts.webEndpoint || defaultWeb;
+        outputMode = opts.outputMode === "stdout+file" ? "stdout+file" : "stdout";
+        outputDir = opts.outputDir;
+        preferLocal = !opts.global;
+
+        const spin = spinner("Verifying connection...");
+        try {
+          const client = new SuperglueClient({ apiKey, apiEndpoint: endpoint });
+          await client.listSystems(1);
+          spin.stop(`${c.green}✓${c.reset} Connected to ${c.bold}${endpoint}${c.reset}`);
+        } catch (err: any) {
+          spin.stop(`${c.red}✗${c.reset} Connection failed`);
+          error(err.message);
+          process.exit(1);
+        }
+      } else {
+        // Interactive mode: prompt for everything
+        banner();
+        console.log(`  ${c.bold}Welcome to the superglue CLI setup!${c.reset}`);
+        console.log(`  ${c.dim}Let's get you connected in a few steps.${c.reset}\n`);
+
+        heading("Authentication");
+        console.log(
+          `  ${c.dim}Get your API key at${c.reset} ${link("https://app.superglue.cloud/admin?view=api-keys")}`,
+        );
+        console.log("");
+        apiKey = await promptHidden("  API Key");
+        if (!apiKey) {
+          error("API key is required");
+          process.exit(1);
+        }
+
+        endpoint = await prompt("  API Endpoint", opts.endpoint);
+        const defaultWeb = endpoint
+          .replace(/:3002\b/, ":3001")
+          .replace(/api\.superglue/, "app.superglue");
+        webEndpoint = await prompt("  Web Endpoint (for OAuth callbacks)", defaultWeb);
+
+        const spin = spinner("Verifying connection...");
+        try {
+          const client = new SuperglueClient({ apiKey, apiEndpoint: endpoint });
+          await client.listSystems(1);
+          spin.stop(`${c.green}✓${c.reset} Connected to ${c.bold}${endpoint}${c.reset}`);
+        } catch (err: any) {
+          spin.stop(`${c.red}✗${c.reset} Connection failed`);
+          error(err.message);
+          process.exit(1);
+        }
+
+        heading("Output Preferences");
+        const outputModeIdx = await choose(
+          "Output mode",
+          [
+            "stdout only — print results to terminal",
+            "stdout + file — also save results as JSON files",
+          ],
+          0,
+        );
+        outputMode = outputModeIdx === 1 ? "stdout+file" : "stdout";
+
+        outputDir = ".superglue/output";
+        if (outputMode === "stdout+file") {
+          outputDir = await prompt("  Output directory", ".superglue/output");
+        }
+
+        heading("Config Location");
+        const homeDir = os.homedir();
+        const localPath = path.join(process.cwd(), ".superglue");
+        const globalPath = path.join(homeDir, ".superglue");
+        const configLocationIdx = await choose(
+          "Where to save config?",
+          [
+            `Project (${localPath}) — config stays with this project`,
+            `Global (${globalPath}) — shared across all projects`,
+          ],
+          0,
+        );
+        preferLocal = configLocationIdx === 0;
       }
-
-      const endpoint = await prompt("  API Endpoint", "https://api.superglue.cloud");
-      const defaultWeb = endpoint
-        .replace(/:3002\b/, ":3001")
-        .replace(/api\.superglue/, "app.superglue");
-      const webEndpoint = await prompt("  Web Endpoint (for OAuth callbacks)", defaultWeb);
-
-      const spin = spinner("Verifying connection...");
-      try {
-        const client = new SuperglueClient({ apiKey, apiEndpoint: endpoint });
-        await client.listSystems(1);
-        spin.stop(`${c.green}✓${c.reset} Connected to ${c.bold}${endpoint}${c.reset}`);
-      } catch (err: any) {
-        spin.stop(`${c.red}✗${c.reset} Connection failed`);
-        error(err.message);
-        process.exit(1);
-      }
-
-      heading("Output Preferences");
-      const outputModeIdx = await choose(
-        "Output mode",
-        [
-          "stdout only — print results to terminal",
-          "stdout + file — also save results as JSON files",
-        ],
-        0,
-      );
-      const outputMode = outputModeIdx === 1 ? ("stdout+file" as const) : ("stdout" as const);
-
-      let outputDir = ".superglue/output";
-      if (outputMode === "stdout+file") {
-        outputDir = await prompt("  Output directory", ".superglue/output");
-      }
-
-      heading("Config Location");
-      const homeDir = os.homedir();
-      const localPath = path.join(process.cwd(), ".superglue");
-      const globalPath = path.join(homeDir, ".superglue");
-      const configLocationIdx = await choose(
-        "Where to save config?",
-        [
-          `Project (${localPath}) — config stays with this project`,
-          `Global (${globalPath}) — shared across all projects`,
-        ],
-        0,
-      );
-      const preferLocal = configLocationIdx === 0;
 
       const config: CLIConfig = {
         apiKey,

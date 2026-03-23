@@ -2390,7 +2390,7 @@ var require_templates = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.systemOptions = exports2.systems = void 0;
-    exports2.findTemplateForSystem = findTemplateForSystem3;
+    exports2.findTemplateForSystem = findTemplateForSystem4;
     exports2.uniqueKeywords = uniqueKeywords;
     exports2.enrichWithTemplate = enrichWithTemplate;
     exports2.getOAuthConfig = getOAuthConfig;
@@ -2406,6 +2406,15 @@ var require_templates = __commonJS({
         docsUrl: "",
         preferredAuthType: "apikey",
         keywords: ["database", "sql", "postgres", "postgresql", "api key", "tables"]
+      },
+      redis_direct: {
+        name: "redis_direct",
+        apiUrl: "redis://<<username>>:<<password>>@<<host>>:<<port>>/<<database>>",
+        regex: "^.*(rediss?://).*$",
+        icon: "redis",
+        docsUrl: "https://redis.io/docs/latest/commands/",
+        preferredAuthType: "apikey",
+        keywords: ["database", "cache", "redis", "key-value", "nosql", "api key"]
       },
       stripe: {
         name: "stripe",
@@ -4784,8 +4793,146 @@ HEADERS: { "Authorization": "Bearer <<token>>", "Content-Type": "application/jso
     Tenant-Specific Endpoints: Multi-tenant apps need tenant ID in OAuth URLs (/04a63d67.../oauth2/v2.0/authorize) instead of /common endpoint
     Credentials Needed: Application (client) ID + Client Secret (generated under Certificates & secrets - copy the Value immediately, not the Secret ID)
     API Permissions: Add Microsoft Graph permissions (e.g., Sites.ReadWrite.All) under API permissions, then grant admin consent if you have admin rights
-    Scopes Must Include: Always add offline_access scope to get refresh tokens for long-term access without re-authentication 
+    Scopes Must Include: Always add offline_access scope to get refresh tokens for long-term access without re-authentication
     `
+      },
+      dynamics365_sales: {
+        name: "dynamics365_sales",
+        apiUrl: "https://<<org>>.crm<<region_number>>.dynamics.com/api/data/v9.2",
+        regex: "^.*(crm\\d*\\.dynamics\\.com|dynamicscrm).*$",
+        icon: "lucide:square-percent",
+        docsUrl: "https://learn.microsoft.com/en-us/power-apps/developer/data-platform/webapi/query-data-web-api",
+        preferredAuthType: "oauth",
+        oauth: {
+          authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+          tokenUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+          scopes: "https://<<org>>.crm<<region_number>>.dynamics.com/user_impersonation offline_access",
+          grant_type: "authorization_code"
+        },
+        keywords: [
+          "accounts",
+          "contacts",
+          "leads",
+          "opportunities",
+          "quotes",
+          "salesorders",
+          "salesorderdetails",
+          "products",
+          "incidents",
+          "campaigns",
+          "invoices",
+          "competitors",
+          "teams",
+          "systemusers",
+          "businessunits",
+          "odata",
+          "dynamics",
+          "crm",
+          "dynamics 365 sales",
+          "dataverse",
+          "oauth"
+        ],
+        systemSpecificInstructions: `Dynamics 365 Sales \u2014 Dataverse Web API v9.2
+
+REQUIRED HEADERS (in addition to Authorization):
+- OData-MaxVersion: 4.0
+- OData-Version: 4.0
+- If-None-Match: null (recommended \u2014 prevents stale cached data, especially on $expand queries)
+
+QUERY BEHAVIOR:
+- $skip is NOT supported. Use @odata.nextLink for pagination (default page size 5000, control with Prefer: odata.maxpagesize=<n>).
+- PAGINATION IN SUPERGLUE: Use cursorBased pagination with cursorPath "@odata.nextLink":
+  pagination: { type: "cursorBased", pageSize: "5000", cursorPath: "@odata.nextLink" }
+  The cursor is a full URL \u2014 use <<cursor>> as the step URL (set the initial URL via a "cursor" input variable).
+- $apply is supported for aggregations.
+- Lookup fields (foreign keys) are named _<field>_value \u2014 e.g. _parentaccountid_value, _customerid_value.
+- To get formatted/display values (e.g. option set labels, currency formatting), add header: Prefer: odata.include-annotations="OData.Community.Display.V1.FormattedValue"
+- FetchXML: GET /api/data/v9.2/<entity>?fetchXml=<url_encoded_xml> for complex aggregations and outer joins that OData $expand cannot express.
+- Max URL length is 32KB. For long queries, wrap in a $batch POST request (raises limit to 64KB).
+- Max individual OData URL segment is 260 chars \u2014 use parameter aliases (@p1=value) to shorten segments.
+
+WRITE SPECIFICS:
+- PATCH doubles as an upsert when the target record doesn't exist (by ID or alternate key). Use If-Match: * to prevent accidental creates. Use If-None-Match: * to prevent accidental updates.
+- Setting lookups on write: use @odata.bind \u2014 e.g. "parentaccountid@odata.bind": "/accounts(<guid>)"
+- Disassociating a lookup: set the navigation property to null (without @odata.bind), e.g. "parentcustomerid_account": null
+
+RATE LIMITS (Service Protection):
+- 429 Too Many Requests returned when limits exceeded. Always implement Retry-After handling.
+- Per-user limits per 5-min window: 6,000 requests, 20 min combined execution time, 52+ concurrent requests.
+- These are per web server \u2014 actual capacity varies by environment.
+
+DISCOVERING CUSTOM ENTITIES:
+GET /api/data/v9.2/EntityDefinitions?$filter=IsCustomEntity eq true&$select=LogicalName,DisplayName
+`
+      },
+      dynamics365_business_central: {
+        name: "dynamics365_business_central",
+        apiUrl: "https://api.businesscentral.dynamics.com/v2.0/<<environment>>/api/v2.0",
+        regex: "^.*(businesscentral\\.dynamics\\.com|business[\\s\\-]?central).*$",
+        icon: "lucide:landmark",
+        docsUrl: "https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/api-reference/v2.0/",
+        preferredAuthType: "oauth",
+        oauth: {
+          authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+          tokenUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+          scopes: "https://api.businesscentral.dynamics.com/.default offline_access",
+          grant_type: "authorization_code"
+        },
+        keywords: [
+          "customers",
+          "vendors",
+          "items",
+          "salesOrders",
+          "salesInvoices",
+          "salesQuotes",
+          "purchaseOrders",
+          "purchaseInvoices",
+          "generalLedgerEntries",
+          "journals",
+          "accounts",
+          "employees",
+          "dimensions",
+          "warehouses",
+          "inventory",
+          "odata",
+          "dynamics",
+          "erp",
+          "business central",
+          "finance",
+          "oauth"
+        ],
+        systemSpecificInstructions: `Dynamics 365 Business Central \u2014 API v2.0
+
+COMPANY SCOPING: All entities are scoped under a company. List companies first: GET /api/v2.0/companies, then access entities at /companies(<id>)/<entity>.
+
+WRITE SPECIFICS:
+- Updates REQUIRE an If-Match header with the entity's @odata.etag value \u2014 omitting it will fail.
+- Do NOT insert child records belonging to the same parent in parallel \u2014 causes locks. Use $batch to serialize them.
+- Transactional $batch: add Isolation: snapshot header for all-or-nothing batch operations. Max 100 operations per $batch.
+
+PAGINATION: Uses @odata.nextLink (a full URL for the next page). In superglue, use offsetBased pagination with $top and $skip since BC supports $skip:
+  pagination: { type: "offsetBased", pageSize: "1000" }
+  queryParams: { "$top": "<<limit>>", "$skip": "<<offset>>" }
+
+QUERY LIMITS:
+- Max page size: 20,000 entities per response (returns 413 if exceeded).
+- Max request body size: 350 MB.
+- Request timeout: 8 minutes \u2014 long-running requests get 408 or 504.
+- Use Data-Access-Intent: ReadOnly header on GET requests that don't need latest data (routes to read replica, reduces load).
+
+RATE LIMITS:
+- 429 Too Many Requests when limits exceeded. Always implement Retry-After handling.
+- Per-user: 6,000 requests per 5-min sliding window, 5 concurrent requests, 100 max connections.
+
+PERFORMANCE GOTCHAS:
+- Avoid temp-table-based API pages with >100 records \u2014 no caching, poor pagination.
+- Calculated/complex fields on API pages are expensive. Prefer stored values.
+- API pages/queries are up to 10x faster than SOAP endpoints \u2014 always prefer API v2.0.
+
+WEBHOOKS: Supports up to 200 webhook subscriptions for entity change notifications via /subscriptions.
+
+CUSTOM APIs: Publishers expose custom API pages at /api/{publisher}/{group}/{version}/companies(<id>)/<endpoint>, NOT under /api/v2.0/.
+`
       },
       redis: {
         name: "redis",
@@ -5409,7 +5556,7 @@ EXAMPLE WORKFLOWS:
         icon: system.icon || "default"
       }))
     ];
-    function findTemplateForSystem3(system) {
+    function findTemplateForSystem4(system) {
       if (system.templateName && exports2.systems[system.templateName]) {
         return { key: system.templateName, template: exports2.systems[system.templateName] };
       }
@@ -5451,7 +5598,7 @@ EXAMPLE WORKFLOWS:
       return [...new Set(keywords)];
     }
     function enrichWithTemplate(input) {
-      const match = findTemplateForSystem3(input);
+      const match = findTemplateForSystem4(input);
       if (!match) {
         return input;
       }
@@ -5488,7 +5635,7 @@ EXAMPLE WORKFLOWS:
         tokenContentType: creds.tokenContentType,
         extraHeaders
       };
-      const match = findTemplateForSystem3(system);
+      const match = findTemplateForSystem4(system);
       const templateOAuth = match?.template.oauth;
       return {
         tokenAuthMethod: storedConfig.tokenAuthMethod ?? templateOAuth?.tokenAuthMethod,
@@ -5500,7 +5647,7 @@ EXAMPLE WORKFLOWS:
       if (system.credentials?.token_url) {
         return system.credentials.token_url;
       }
-      const match = findTemplateForSystem3(system);
+      const match = findTemplateForSystem4(system);
       if (match?.template.oauth?.tokenUrl) {
         return match.template.oauth.tokenUrl;
       }
@@ -6202,12 +6349,12 @@ var init_size = __esm({
       increment,
       maxSize,
       truncatedProps,
-      path: path6,
+      path: path7,
       value
     }) => {
       const newSize = size + increment;
       const stop = newSize > maxSize;
-      return stop ? { size, stop, truncatedProps: [...truncatedProps, { path: path6, value }] } : { size: newSize, stop, truncatedProps };
+      return stop ? { size, stop, truncatedProps: [...truncatedProps, { path: path7, value }] } : { size: newSize, stop, truncatedProps };
     };
     getValueSize = (value) => getJsonLength(value);
     getArrayItemSize = (empty, indent, depth) => {
@@ -6245,7 +6392,7 @@ var init_prop = __esm({
     truncateProp = ({
       parent,
       truncatedProps,
-      path: path6,
+      path: path7,
       increment,
       maxSize,
       key,
@@ -6256,7 +6403,7 @@ var init_prop = __esm({
       depth
     }) => {
       const value = parent[key];
-      const pathA = [...path6, key];
+      const pathA = [...path7, key];
       const {
         size: newSize,
         stop,
@@ -6285,7 +6432,7 @@ var init_prop = __esm({
     truncatePropValue = ({
       value,
       truncatedProps,
-      path: path6,
+      path: path7,
       maxSize,
       empty,
       size,
@@ -6301,7 +6448,7 @@ var init_prop = __esm({
       } = truncateValue2({
         value,
         truncatedProps,
-        path: path6,
+        path: path7,
         size: newSize,
         maxSize,
         indent,
@@ -6327,7 +6474,7 @@ var init_array = __esm({
     truncateArray = ({
       array: array2,
       truncatedProps,
-      path: path6,
+      path: path7,
       size,
       maxSize,
       truncateValue: truncateValue2,
@@ -6341,7 +6488,7 @@ var init_array = __esm({
         state = truncateProp({
           parent: array2,
           truncatedProps: state.truncatedProps,
-          path: path6,
+          path: path7,
           increment,
           maxSize,
           key: index,
@@ -6374,7 +6521,7 @@ var init_object = __esm({
     truncateObject = ({
       object: object2,
       truncatedProps,
-      path: path6,
+      path: path7,
       size,
       maxSize,
       truncateValue: truncateValue2,
@@ -6393,7 +6540,7 @@ var init_object = __esm({
         state = truncateProp({
           parent: object2,
           truncatedProps: state.truncatedProps,
-          path: path6,
+          path: path7,
           increment,
           maxSize,
           key,
@@ -6427,7 +6574,7 @@ var init_value = __esm({
     truncateValue = ({
       value,
       truncatedProps,
-      path: path6,
+      path: path7,
       size,
       maxSize,
       indent,
@@ -6443,13 +6590,13 @@ var init_value = __esm({
         increment,
         maxSize,
         truncatedProps,
-        path: path6,
+        path: path7,
         value
       });
       return stop ? { value: void 0, size: sizeA, truncatedProps: truncatedPropsA } : recurseValue({
         value,
         truncatedProps: truncatedPropsA,
-        path: path6,
+        path: path7,
         size: sizeA,
         maxSize,
         indent,
@@ -6459,7 +6606,7 @@ var init_value = __esm({
     recurseValue = ({
       value,
       truncatedProps,
-      path: path6,
+      path: path7,
       size,
       maxSize,
       indent,
@@ -6471,7 +6618,7 @@ var init_value = __esm({
       return Array.isArray(value) ? truncateArray({
         array: value,
         truncatedProps,
-        path: path6,
+        path: path7,
         size,
         maxSize,
         truncateValue,
@@ -6480,7 +6627,7 @@ var init_value = __esm({
       }) : truncateObject({
         object: value,
         truncatedProps,
-        path: path6,
+        path: path7,
         size,
         maxSize,
         truncateValue,
@@ -15611,8 +15758,8 @@ var require_CronFileParser = __commonJS({
        * @throws If file cannot be read
        */
       static parseFileSync(filePath) {
-        const { readFileSync: readFileSync9 } = require("fs");
-        const data = readFileSync9(filePath, "utf8");
+        const { readFileSync: readFileSync10 } = require("fs");
+        const data = readFileSync10(filePath, "utf8");
         return _CronFileParser.#parseContent(data);
       }
       /**
@@ -16239,9 +16386,9 @@ var require_property_expr = __commonJS({
       Cache,
       split: split2,
       normalizePath: normalizePath2,
-      setter: function(path6) {
-        var parts = normalizePath2(path6);
-        return setCache.get(path6) || setCache.set(path6, function setter(obj, value) {
+      setter: function(path7) {
+        var parts = normalizePath2(path7);
+        return setCache.get(path7) || setCache.set(path7, function setter(obj, value) {
           var index = 0;
           var len = parts.length;
           var data = obj;
@@ -16255,9 +16402,9 @@ var require_property_expr = __commonJS({
           data[parts[index]] = value;
         });
       },
-      getter: function(path6, safe) {
-        var parts = normalizePath2(path6);
-        return getCache.get(path6) || getCache.set(path6, function getter2(data) {
+      getter: function(path7, safe) {
+        var parts = normalizePath2(path7);
+        return getCache.get(path7) || getCache.set(path7, function getter2(data) {
           var index = 0, len = parts.length;
           while (index < len) {
             if (data != null || !safe) data = data[parts[index++]];
@@ -16267,24 +16414,24 @@ var require_property_expr = __commonJS({
         });
       },
       join: function(segments) {
-        return segments.reduce(function(path6, part) {
-          return path6 + (isQuoted(part) || DIGIT_REGEX.test(part) ? "[" + part + "]" : (path6 ? "." : "") + part);
+        return segments.reduce(function(path7, part) {
+          return path7 + (isQuoted(part) || DIGIT_REGEX.test(part) ? "[" + part + "]" : (path7 ? "." : "") + part);
         }, "");
       },
-      forEach: function(path6, cb, thisArg) {
-        forEach2(Array.isArray(path6) ? path6 : split2(path6), cb, thisArg);
+      forEach: function(path7, cb, thisArg) {
+        forEach2(Array.isArray(path7) ? path7 : split2(path7), cb, thisArg);
       }
     };
-    function normalizePath2(path6) {
-      return pathCache.get(path6) || pathCache.set(
-        path6,
-        split2(path6).map(function(part) {
+    function normalizePath2(path7) {
+      return pathCache.get(path7) || pathCache.set(
+        path7,
+        split2(path7).map(function(part) {
           return part.replace(CLEAN_QUOTES_REGEX, "$2");
         })
       );
     }
-    function split2(path6) {
-      return path6.match(SPLIT_REGEX) || [""];
+    function split2(path7) {
+      return path7.match(SPLIT_REGEX) || [""];
     }
     function forEach2(parts, iter, thisArg) {
       var len = parts.length, part, idx, isArray, isBracket;
@@ -16322,15 +16469,15 @@ var require_tiny_case = __commonJS({
     var reWords = /[A-Z\xc0-\xd6\xd8-\xde]?[a-z\xdf-\xf6\xf8-\xff]+(?:['’](?:d|ll|m|re|s|t|ve))?(?=[\xac\xb1\xd7\xf7\x00-\x2f\x3a-\x40\x5b-\x60\x7b-\xbf\u2000-\u206f \t\x0b\f\xa0\ufeff\n\r\u2028\u2029\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000]|[A-Z\xc0-\xd6\xd8-\xde]|$)|(?:[A-Z\xc0-\xd6\xd8-\xde]|[^\ud800-\udfff\xac\xb1\xd7\xf7\x00-\x2f\x3a-\x40\x5b-\x60\x7b-\xbf\u2000-\u206f \t\x0b\f\xa0\ufeff\n\r\u2028\u2029\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\d+\u2700-\u27bfa-z\xdf-\xf6\xf8-\xffA-Z\xc0-\xd6\xd8-\xde])+(?:['’](?:D|LL|M|RE|S|T|VE))?(?=[\xac\xb1\xd7\xf7\x00-\x2f\x3a-\x40\x5b-\x60\x7b-\xbf\u2000-\u206f \t\x0b\f\xa0\ufeff\n\r\u2028\u2029\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000]|[A-Z\xc0-\xd6\xd8-\xde](?:[a-z\xdf-\xf6\xf8-\xff]|[^\ud800-\udfff\xac\xb1\xd7\xf7\x00-\x2f\x3a-\x40\x5b-\x60\x7b-\xbf\u2000-\u206f \t\x0b\f\xa0\ufeff\n\r\u2028\u2029\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\d+\u2700-\u27bfa-z\xdf-\xf6\xf8-\xffA-Z\xc0-\xd6\xd8-\xde])|$)|[A-Z\xc0-\xd6\xd8-\xde]?(?:[a-z\xdf-\xf6\xf8-\xff]|[^\ud800-\udfff\xac\xb1\xd7\xf7\x00-\x2f\x3a-\x40\x5b-\x60\x7b-\xbf\u2000-\u206f \t\x0b\f\xa0\ufeff\n\r\u2028\u2029\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\d+\u2700-\u27bfa-z\xdf-\xf6\xf8-\xffA-Z\xc0-\xd6\xd8-\xde])+(?:['’](?:d|ll|m|re|s|t|ve))?|[A-Z\xc0-\xd6\xd8-\xde]+(?:['’](?:D|LL|M|RE|S|T|VE))?|\d*(?:1ST|2ND|3RD|(?![123])\dTH)(?=\b|[a-z_])|\d*(?:1st|2nd|3rd|(?![123])\dth)(?=\b|[A-Z_])|\d+|(?:[\u2700-\u27bf]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff])[\ufe0e\ufe0f]?(?:[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff]|\ud83c[\udffb-\udfff])?(?:\u200d(?:[^\ud800-\udfff]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff])[\ufe0e\ufe0f]?(?:[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff]|\ud83c[\udffb-\udfff])?)*/g;
     var words = (str) => str.match(reWords) || [];
     var upperFirst = (str) => str[0].toUpperCase() + str.slice(1);
-    var join6 = (str, d) => words(str).join(d).toLowerCase();
+    var join7 = (str, d) => words(str).join(d).toLowerCase();
     var camelCase2 = (str) => words(str).reduce(
       (acc, next) => `${acc}${!acc ? next.toLowerCase() : next[0].toUpperCase() + next.slice(1).toLowerCase()}`,
       ""
     );
     var pascalCase = (str) => upperFirst(camelCase2(str));
-    var snakeCase2 = (str) => join6(str, "_");
-    var kebabCase = (str) => join6(str, "-");
-    var sentenceCase = (str) => upperFirst(join6(str, " "));
+    var snakeCase2 = (str) => join7(str, "_");
+    var kebabCase = (str) => join7(str, "-");
+    var sentenceCase = (str) => upperFirst(join7(str, " "));
     var titleCase = (str) => words(str).map(upperFirst).join(" ");
     module2.exports = {
       words,
@@ -16490,7 +16637,7 @@ function create$9(key, options) {
 function createValidation(config) {
   function validate({
     value,
-    path: path6 = "",
+    path: path7 = "",
     options,
     originalValue,
     schema
@@ -16518,7 +16665,7 @@ function createValidation(config) {
         value,
         originalValue,
         label: schema.spec.label,
-        path: overrides.path || path6,
+        path: overrides.path || path7,
         spec: schema.spec,
         disableStackTrace: overrides.disableStackTrace || disableStackTrace
       }, params, overrides.params), resolveOptions);
@@ -16528,7 +16675,7 @@ function createValidation(config) {
     }
     const invalid = abortEarly ? panic : next;
     let ctx = {
-      path: path6,
+      path: path7,
       parent,
       type: name,
       from: options.from,
@@ -16582,14 +16729,14 @@ function resolveParams(params, options) {
 function resolveMaybeRef(item, options) {
   return Reference.isRef(item) ? item.getValue(options.value, options.parent, options.context) : item;
 }
-function getIn(schema, path6, value, context = value) {
+function getIn(schema, path7, value, context = value) {
   let parent, lastPart, lastPartDebug;
-  if (!path6) return {
+  if (!path7) return {
     parent,
-    parentPath: path6,
+    parentPath: path7,
     schema
   };
-  (0, import_property_expr.forEach)(path6, (_part, isBracket, isArray) => {
+  (0, import_property_expr.forEach)(path7, (_part, isBracket, isArray) => {
     let part = isBracket ? _part.slice(1, _part.length - 1) : _part;
     schema = schema.resolve({
       context,
@@ -16601,14 +16748,14 @@ function getIn(schema, path6, value, context = value) {
     if (schema.innerType || isTuple) {
       if (isTuple && !isArray) throw new Error(`Yup.reach cannot implicitly index into a tuple type. the path part "${lastPartDebug}" must contain an index to the tuple element, e.g. "${lastPartDebug}[0]"`);
       if (value && idx >= value.length) {
-        throw new Error(`Yup.reach cannot resolve an array item at index: ${_part}, in the path: ${path6}. because there is no value at that index. `);
+        throw new Error(`Yup.reach cannot resolve an array item at index: ${_part}, in the path: ${path7}. because there is no value at that index. `);
       }
       parent = value;
       value = value && value[idx];
       schema = isTuple ? schema.spec.types[idx] : schema.innerType;
     }
     if (!isArray) {
-      if (!schema.fields || !schema.fields[part]) throw new Error(`The schema does not contain the path: ${path6}. (failed at: ${lastPartDebug} which is a type: "${schema.type}")`);
+      if (!schema.fields || !schema.fields[part]) throw new Error(`The schema does not contain the path: ${path7}. (failed at: ${lastPartDebug} which is a type: "${schema.type}")`);
       parent = value;
       value = value && value[part];
       schema = schema.fields[part];
@@ -16622,8 +16769,8 @@ function getIn(schema, path6, value, context = value) {
     parentPath: lastPart
   };
 }
-function reach(obj, path6, value, context) {
-  return getIn(obj, path6, value, context).schema;
+function reach(obj, path7, value, context) {
+  return getIn(obj, path7, value, context).schema;
 }
 function clone(src, seen = /* @__PURE__ */ new Map()) {
   if (isSchema(src) || !src || typeof src !== "object") return src;
@@ -16656,16 +16803,16 @@ function clone(src, seen = /* @__PURE__ */ new Map()) {
   }
   return copy;
 }
-function createStandardPath(path6) {
-  if (!(path6 != null && path6.length)) {
+function createStandardPath(path7) {
+  if (!(path7 != null && path7.length)) {
     return void 0;
   }
   const segments = [];
   let currentSegment = "";
   let inBrackets = false;
   let inQuotes = false;
-  for (let i = 0; i < path6.length; i++) {
-    const char = path6[i];
+  for (let i = 0; i < path7.length; i++) {
+    const char = path7[i];
     if (char === "[" && !inQuotes) {
       if (currentSegment) {
         segments.push(...currentSegment.split(".").filter(Boolean));
@@ -16705,10 +16852,10 @@ function createStandardPath(path6) {
   return segments;
 }
 function createStandardIssues(error2, parentPath) {
-  const path6 = parentPath ? `${parentPath}.${error2.path}` : error2.path;
+  const path7 = parentPath ? `${parentPath}.${error2.path}` : error2.path;
   return error2.errors.map((err) => ({
     message: err,
-    path: createStandardPath(path6)
+    path: createStandardPath(path7)
   }));
 }
 function issuesFromValidationError(error2, parentPath) {
@@ -16716,8 +16863,8 @@ function issuesFromValidationError(error2, parentPath) {
   if (!((_error$inner = error2.inner) != null && _error$inner.length) && error2.errors.length) {
     return createStandardIssues(error2, parentPath);
   }
-  const path6 = parentPath ? `${parentPath}.${error2.path}` : error2.path;
-  return error2.inner.flatMap((err) => issuesFromValidationError(err, path6));
+  const path7 = parentPath ? `${parentPath}.${error2.path}` : error2.path;
+  return error2.inner.flatMap((err) => issuesFromValidationError(err, path7));
 }
 function create$8(spec) {
   return new MixedSchema(spec);
@@ -16785,7 +16932,7 @@ function sortFields(fields, excludedEdges = []) {
     let value = fields[key];
     nodes.add(key);
     if (Reference.isRef(value) && value.isSibling) addNode(value.path, key);
-    else if (isSchema(value) && "deps" in value) value.deps.forEach((path6) => addNode(path6, key));
+    else if (isSchema(value) && "deps" in value) value.deps.forEach((path7) => addNode(path7, key));
   }
   return import_toposort.default.array(Array.from(nodes), edges).reverse();
 }
@@ -16912,9 +17059,9 @@ var init_index_esm = __esm({
     _Symbol$toStringTag2 = Symbol.toStringTag;
     ValidationError = class _ValidationError extends Error {
       static formatError(message, params) {
-        const path6 = params.label || params.path || "this";
+        const path7 = params.label || params.path || "this";
         params = Object.assign({}, params, {
-          path: path6,
+          path: path7,
           originalPath: params.path
         });
         if (typeof message === "string") return message.replace(strReg, (_, key) => printValue(params[key]));
@@ -16960,13 +17107,13 @@ var init_index_esm = __esm({
       oneOf: "${path} must be one of the following values: ${values}",
       notOneOf: "${path} must not be one of the following values: ${values}",
       notType: ({
-        path: path6,
+        path: path7,
         type,
         value,
         originalValue
       }) => {
         const castMsg = originalValue != null && originalValue !== value ? ` (cast from the value \`${printValue(originalValue, true)}\`).` : ".";
-        return type !== "mixed" ? `${path6} must be a \`${type}\` type, but the final value was: \`${printValue(value, true)}\`` + castMsg : `${path6} must match the configured type. The validated value was: \`${printValue(value, true)}\`` + castMsg;
+        return type !== "mixed" ? `${path7} must be a \`${type}\` type, but the final value was: \`${printValue(value, true)}\`` + castMsg : `${path7} must match the configured type. The validated value was: \`${printValue(value, true)}\`` + castMsg;
       }
     };
     string = {
@@ -17012,14 +17159,14 @@ var init_index_esm = __esm({
     tuple = {
       notType: (params) => {
         const {
-          path: path6,
+          path: path7,
           value,
           spec
         } = params;
         const typeLen = spec.types.length;
         if (Array.isArray(value)) {
-          if (value.length < typeLen) return `${path6} tuple value has too few items, expected a length of ${typeLen} but got ${value.length} for value: \`${printValue(value, true)}\``;
-          if (value.length > typeLen) return `${path6} tuple value has too many items, expected a length of ${typeLen} but got ${value.length} for value: \`${printValue(value, true)}\``;
+          if (value.length < typeLen) return `${path7} tuple value has too few items, expected a length of ${typeLen} but got ${value.length} for value: \`${printValue(value, true)}\``;
+          if (value.length > typeLen) return `${path7} tuple value has too many items, expected a length of ${typeLen} but got ${value.length} for value: \`${printValue(value, true)}\``;
         }
         return ValidationError.formatError(mixed.notType, params);
       }
@@ -17136,10 +17283,10 @@ var init_index_esm = __esm({
         }
         return description;
       }
-      resolveAll(resolve4) {
+      resolveAll(resolve5) {
         let result = [];
         for (const item of this.values()) {
-          result.push(resolve4(item));
+          result.push(resolve5(item));
         }
         return result;
       }
@@ -17311,7 +17458,7 @@ attempted value: ${formattedValue}
       }
       _validate(_value, options = {}, panic, next) {
         let {
-          path: path6,
+          path: path7,
           originalValue = _value,
           strict = this.spec.strict
         } = options;
@@ -17326,7 +17473,7 @@ attempted value: ${formattedValue}
           if (test) initialTests.push(test);
         }
         this.runTests({
-          path: path6,
+          path: path7,
           value,
           originalValue,
           options,
@@ -17336,7 +17483,7 @@ attempted value: ${formattedValue}
             return next(initialErrors, value);
           }
           this.runTests({
-            path: path6,
+            path: path7,
             value,
             originalValue,
             options,
@@ -17354,7 +17501,7 @@ attempted value: ${formattedValue}
           tests,
           value,
           originalValue,
-          path: path6,
+          path: path7,
           options
         } = runOptions;
         let panicOnce = (arg) => {
@@ -17373,7 +17520,7 @@ attempted value: ${formattedValue}
         let args = {
           value,
           originalValue,
-          path: path6,
+          path: path7,
           options,
           schema: this
         };
@@ -17426,12 +17573,12 @@ attempted value: ${formattedValue}
           value
         }));
         let disableStackTrace = (_options$disableStack2 = options == null ? void 0 : options.disableStackTrace) != null ? _options$disableStack2 : schema.spec.disableStackTrace;
-        return new Promise((resolve4, reject) => schema._validate(value, options, (error2, parsed) => {
+        return new Promise((resolve5, reject) => schema._validate(value, options, (error2, parsed) => {
           if (ValidationError.isError(error2)) error2.value = parsed;
           reject(error2);
         }, (errors, validated) => {
           if (errors.length) reject(new ValidationError(errors, validated, void 0, void 0, disableStackTrace));
-          else resolve4(validated);
+          else resolve5(validated);
         }));
       }
       validateSync(value, options) {
@@ -17735,15 +17882,15 @@ attempted value: ${formattedValue}
       }
     };
     Schema.prototype.__isYupSchema__ = true;
-    for (const method of ["validate", "validateSync"]) Schema.prototype[`${method}At`] = function(path6, value, options = {}) {
+    for (const method of ["validate", "validateSync"]) Schema.prototype[`${method}At`] = function(path7, value, options = {}) {
       const {
         parent,
         parentPath,
         schema
-      } = getIn(this, path6, value, options.context);
+      } = getIn(this, path7, value, options.context);
       return schema[method](parent && parent[parentPath], Object.assign({}, options, {
         parent,
-        path: path6
+        path: path7
       }));
     };
     for (const alias of ["equals", "is"]) Schema.prototype[alias] = Schema.prototype.oneOf;
@@ -18225,10 +18372,10 @@ attempted value: ${formattedValue}
       return schema.isType(parsed) ? parsed : value;
     };
     deepHas = (obj, p) => {
-      const path6 = [...(0, import_property_expr.normalizePath)(p)];
-      if (path6.length === 1) return path6[0] in obj;
-      let last = path6.pop();
-      let parent = (0, import_property_expr.getter)((0, import_property_expr.join)(path6), true)(obj);
+      const path7 = [...(0, import_property_expr.normalizePath)(p)];
+      if (path7.length === 1) return path7[0] in obj;
+      let last = path7.pop();
+      let parent = (0, import_property_expr.getter)((0, import_property_expr.join)(path7), true)(obj);
       return !!(parent && last in parent);
     };
     isObject = (obj) => Object.prototype.toString.call(obj) === "[object Object]";
@@ -18831,11 +18978,11 @@ attempted value: ${formattedValue}
       validateSync(value, options) {
         return this._resolve(value, options).validateSync(value, options);
       }
-      validateAt(path6, value, options) {
-        return catchValidationError(() => this._resolve(value, options).validateAt(path6, value, options));
+      validateAt(path7, value, options) {
+        return catchValidationError(() => this._resolve(value, options).validateAt(path7, value, options));
       }
-      validateSyncAt(path6, value, options) {
-        return this._resolve(value, options).validateSyncAt(path6, value, options);
+      validateSyncAt(path7, value, options) {
+        return this._resolve(value, options).validateSyncAt(path7, value, options);
       }
       isValid(value, options) {
         try {
@@ -19977,6 +20124,8 @@ var require_utils = __commonJS({
     var getConnectionProtocol2 = (url) => {
       if (url.startsWith("postgres://") || url.startsWith("postgresql://"))
         return "postgres";
+      if (url.startsWith("redis://") || url.startsWith("rediss://"))
+        return "redis";
       if (url.startsWith("ftp://") || url.startsWith("ftps://") || url.startsWith("sftp://"))
         return "sftp";
       if (url.startsWith("smb://"))
@@ -20198,7 +20347,7 @@ var require_utils = __commonJS({
         const hasPendingDocs = systems2.some((i) => i.documentationPending === true);
         if (!hasPendingDocs)
           return systems2;
-        await new Promise((resolve4) => setTimeout(resolve4, 4e3));
+        await new Promise((resolve5) => setTimeout(resolve5, 4e3));
       }
       throw new Error(`Waiting for documentation processing to complete timed out after ${timeoutMs / 1e3} seconds for: ${systemIds.join(", ")}. Please try again in a few minutes.`);
     }
@@ -20457,16 +20606,16 @@ var require_utils = __commonJS({
     function normalizeToolDiffs(diffs) {
       return diffs.map((diff) => normalizeToolDiff(diff));
     }
-    function composeUrl(host, path6) {
+    function composeUrl(host, path7) {
       if (!host)
         host = "";
-      if (!path6)
-        path6 = "";
+      if (!path7)
+        path7 = "";
       if (!/^(https?|postgres(ql)?|ftp(s)?|sftp|smb|file):\/\//i.test(host)) {
         host = `https://${host}`;
       }
       const cleanHost = host.endsWith("/") ? host.slice(0, -1) : host;
-      const cleanPath = path6.startsWith("/") ? path6.slice(1) : path6;
+      const cleanPath = path7.startsWith("/") ? path7.slice(1) : path7;
       return `${cleanHost}/${cleanPath}`;
     }
     var detectSystemAuthType = (credentials) => {
@@ -21205,8 +21354,8 @@ var require_superglue_client = __commonJS({
           return true;
         return false;
       }
-      async restRequest(method, path6, body, extraHeaders) {
-        const url = `${this.apiEndpoint.replace(/\/$/, "")}${path6}`;
+      async restRequest(method, path7, body, extraHeaders) {
+        const url = `${this.apiEndpoint.replace(/\/$/, "")}${path7}`;
         const headers = {
           Authorization: `Bearer ${this.apiKey}`,
           ...extraHeaders
@@ -21284,8 +21433,8 @@ var require_superglue_client = __commonJS({
        * Optionally creates a run record when `createRun` is true.
        */
       async runToolConfig(params) {
-        const path6 = params.createRun ? "/v1/tools/run?createRun=true" : "/v1/tools/run";
-        const response = await this.restRequest("POST", path6, {
+        const path7 = params.createRun ? "/v1/tools/run?createRun=true" : "/v1/tools/run";
+        const response = await this.restRequest("POST", path7, {
           tool: params.tool,
           payload: params.payload,
           credentials: params.credentials,
@@ -21687,7 +21836,7 @@ var require_dist2 = __commonJS({
 });
 
 // src/cli.ts
-var import_commander5 = require("commander");
+var import_commander6 = require("commander");
 
 // src/config.ts
 var fs = __toESM(require("fs"));
@@ -21773,6 +21922,7 @@ function createClient(config) {
 var fs2 = __toESM(require("fs"));
 var path2 = __toESM(require("path"));
 var os2 = __toESM(require("os"));
+var import_commander = require("commander");
 var import_shared2 = __toESM(require_dist2());
 
 // src/output.ts
@@ -21785,7 +21935,7 @@ var import_node_util = require("util");
 // package.json
 var package_default = {
   name: "@superglue/cli",
-  version: "1.1.7",
+  version: "1.1.12",
   bin: {
     sg: "./dist/cli.js"
   },
@@ -21881,8 +22031,8 @@ function startBackgroundUpdateCheck() {
 async function printUpdateNotification() {
   if (!updateCheckPromise) return;
   try {
-    const timeout = new Promise((resolve4) => {
-      const timer = setTimeout(() => resolve4(null), 2e3);
+    const timeout = new Promise((resolve5) => {
+      const timer = setTimeout(() => resolve5(null), 2e3);
       timer.unref();
     });
     const latest = await Promise.race([updateCheckPromise, timeout]);
@@ -22206,21 +22356,21 @@ function renderDiffs(diffs) {
 async function prompt(message, defaultValue) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const suffix = defaultValue ? ` ${c.dim}[${defaultValue}]${c.reset}` : "";
-  return new Promise((resolve4) => {
+  return new Promise((resolve5) => {
     rl.question(`  ${message}${suffix}: `, (answer) => {
       rl.close();
-      resolve4(answer.trim() || defaultValue || "");
+      resolve5(answer.trim() || defaultValue || "");
     });
   });
 }
 async function promptHidden(message) {
-  return new Promise((resolve4) => {
+  return new Promise((resolve5) => {
     process.stdout.write(`${message}: `);
     if (!process.stdin.isTTY) {
       const rl = readline.createInterface({ input: process.stdin });
       rl.once("line", (line) => {
         rl.close();
-        resolve4(line.trim());
+        resolve5(line.trim());
       });
       return;
     }
@@ -22235,7 +22385,7 @@ async function promptHidden(message) {
           process.stdin.removeListener("data", onData);
           process.stdin.pause();
           process.stdout.write("\n");
-          resolve4(input);
+          resolve5(input);
           return;
         } else if (char === "") {
           process.stdin.setRawMode(false);
@@ -22278,7 +22428,7 @@ async function choose(message, options, defaultIndex = 0) {
   ${c.bold}${message}${c.reset} ${c.dim}(\u2191/\u2193 to select, enter to confirm)${c.reset}`
   );
   render();
-  return new Promise((resolve4) => {
+  return new Promise((resolve5) => {
     process.stdin.setRawMode(true);
     process.stdin.resume();
     const onData = (ch) => {
@@ -22287,7 +22437,7 @@ async function choose(message, options, defaultIndex = 0) {
         process.stdin.setRawMode(false);
         process.stdin.removeListener("data", onData);
         process.stdin.pause();
-        resolve4(selected);
+        resolve5(selected);
         return;
       }
       if (s === "") {
@@ -22310,61 +22460,94 @@ async function choose(message, options, defaultIndex = 0) {
 
 // src/commands/init.ts
 function registerInitCommand(program2) {
-  program2.command("init").description("Set up superglue CLI configuration").action(async () => {
-    banner();
-    console.log(`  ${c.bold}Welcome to the superglue CLI setup!${c.reset}`);
-    console.log(`  ${c.dim}Let's get you connected in a few steps.${c.reset}
+  program2.command("init").description("Set up superglue CLI configuration").option("--api-key <key>", "API key (skips interactive prompt)").option("--endpoint <url>", "API endpoint", "https://api.superglue.cloud").option("--web-endpoint <url>", "Web endpoint for OAuth callbacks").addOption(
+    new import_commander.Option("--output-mode <mode>", "Output mode: stdout or stdout+file").choices(["stdout", "stdout+file"]).default("stdout")
+  ).option("--output-dir <dir>", "Output directory for stdout+file mode", ".superglue/output").option("--global", "Save config globally (~/.superglue/) instead of locally").action(async (opts) => {
+    const isNonInteractive = opts.apiKey || !process.stdin.isTTY;
+    let apiKey;
+    let endpoint;
+    let webEndpoint;
+    let outputMode;
+    let outputDir;
+    let preferLocal;
+    if (isNonInteractive) {
+      apiKey = opts.apiKey || process.env.SUPERGLUE_API_KEY;
+      if (!apiKey) {
+        error("API key is required (--api-key or SUPERGLUE_API_KEY)");
+        process.exit(1);
+      }
+      endpoint = opts.endpoint;
+      const defaultWeb = endpoint.replace(/:3002\b/, ":3001").replace(/api\.superglue/, "app.superglue");
+      webEndpoint = opts.webEndpoint || defaultWeb;
+      outputMode = opts.outputMode === "stdout+file" ? "stdout+file" : "stdout";
+      outputDir = opts.outputDir;
+      preferLocal = !opts.global;
+      const spin = spinner("Verifying connection...");
+      try {
+        const client = new import_shared2.SuperglueClient({ apiKey, apiEndpoint: endpoint });
+        await client.listSystems(1);
+        spin.stop(`${c.green}\u2713${c.reset} Connected to ${c.bold}${endpoint}${c.reset}`);
+      } catch (err) {
+        spin.stop(`${c.red}\u2717${c.reset} Connection failed`);
+        error(err.message);
+        process.exit(1);
+      }
+    } else {
+      banner();
+      console.log(`  ${c.bold}Welcome to the superglue CLI setup!${c.reset}`);
+      console.log(`  ${c.dim}Let's get you connected in a few steps.${c.reset}
 `);
-    heading("Authentication");
-    console.log(
-      `  ${c.dim}Get your API key at${c.reset} ${link("https://app.superglue.cloud/admin?view=api-keys")}`
-    );
-    console.log("");
-    const apiKey = await promptHidden("  API Key");
-    if (!apiKey) {
-      error("API key is required");
-      process.exit(1);
+      heading("Authentication");
+      console.log(
+        `  ${c.dim}Get your API key at${c.reset} ${link("https://app.superglue.cloud/admin?view=api-keys")}`
+      );
+      console.log("");
+      apiKey = await promptHidden("  API Key");
+      if (!apiKey) {
+        error("API key is required");
+        process.exit(1);
+      }
+      endpoint = await prompt("  API Endpoint", opts.endpoint);
+      const defaultWeb = endpoint.replace(/:3002\b/, ":3001").replace(/api\.superglue/, "app.superglue");
+      webEndpoint = await prompt("  Web Endpoint (for OAuth callbacks)", defaultWeb);
+      const spin = spinner("Verifying connection...");
+      try {
+        const client = new import_shared2.SuperglueClient({ apiKey, apiEndpoint: endpoint });
+        await client.listSystems(1);
+        spin.stop(`${c.green}\u2713${c.reset} Connected to ${c.bold}${endpoint}${c.reset}`);
+      } catch (err) {
+        spin.stop(`${c.red}\u2717${c.reset} Connection failed`);
+        error(err.message);
+        process.exit(1);
+      }
+      heading("Output Preferences");
+      const outputModeIdx = await choose(
+        "Output mode",
+        [
+          "stdout only \u2014 print results to terminal",
+          "stdout + file \u2014 also save results as JSON files"
+        ],
+        0
+      );
+      outputMode = outputModeIdx === 1 ? "stdout+file" : "stdout";
+      outputDir = ".superglue/output";
+      if (outputMode === "stdout+file") {
+        outputDir = await prompt("  Output directory", ".superglue/output");
+      }
+      heading("Config Location");
+      const homeDir = os2.homedir();
+      const localPath = path2.join(process.cwd(), ".superglue");
+      const globalPath = path2.join(homeDir, ".superglue");
+      const configLocationIdx = await choose(
+        "Where to save config?",
+        [
+          `Project (${localPath}) \u2014 config stays with this project`,
+          `Global (${globalPath}) \u2014 shared across all projects`
+        ],
+        0
+      );
+      preferLocal = configLocationIdx === 0;
     }
-    const endpoint = await prompt("  API Endpoint", "https://api.superglue.cloud");
-    const defaultWeb = endpoint.replace(/:3002\b/, ":3001").replace(/api\.superglue/, "app.superglue");
-    const webEndpoint = await prompt("  Web Endpoint (for OAuth callbacks)", defaultWeb);
-    const spin = spinner("Verifying connection...");
-    try {
-      const client = new import_shared2.SuperglueClient({ apiKey, apiEndpoint: endpoint });
-      await client.listSystems(1);
-      spin.stop(`${c.green}\u2713${c.reset} Connected to ${c.bold}${endpoint}${c.reset}`);
-    } catch (err) {
-      spin.stop(`${c.red}\u2717${c.reset} Connection failed`);
-      error(err.message);
-      process.exit(1);
-    }
-    heading("Output Preferences");
-    const outputModeIdx = await choose(
-      "Output mode",
-      [
-        "stdout only \u2014 print results to terminal",
-        "stdout + file \u2014 also save results as JSON files"
-      ],
-      0
-    );
-    const outputMode = outputModeIdx === 1 ? "stdout+file" : "stdout";
-    let outputDir = ".superglue/output";
-    if (outputMode === "stdout+file") {
-      outputDir = await prompt("  Output directory", ".superglue/output");
-    }
-    heading("Config Location");
-    const homeDir = os2.homedir();
-    const localPath = path2.join(process.cwd(), ".superglue");
-    const globalPath = path2.join(homeDir, ".superglue");
-    const configLocationIdx = await choose(
-      "Where to save config?",
-      [
-        `Project (${localPath}) \u2014 config stays with this project`,
-        `Global (${globalPath}) \u2014 shared across all projects`
-      ],
-      0
-    );
-    const preferLocal = configLocationIdx === 0;
     const config = {
       apiKey,
       endpoint,
@@ -22916,7 +23099,7 @@ function registerToolCommands(program2, getContext2) {
 
 // src/commands/system/create.ts
 var fs8 = __toESM(require("fs"));
-var import_commander = require("commander");
+var import_commander2 = require("commander");
 var import_shared6 = __toESM(require_dist2());
 async function collectSensitiveCredentials(fields) {
   const creds = {};
@@ -22935,12 +23118,21 @@ async function collectSensitiveCredentials(fields) {
   return creds;
 }
 function registerCreateCommand(parent, getContext2) {
-  parent.command("create").description("Create a new system").option("--config <file>", "JSON config file").option("--id <id>", "System ID (derived from name if omitted)").option("--name <name>", "Human-readable name (required)").option("--url <url>", "API URL").option("--template <id>", "Template ID").option("--instructions <text>", "Specific instructions").option("--credentials <json>", "Non-sensitive credentials JSON").option("--sensitive-credentials <fields>", "Comma-separated sensitive credential field names").option("--docs-url <url>", "Documentation URL to scrape").option("--openapi-url <url>", "OpenAPI spec URL").addOption(
-    new import_commander.Option("--env <environment>", "Environment: dev or prod (default: prod)").choices([
+  parent.command("create").description("Create a new system").option("--config <file>", "JSON config file").option("--id <id>", "System ID (derived from name if omitted)").option("--name <name>", "Human-readable name (required)").option("--url <url>", "API URL").option(
+    "--template <id>",
+    "Template ID \u2014 auto-fills URL, OAuth config, and credentials. Auto-detected from URL if omitted."
+  ).option("--instructions <text>", "Specific instructions").option("--credentials <json>", "Non-sensitive credentials JSON").option("--sensitive-credentials <fields>", "Comma-separated sensitive credential field names").option("--docs-url <url>", "Documentation URL to scrape").option("--openapi-url <url>", "OpenAPI spec URL").addOption(
+    new import_commander2.Option("--env <environment>", "Environment: dev or prod (default: prod)").choices([
       "dev",
       "prod"
     ])
-  ).action(async (opts) => {
+  ).addHelpText("after", () => {
+    const oauthTemplates = Object.entries(import_shared6.systems).filter(([, t]) => t.oauth).map(([key, t]) => `  ${key.padEnd(24)} ${t.name}`).join("\n");
+    return `
+OAuth templates (use with --template or auto-detected from URL):
+${oauthTemplates}
+`;
+  }).action(async (opts) => {
     const { client } = getContext2();
     let systemInput;
     if (opts.config) {
@@ -22973,14 +23165,34 @@ function registerCreateCommand(parent, getContext2) {
         environment: opts.env === "dev" || opts.env === "prod" ? opts.env : void 0
       };
     }
-    if (opts.template) {
-      const template = import_shared6.systems[opts.template];
+    let templateKey = opts.template;
+    let template;
+    if (templateKey) {
+      template = import_shared6.systems[templateKey];
       if (!template) {
         error(
-          `Template not found: ${opts.template}. Available: ${Object.keys(import_shared6.systems).join(", ")}`
+          `Template not found: ${templateKey}. Available: ${Object.keys(import_shared6.systems).join(", ")}`
         );
         process.exit(1);
       }
+    } else if (systemInput.url || systemInput.name || systemInput.id) {
+      const match = (0, import_shared6.findTemplateForSystem)({
+        url: systemInput.url,
+        name: systemInput.name,
+        id: systemInput.id
+      });
+      if (match) {
+        templateKey = match.key;
+        template = match.template;
+        if (process.stderr.isTTY) {
+          process.stderr.write(
+            `${c.dim}Auto-detected template: ${c.bold}${templateKey}${c.reset}${c.dim} (use --template to override)${c.reset}
+`
+          );
+        }
+      }
+    }
+    if (template && templateKey) {
       const oauthCreds = {};
       if (template.oauth) {
         if (template.oauth.authUrl) oauthCreds.auth_url = template.oauth.authUrl;
@@ -22992,7 +23204,7 @@ function registerCreateCommand(parent, getContext2) {
         ...systemInput,
         name: systemInput.name || template.name,
         url: systemInput.url || template.apiUrl,
-        templateName: opts.template,
+        templateName: templateKey,
         credentials: { ...oauthCreds, ...systemInput.credentials }
       };
     }
@@ -23031,12 +23243,14 @@ function registerCreateCommand(parent, getContext2) {
       if (process.argv.includes("--json") || !process.stdout.isTTY) {
         output({
           success: true,
-          system: { id: result.id, name: result.name, url: result.url }
+          system: { id: result.id, name: result.name, url: result.url },
+          ...templateKey ? { template: templateKey } : {}
         });
       } else {
         success(`System created: ${c.bold}${result.id}${c.reset}`, {
           name: result.name,
-          url: result.url
+          url: result.url,
+          ...templateKey ? { template: templateKey } : {}
         });
       }
     } catch (err) {
@@ -23047,10 +23261,10 @@ function registerCreateCommand(parent, getContext2) {
 }
 
 // src/commands/system/edit.ts
-var import_commander2 = require("commander");
+var import_commander3 = require("commander");
 function registerEditCommand2(parent, getContext2) {
   parent.command("edit").description("Edit an existing system").requiredOption("--id <id>", "System ID").option("--name <name>", "New name").option("--url <url>", "New URL").option("--instructions <text>", "New specific instructions").option("--credentials <json>", "Non-sensitive credentials JSON to merge").option("--sensitive-credentials <fields>", "Comma-separated sensitive credential field names").option("--scrape-url <url>", "Documentation URL to scrape").option("--scrape-keywords <keywords>", "Space-separated scrape keywords").addOption(
-    new import_commander2.Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"])
+    new import_commander3.Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"])
   ).action(async (opts) => {
     const { client } = getContext2();
     const patchPayload = { id: opts.id };
@@ -23121,7 +23335,7 @@ function registerEditCommand2(parent, getContext2) {
 }
 
 // src/commands/system/find.ts
-var import_commander3 = require("commander");
+var import_commander4 = require("commander");
 var import_shared7 = __toESM(require_dist2());
 function filterSystemFields(system) {
   const credentialKeys = Object.keys(system.credentials || {});
@@ -23155,7 +23369,7 @@ function registerFindCommand2(parent, getContext2) {
     }
   });
   parent.command("find [query]").description("Find systems by query or exact ID").option("--id <exactId>", "Exact system ID lookup").addOption(
-    new import_commander3.Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"])
+    new import_commander4.Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"])
   ).action(async (query, opts) => {
     const { client } = getContext2();
     try {
@@ -23201,7 +23415,7 @@ function registerFindCommand2(parent, getContext2) {
 }
 
 // src/commands/system/call.ts
-var import_commander4 = require("commander");
+var import_commander5 = require("commander");
 var import_shared8 = __toESM(require_dist2());
 function registerCallCommand(parent, getContext2) {
   parent.command("call").description("Call a system (API, database, file server)").requiredOption("--url <url>", "Full URL including protocol").option("--system-id <id>", "System ID for credential injection").option("--method <method>", "HTTP method", "GET").option("--headers <json>", "HTTP headers JSON").option("--body <string>", "Request body").option(
@@ -23213,7 +23427,7 @@ function registerCallCommand(parent, getContext2) {
     },
     []
   ).addOption(
-    new import_commander4.Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"])
+    new import_commander5.Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"])
   ).action(async (opts) => {
     const { client } = getContext2();
     const method = opts.method || "GET";
@@ -23334,6 +23548,7 @@ function registerDocsCommand(parent, getContext2) {
 
 // src/commands/system/oauth.ts
 var import_node_child_process2 = require("child_process");
+var import_node_crypto = __toESM(require("crypto"));
 var import_shared9 = __toESM(require_dist2());
 function openBrowser(url) {
   const platform = process.platform;
@@ -23449,6 +23664,20 @@ function registerOAuthCommand(parent, getContext2) {
       process.exit(1);
     }
     const encryptedApiKey = (0, import_shared9.encryptCliApiKey)(config.apiKey, opts.systemId, encryptionSecret);
+    let clientCredentialsUid;
+    if (system.credentials?.client_secret && clientId) {
+      clientCredentialsUid = import_node_crypto.default.randomUUID();
+      try {
+        await client.cacheOauthClientCredentials({
+          clientCredentialsUid,
+          clientId,
+          clientSecret: system.credentials.client_secret
+        });
+      } catch (err) {
+        error(`Failed to cache OAuth credentials: ${err.message}`);
+        process.exit(1);
+      }
+    }
     const redirectUri = `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`;
     const state = {
       systemId: opts.systemId,
@@ -23458,6 +23687,7 @@ function registerOAuthCommand(parent, getContext2) {
       token_url: tokenUrl,
       clientId,
       ...templateMatch ? { templateId: templateMatch.key } : {},
+      ...clientCredentialsUid ? { client_credentials_uid: clientCredentialsUid } : {},
       scopes: opts.scopes,
       cliApiKey: encryptedApiKey
     };
@@ -23623,11 +23853,49 @@ function registerUpdateCommand(program2) {
   });
 }
 
+// src/commands/skill.ts
+var fs9 = __toESM(require("fs"));
+var path6 = __toESM(require("path"));
+var SKILLS_DIR = fs9.existsSync(path6.resolve(__dirname, "skills/superglue")) ? path6.resolve(__dirname, "skills/superglue") : path6.resolve(__dirname, "../../skills/superglue");
+function registerSkillCommand(program2) {
+  program2.command("skill").description("Print the superglue skill reference (SKILL.md) for AI agents").argument("[topic]", "Optional topic: references/<topic>.md (e.g. databases, integration)").action((topic) => {
+    const file = topic ? path6.join(SKILLS_DIR, "references", `${topic}.md`) : path6.join(SKILLS_DIR, "SKILL.md");
+    if (!fs9.existsSync(file)) {
+      if (topic) {
+        const refsDir = path6.join(SKILLS_DIR, "references");
+        const available = fs9.existsSync(refsDir) ? fs9.readdirSync(refsDir).filter((f) => f.endsWith(".md")).map((f) => f.replace(".md", "")) : [];
+        error(
+          `Topic not found: ${topic}. Available: ${available.join(", ") || "none"}`
+        );
+      } else {
+        error(`Skill file not found: ${file}`);
+      }
+      process.exit(1);
+    }
+    process.stdout.write(fs9.readFileSync(file, "utf-8"));
+  });
+}
+
 // src/cli.ts
-var program = new import_commander5.Command();
+var program = new import_commander6.Command();
 program.name("sg").description("superglue CLI \u2014 build, run, and manage integration tools").version(CLI_VERSION).option("--api-key <key>", "superglue API key").option("--endpoint <url>", "superglue API endpoint").option("--json", "force JSON output").addHelpText(
   "after",
   `
+IMPORTANT FOR AI AGENTS:
+  Before using the sg CLI, you MUST read the skill reference for complete usage
+  instructions, patterns, and examples:
+
+    sg skill                        Print the main SKILL.md reference
+    sg skill databases              Print the databases reference
+    sg skill integration            Print the SDK/REST/webhook reference
+    sg skill file-servers           Print the file servers reference
+    sg skill transforms-and-output  Print the transforms reference
+    sg skill redis                  Print the Redis reference
+
+  The main skill reference covers: tool building, system setup, OAuth flows,
+  credential handling, variable syntax, data selectors, and common pitfalls.
+  DO NOT attempt to use sg commands without reading the skill reference first.
+
 All Commands:
   sg init                                        Set up CLI configuration
 
@@ -23656,6 +23924,7 @@ All Commands:
   sg run list [toolId]                           List runs, optionally filtered by tool
   sg run get <runId>                             Get details of a specific run
 
+  sg skill [topic]                                Print skill reference for AI agents
   sg update                                      Update CLI to latest version
   sg update --check                              Check for available updates
 
@@ -23673,6 +23942,7 @@ var getContext = () => {
 };
 registerInitCommand(program);
 registerUpdateCommand(program);
+registerSkillCommand(program);
 registerToolCommands(program, getContext);
 registerSystemCommands(program, getContext);
 registerRunCommands(program, getContext);

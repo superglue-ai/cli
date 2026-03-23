@@ -235,21 +235,26 @@ sg system call --url "postgres://<<my_db_host>>:5432/mydb" \
   --system-id my_db \
   --body '{"query":"SELECT * FROM users LIMIT 5"}'
 
+# Redis command
+sg system call --url "redis://<<my_redis_host>>:6379/0" \
+  --system-id my_redis \
+  --body '{"command":"HGETALL","args":["user:123"]}'
+
 # File server (SFTP)
 sg system call --url "sftp://<<my_sftp_host>>:22/data" \
   --system-id my_sftp \
   --body '{"operation":"list","path":"/"}'
 ```
 
-| Flag                | Description                                               |
-| ------------------- | --------------------------------------------------------- |
-| `--url <url>`       | Full URL with protocol (http/https/postgres/sftp/ftp/smb) |
-| `--system-id <id>`  | System ID for credential injection                        |
-| `--method <method>` | HTTP method (GET, POST, PUT, DELETE, PATCH)               |
-| `--headers <json>`  | HTTP headers JSON with credential placeholders            |
-| `--body <string>`   | Request body (JSON string)                                |
-| `--env <env>`       | Environment: `dev` or `prod`                              |
-| `--file <key=path>` | File references (repeatable)                              |
+| Flag                | Description                                                            |
+| ------------------- | ---------------------------------------------------------------------- |
+| `--url <url>`       | Full URL with protocol (http/https/postgres/redis/rediss/sftp/ftp/smb) |
+| `--system-id <id>`  | System ID for credential injection                                     |
+| `--method <method>` | HTTP method (GET, POST, PUT, DELETE, PATCH)                            |
+| `--headers <json>`  | HTTP headers JSON with credential placeholders                         |
+| `--body <string>`   | Request body (JSON string)                                             |
+| `--env <env>`       | Environment: `dev` or `prod`                                           |
+| `--file <key=path>` | File references (repeatable)                                           |
 
 **`sg system search-docs`** — Search system documentation.
 
@@ -366,14 +371,25 @@ All step config fields support `<<variable>>` placeholders:
 | -------------------------- | --------------------------- |
 | `<<fieldName>>`            | Payload field or credential |
 | `<<systemId_credKey>>`     | System credential           |
+| `<<sg_auth_email>>`        | Email of authenticated user |
 | `<<(sourceData) => expr>>` | JavaScript expression       |
 
 **CRITICAL**: Simple `<<varName>>` only works for **top-level keys**. No dots, no nesting.
 
-- VALID: `<<userId>>`, `<<currentItem>>`, `<<stripe_api_key>>`
+- VALID: `<<userId>>`, `<<currentItem>>`, `<<stripe_api_key>>`, `<<sg_auth_email>>`
 - INVALID: `<<currentItem.id>>`, `<<sourceData.userId>>` — these FAIL at runtime
 
 For nested access, use arrow functions: `<<(sourceData) => sourceData.currentItem.id>>`
+
+### Context Variables
+
+Context variables provide information about the execution environment:
+
+- `<<sg_auth_email>>` — Email of the authenticated user who triggered the tool
+
+**Use case**: Personalize tool outputs based on who runs the tool (e.g., user-specific permissions, account lookups, audit logging).
+
+**Important**: `sg_auth_email` is NOT available in scheduled executions. Tools using `<<sg_auth_email>>` will fail if run via scheduler.
 
 ### sourceData Object
 
@@ -442,7 +458,7 @@ Empty arrays are valid — the step simply skips execution.
 
 ### Two Step Types
 
-**Request step** (HTTP, Postgres, FTP/SFTP/SMB) — makes an API call:
+**Request step** (HTTP, Postgres, Redis, FTP/SFTP/SMB) — makes an API call:
 
 ```json
 {
@@ -534,9 +550,31 @@ Templates auto-populate endpoints and OAuth config. Use `sg system find` to disc
 
 ### OAuth Flow
 
-1. `sg system create --name "Gmail" --url https://gmail.googleapis.com --credentials '{"auth_url":"...","token_url":"..."}' --sensitive-credentials client_id,client_secret`
-2. `sg system oauth --system-id gmail --scopes "..."`
-3. User authenticates in browser → tokens saved automatically
+**IMPORTANT:** For OAuth systems, prefer `--template` when available because it auto-configures OAuth URLs and defaults. OAuth also works without a template if you provide required credentials (for example `client_id`, `auth_url`, and `token_url`) manually.
+
+If you don't know the template ID, the CLI auto-detects it from the URL — but using `--template` explicitly is more reliable.
+
+**Step 1: Create the system with template and credentials**
+
+```bash
+# Best: explicit template (auto-fills URL and OAuth config)
+sg system create --name "Gmail" --template gmail \
+  --credentials '{"client_id":"...","client_secret":"..."}'
+
+# Also works: URL-based auto-detection (template inferred from googleapis.com)
+sg system create --name "Gmail" --url https://gmail.googleapis.com \
+  --credentials '{"client_id":"...","client_secret":"..."}'
+```
+
+**Step 2: Authenticate via OAuth**
+
+```bash
+sg system oauth --system-id gmail --scopes "https://www.googleapis.com/auth/gmail.readonly"
+```
+
+**Step 3:** User authenticates in browser → tokens saved automatically
+
+**Common OAuth templates:** gmail, googleDrive, googleCalendar, googleSheets, slack, salesforce, github, jira, confluence, notion, airtable, hubspot, shopify, dropbox, zoom, microsoft
 
 ### System IDs
 
@@ -608,6 +646,7 @@ For detailed documentation on specific topics, read these files in the `referenc
 | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `references/integration.md`           | **READ THIS** when deploying tools to production - SDK usage, REST API, webhooks, error handling |
 | `references/databases.md`             | Building tools that query PostgreSQL/MySQL databases                                             |
+| `references/redis.md`                 | Building tools that interact with Redis (commands, pipelines, data types)                        |
 | `references/file-servers.md`          | Building tools that interact with FTP/SFTP/SMB file servers                                      |
 | `references/transforms-and-output.md` | Complex data transformations, output shaping, JS sandbox constraints                             |
 
