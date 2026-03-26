@@ -12,10 +12,9 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
     .action(async () => {
       const { client } = getContext();
       try {
-        const { items } = await client.listWorkflows(100);
-        const tools = items.filter((t: any) => !t.archived);
+        const { items } = await client.listWorkflows(1000);
         table(
-          tools.map((t: any) => ({
+          items.map((t: any) => ({
             id: t.id,
             instruction: (t.instruction || "").slice(0, 60),
             steps: t.steps?.length || 0,
@@ -45,27 +44,40 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
           return;
         }
         const searchQuery = (query || "").trim() || "*";
-        if (searchQuery === "*") {
-          const { items } = await client.listWorkflows(100);
-          const tools = items
-            .filter((t: any) => !t.archived)
-            .map((t: any) => ({
-              id: t.id,
-              instruction: (t.instruction || "").slice(0, 80),
-              steps: t.steps?.length || 0,
-            }));
-          output({ success: true, tools });
-        } else {
-          const tools = await client.findRelevantTools(searchQuery);
-          output({
-            success: true,
-            tools: tools.map((t: any) => ({
-              id: t.id,
-              instruction: (t.instruction || "").slice(0, 80),
-              steps: t.steps?.length || 0,
-            })),
-          });
-        }
+        const { items } = await client.listWorkflows(1000);
+
+        const filtered =
+          searchQuery === "*"
+            ? items
+            : (() => {
+                const keywords = searchQuery
+                  .toLowerCase()
+                  .split(/\s+/)
+                  .filter((k: string) => k.length > 0);
+                const scored = items.map((t: any) => {
+                  const text = [t.id, t.name, t.instruction]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+                  return {
+                    tool: t,
+                    score: keywords.filter((kw: string) => text.includes(kw)).length,
+                  };
+                });
+                const matches = scored.filter((s: any) => s.score > 0);
+                if (matches.length === 0) return items;
+                matches.sort((a: any, b: any) => b.score - a.score);
+                return matches.map((m: any) => m.tool);
+              })();
+
+        output({
+          success: true,
+          tools: filtered.map((t: any) => ({
+            id: t.id,
+            instruction: (t.instruction || "").slice(0, 80),
+            steps: t.steps?.length || 0,
+          })),
+        });
       } catch (err: any) {
         error(err.message);
         process.exit(1);

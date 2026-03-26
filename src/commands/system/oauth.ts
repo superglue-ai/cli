@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import crypto from "node:crypto";
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import { findTemplateForSystem, encryptCliApiKey } from "@superglue/shared";
@@ -153,6 +154,25 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
 
       const encryptedApiKey = encryptCliApiKey(config.apiKey, opts.systemId, encryptionSecret);
 
+      // Cache client credentials on the backend (same as UI flow) so the callback
+      // can retrieve client_secret without it being in the URL state.
+      // Always cache when the system has its own client_secret — even if a template
+      // matched by URL, the template may not have preconfigured server-side credentials.
+      let clientCredentialsUid: string | undefined;
+      if (system.credentials?.client_secret && clientId) {
+        clientCredentialsUid = crypto.randomUUID();
+        try {
+          await client.cacheOauthClientCredentials({
+            clientCredentialsUid,
+            clientId,
+            clientSecret: system.credentials.client_secret,
+          });
+        } catch (err: any) {
+          error(`Failed to cache OAuth credentials: ${err.message}`);
+          process.exit(1);
+        }
+      }
+
       const redirectUri = `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`;
 
       const state = {
@@ -163,6 +183,7 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
         token_url: tokenUrl,
         clientId,
         ...(templateMatch ? { templateId: templateMatch.key } : {}),
+        ...(clientCredentialsUid ? { client_credentials_uid: clientCredentialsUid } : {}),
         scopes: opts.scopes,
         cliApiKey: encryptedApiKey,
       };

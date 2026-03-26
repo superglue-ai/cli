@@ -6,6 +6,7 @@ import { registerToolCommands } from "./commands/tool/index.js";
 import { registerSystemCommands } from "./commands/system/index.js";
 import { registerRunCommands } from "./commands/run/index.js";
 import { registerUpdateCommand } from "./commands/update.js";
+import { registerSkillCommand } from "./commands/skill.js";
 import {
   CLI_VERSION,
   checkVersionCompatibility,
@@ -25,6 +26,21 @@ program
   .addHelpText(
     "after",
     `
+IMPORTANT FOR AI AGENTS:
+  Before using the sg CLI, you MUST read the skill reference for complete usage
+  instructions, patterns, and examples:
+
+    sg skill                        Print the main SKILL.md reference
+    sg skill databases              Print the databases reference
+    sg skill integration            Print the SDK/REST/webhook reference
+    sg skill file-servers           Print the file servers reference
+    sg skill transforms-and-output  Print the transforms reference
+    sg skill redis                  Print the Redis reference
+
+  The main skill reference covers: tool building, system setup, OAuth flows,
+  credential handling, variable syntax, data selectors, and common pitfalls.
+  DO NOT attempt to use sg commands without reading the skill reference first.
+
 All Commands:
   sg init                                        Set up CLI configuration
 
@@ -53,6 +69,7 @@ All Commands:
   sg run list [toolId]                           List runs, optionally filtered by tool
   sg run get <runId>                             Get details of a specific run
 
+  sg skill [topic]                                Print skill reference for AI agents
   sg update                                      Update CLI to latest version
   sg update --check                              Check for available updates
 
@@ -72,6 +89,7 @@ const getContext = () => {
 
 registerInitCommand(program);
 registerUpdateCommand(program);
+registerSkillCommand(program);
 registerToolCommands(program, getContext);
 registerSystemCommands(program, getContext);
 registerRunCommands(program, getContext);
