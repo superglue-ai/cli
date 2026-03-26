@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
-import { systems, slugify } from "@superglue/shared";
+import { systems, slugify, findTemplateForSystem } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
 import { output, error, promptHidden, success, spinner, colors as c } from "../../output.js";
 
@@ -32,7 +32,10 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
     .option("--id <id>", "System ID (derived from name if omitted)")
     .option("--name <name>", "Human-readable name (required)")
     .option("--url <url>", "API URL")
-    .option("--template <id>", "Template ID")
+    .option(
+      "--template <id>",
+      "Template ID — auto-fills URL, OAuth config, and credentials. Auto-detected from URL if omitted.",
+    )
     .option("--instructions <text>", "Specific instructions")
     .option("--credentials <json>", "Non-sensitive credentials JSON")
     .option("--sensitive-credentials <fields>", "Comma-separated sensitive credential field names")
@@ -44,6 +47,13 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
         "prod",
       ]),
     )
+    .addHelpText("after", () => {
+      const oauthTemplates = Object.entries(systems)
+        .filter(([, t]) => t.oauth)
+        .map(([key, t]) => `  ${key.padEnd(24)} ${t.name}`)
+        .join("\n");
+      return `\nOAuth templates (use with --template or auto-detected from URL):\n${oauthTemplates}\n`;
+    })
     .action(async (opts) => {
       const { client } = getContext();
 
@@ -80,14 +90,36 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
         };
       }
 
-      if (opts.template) {
-        const template = systems[opts.template];
+      // Resolve template: explicit --template flag, or auto-detect from URL/name
+      let templateKey: string | undefined = opts.template;
+      let template: (typeof systems)[string] | undefined;
+
+      if (templateKey) {
+        template = systems[templateKey];
         if (!template) {
           error(
-            `Template not found: ${opts.template}. Available: ${Object.keys(systems).join(", ")}`,
+            `Template not found: ${templateKey}. Available: ${Object.keys(systems).join(", ")}`,
           );
           process.exit(1);
         }
+      } else if (systemInput.url || systemInput.name || systemInput.id) {
+        const match = findTemplateForSystem({
+          url: systemInput.url,
+          name: systemInput.name,
+          id: systemInput.id,
+        });
+        if (match) {
+          templateKey = match.key;
+          template = match.template;
+          if (process.stderr.isTTY) {
+            process.stderr.write(
+              `${c.dim}Auto-detected template: ${c.bold}${templateKey}${c.reset}${c.dim} (use --template to override)${c.reset}\n`,
+            );
+          }
+        }
+      }
+
+      if (template && templateKey) {
         const oauthCreds: Record<string, any> = {};
         if (template.oauth) {
           if (template.oauth.authUrl) oauthCreds.auth_url = template.oauth.authUrl;
@@ -99,7 +131,7 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
           ...systemInput,
           name: systemInput.name || template.name,
           url: systemInput.url || template.apiUrl,
-          templateName: opts.template,
+          templateName: templateKey,
           credentials: { ...oauthCreds, ...systemInput.credentials },
         };
       }
@@ -145,11 +177,13 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
           output({
             success: true,
             system: { id: result.id, name: result.name, url: result.url },
+            ...(templateKey ? { template: templateKey } : {}),
           });
         } else {
           success(`System created: ${c.bold}${result.id}${c.reset}`, {
             name: result.name,
             url: result.url,
+            ...(templateKey ? { template: templateKey } : {}),
           });
         }
       } catch (err: any) {
