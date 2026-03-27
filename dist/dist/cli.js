@@ -20129,6 +20129,7 @@ var require_utils = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ALLOWED_PATCH_SYSTEM_FIELDS = exports2.getSystemAuthStatus = exports2.detectSystemAuthType = exports2.maskSystemCredentials = exports2.isSensitiveCredentialKey = exports2.ALLOWED_FILE_EXTENSIONS = exports2.getConnectionProtocol = void 0;
+    exports2.isAbortError = isAbortError;
     exports2.validateExternalUrl = validateExternalUrl;
     exports2.flattenAndNamespaceCredentials = flattenAndNamespaceCredentials;
     exports2.flattenAndNamespaceSystemUrls = flattenAndNamespaceSystemUrls;
@@ -20172,6 +20173,18 @@ var require_utils = __commonJS({
       return "http";
     };
     exports2.getConnectionProtocol = getConnectionProtocol2;
+    function isAbortError(error2) {
+      if (!error2)
+        return false;
+      if (typeof error2 === "string")
+        return error2.startsWith("AbortError:");
+      if (error2 instanceof DOMException)
+        return error2.name === "AbortError";
+      if (error2 instanceof Error) {
+        return error2.name === "AbortError" || error2.message.startsWith("AbortError:");
+      }
+      return false;
+    }
     function validateExternalUrl(raw) {
       const parsed = new URL(raw);
       if (!["http:", "https:"].includes(parsed.protocol)) {
@@ -21381,6 +21394,7 @@ var require_superglue_client = __commonJS({
     exports2.SuperglueClient = void 0;
     var types_js_1 = require_types();
     var sse_log_subscription_js_1 = require_sse_log_subscription();
+    var utils_js_1 = require_utils();
     var SuperglueClient3 = class {
       constructor({ apiKey, apiEndpoint, onInfrastructureError }) {
         this.apiKey = apiKey;
@@ -21389,15 +21403,15 @@ var require_superglue_client = __commonJS({
         this.onInfrastructureError = onInfrastructureError;
       }
       isInfrastructureError(error2) {
+        if ((0, utils_js_1.isAbortError)(error2))
+          return false;
         if (error2 instanceof TypeError && error2.message.toLowerCase().includes("fetch"))
-          return true;
-        if (error2 instanceof DOMException && error2.name === "AbortError")
           return true;
         if (error2 instanceof Error && error2.name === "TimeoutError")
           return true;
         return false;
       }
-      async restRequest(method, path7, body, extraHeaders) {
+      async restRequest(method, path7, body, extraHeaders, requestInit) {
         const url = `${this.apiEndpoint.replace(/\/$/, "")}${path7}`;
         const headers = {
           Authorization: `Bearer ${this.apiKey}`,
@@ -21411,7 +21425,8 @@ var require_superglue_client = __commonJS({
           response = await fetch(url, {
             method,
             headers,
-            body: body ? JSON.stringify(body) : void 0
+            body: body ? JSON.stringify(body) : void 0,
+            signal: requestInit?.signal
           });
         } catch (error2) {
           if (this.isInfrastructureError(error2)) {
@@ -21611,13 +21626,23 @@ var require_superglue_client = __commonJS({
         };
       }
       async listRuns(options) {
-        const { limit = 100, page = 1, toolId, status, requestSources, userId, systemId } = options ?? {};
+        const { limit = 100, page = 1, toolId, search, searchUserIds, includeTotal = true, startedAfter, status, requestSources, userId, systemId, signal } = options ?? {};
         const params = new URLSearchParams({
           limit: String(limit),
           page: String(page)
         });
         if (toolId)
           params.set("toolId", toolId);
+        if (search?.trim())
+          params.set("search", search.trim());
+        if (searchUserIds && searchUserIds.length > 0) {
+          params.set("searchUserIds", searchUserIds.join(","));
+        }
+        if (!includeTotal)
+          params.set("includeTotal", "false");
+        if (startedAfter) {
+          params.set("startedAfter", startedAfter instanceof Date ? startedAfter.toISOString() : startedAfter);
+        }
         if (status)
           params.set("status", status);
         if (requestSources && requestSources.length > 0) {
@@ -21627,7 +21652,7 @@ var require_superglue_client = __commonJS({
           params.set("userId", userId);
         if (systemId)
           params.set("systemId", systemId);
-        const response = await this.restRequest("GET", `/v1/runs?${params.toString()}`);
+        const response = await this.restRequest("GET", `/v1/runs?${params.toString()}`, void 0, void 0, { signal });
         return {
           items: response.data.map((run) => this.mapOpenAPIRunToRun(run)),
           total: response.total,
@@ -21978,7 +22003,7 @@ var import_node_util = require("util");
 // package.json
 var package_default = {
   name: "@superglue/cli",
-  version: "1.1.12",
+  version: "1.1.13",
   bin: {
     sg: "./dist/cli.js"
   },
