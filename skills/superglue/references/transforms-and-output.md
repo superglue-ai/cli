@@ -82,9 +82,9 @@ Payload fields are at root level — **NEVER** use `sourceData.payload.*`.
 
 ## JS Code Constraints (all transform points)
 
-Runs in `isolated-vm` sandbox:
+Runs in Deno subprocess sandbox:
 
-- 4096 MB memory limit, 10s timeout (transforms/selectors), 3s timeout (pagination stops)
+- 8192 MB memory limit, 10 minute timeout per transform
 - Synchronous only — no async/await, no Promises, no setTimeout
 - No side effects — no network, filesystem, or console access
 - No external dependencies — only standard JS built-ins (Array, Object, String, Math, Date, JSON, etc.)

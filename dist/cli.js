@@ -9077,8 +9077,8 @@ var require_luxon = __commonJS({
         let current = null, currentFull = "", bracketed = false;
         const splits = [];
         for (let i = 0; i < fmt.length; i++) {
-          const c3 = fmt.charAt(i);
-          if (c3 === "'") {
+          const c2 = fmt.charAt(i);
+          if (c2 === "'") {
             if (currentFull.length > 0 || bracketed) {
               splits.push({
                 literal: bracketed || /^\s+$/.test(currentFull),
@@ -9089,9 +9089,9 @@ var require_luxon = __commonJS({
             currentFull = "";
             bracketed = !bracketed;
           } else if (bracketed) {
-            currentFull += c3;
-          } else if (c3 === current) {
-            currentFull += c3;
+            currentFull += c2;
+          } else if (c2 === current) {
+            currentFull += c2;
           } else {
             if (currentFull.length > 0) {
               splits.push({
@@ -9099,8 +9099,8 @@ var require_luxon = __commonJS({
                 val: currentFull
               });
             }
-            currentFull = c3;
-            current = c3;
+            currentFull = c2;
+            current = c2;
           }
         }
         if (currentFull.length > 0) {
@@ -11782,7 +11782,7 @@ var require_luxon = __commonJS({
       return fixOffset(objToLocalTS(obj), offset2, zone);
     }
     function adjustTime(inst, dur) {
-      const oPre = inst.o, year = inst.c.year + Math.trunc(dur.years), month = inst.c.month + Math.trunc(dur.months) + Math.trunc(dur.quarters) * 3, c3 = {
+      const oPre = inst.o, year = inst.c.year + Math.trunc(dur.years), month = inst.c.month + Math.trunc(dur.months) + Math.trunc(dur.quarters) * 3, c2 = {
         ...inst.c,
         year,
         month,
@@ -11797,7 +11797,7 @@ var require_luxon = __commonJS({
         minutes: dur.minutes,
         seconds: dur.seconds,
         milliseconds: dur.milliseconds
-      }).as("milliseconds"), localTS = objToLocalTS(c3);
+      }).as("milliseconds"), localTS = objToLocalTS(c2);
       let [ts, o] = fixOffset(localTS, oPre, inst.zone);
       if (millisToAdd !== 0) {
         ts += millisToAdd;
@@ -11832,72 +11832,72 @@ var require_luxon = __commonJS({
     }
     function toISODate(o, extended, precision) {
       const longFormat = o.c.year > 9999 || o.c.year < 0;
-      let c3 = "";
-      if (longFormat && o.c.year >= 0) c3 += "+";
-      c3 += padStart(o.c.year, longFormat ? 6 : 4);
-      if (precision === "year") return c3;
+      let c2 = "";
+      if (longFormat && o.c.year >= 0) c2 += "+";
+      c2 += padStart(o.c.year, longFormat ? 6 : 4);
+      if (precision === "year") return c2;
       if (extended) {
-        c3 += "-";
-        c3 += padStart(o.c.month);
-        if (precision === "month") return c3;
-        c3 += "-";
+        c2 += "-";
+        c2 += padStart(o.c.month);
+        if (precision === "month") return c2;
+        c2 += "-";
       } else {
-        c3 += padStart(o.c.month);
-        if (precision === "month") return c3;
+        c2 += padStart(o.c.month);
+        if (precision === "month") return c2;
       }
-      c3 += padStart(o.c.day);
-      return c3;
+      c2 += padStart(o.c.day);
+      return c2;
     }
     function toISOTime(o, extended, suppressSeconds, suppressMilliseconds, includeOffset, extendedZone, precision) {
-      let showSeconds = !suppressSeconds || o.c.millisecond !== 0 || o.c.second !== 0, c3 = "";
+      let showSeconds = !suppressSeconds || o.c.millisecond !== 0 || o.c.second !== 0, c2 = "";
       switch (precision) {
         case "day":
         case "month":
         case "year":
           break;
         default:
-          c3 += padStart(o.c.hour);
+          c2 += padStart(o.c.hour);
           if (precision === "hour") break;
           if (extended) {
-            c3 += ":";
-            c3 += padStart(o.c.minute);
+            c2 += ":";
+            c2 += padStart(o.c.minute);
             if (precision === "minute") break;
             if (showSeconds) {
-              c3 += ":";
-              c3 += padStart(o.c.second);
+              c2 += ":";
+              c2 += padStart(o.c.second);
             }
           } else {
-            c3 += padStart(o.c.minute);
+            c2 += padStart(o.c.minute);
             if (precision === "minute") break;
             if (showSeconds) {
-              c3 += padStart(o.c.second);
+              c2 += padStart(o.c.second);
             }
           }
           if (precision === "second") break;
           if (showSeconds && (!suppressMilliseconds || o.c.millisecond !== 0)) {
-            c3 += ".";
-            c3 += padStart(o.c.millisecond, 3);
+            c2 += ".";
+            c2 += padStart(o.c.millisecond, 3);
           }
       }
       if (includeOffset) {
         if (o.isOffsetFixed && o.offset === 0 && !extendedZone) {
-          c3 += "Z";
+          c2 += "Z";
         } else if (o.o < 0) {
-          c3 += "-";
-          c3 += padStart(Math.trunc(-o.o / 60));
-          c3 += ":";
-          c3 += padStart(Math.trunc(-o.o % 60));
+          c2 += "-";
+          c2 += padStart(Math.trunc(-o.o / 60));
+          c2 += ":";
+          c2 += padStart(Math.trunc(-o.o % 60));
         } else {
-          c3 += "+";
-          c3 += padStart(Math.trunc(o.o / 60));
-          c3 += ":";
-          c3 += padStart(Math.trunc(o.o % 60));
+          c2 += "+";
+          c2 += padStart(Math.trunc(o.o / 60));
+          c2 += ":";
+          c2 += padStart(Math.trunc(o.o % 60));
         }
       }
       if (extendedZone) {
-        c3 += "[" + o.zone.ianaName + "]";
+        c2 += "[" + o.zone.ianaName + "]";
       }
-      return c3;
+      return c2;
     }
     var defaultUnitValues = {
       month: 1,
@@ -12015,10 +12015,10 @@ var require_luxon = __commonJS({
       });
     }
     function diffRelative(start, end, opts) {
-      const round = isUndefined(opts.round) ? true : opts.round, rounding = isUndefined(opts.rounding) ? "trunc" : opts.rounding, format = (c3, unit) => {
-        c3 = roundTo(c3, round || opts.calendary ? 0 : 2, opts.calendary ? "round" : rounding);
+      const round = isUndefined(opts.round) ? true : opts.round, rounding = isUndefined(opts.rounding) ? "trunc" : opts.rounding, format = (c2, unit) => {
+        c2 = roundTo(c2, round || opts.calendary ? 0 : 2, opts.calendary ? "round" : rounding);
         const formatter = end.loc.clone(opts).relFormatter(opts);
-        return formatter.format(c3, unit);
+        return formatter.format(c2, unit);
       }, differ = (unit) => {
         if (opts.calendary) {
           if (!end.hasSame(start, unit)) {
@@ -12059,16 +12059,16 @@ var require_luxon = __commonJS({
         const zone = config.zone || Settings.defaultZone;
         let invalid = config.invalid || (Number.isNaN(config.ts) ? new Invalid("invalid input") : null) || (!zone.isValid ? unsupportedZone(zone) : null);
         this.ts = isUndefined(config.ts) ? Settings.now() : config.ts;
-        let c3 = null, o = null;
+        let c2 = null, o = null;
         if (!invalid) {
           const unchanged = config.old && config.old.ts === this.ts && config.old.zone.equals(zone);
           if (unchanged) {
-            [c3, o] = [config.old.c, config.old.o];
+            [c2, o] = [config.old.c, config.old.o];
           } else {
             const ot = isNumber(config.o) && !config.old ? config.o : zone.offset(this.ts);
-            c3 = tsToObj(this.ts, ot);
-            invalid = Number.isNaN(c3.year) ? new Invalid("invalid input") : null;
-            c3 = invalid ? null : c3;
+            c2 = tsToObj(this.ts, ot);
+            invalid = Number.isNaN(c2.year) ? new Invalid("invalid input") : null;
+            c2 = invalid ? null : c2;
             o = invalid ? null : ot;
           }
         }
@@ -12077,7 +12077,7 @@ var require_luxon = __commonJS({
         this.invalid = invalid;
         this.weekData = null;
         this.localWeekData = null;
-        this.c = c3;
+        this.c = c2;
         this.o = o;
         this.isLuxonDateTime = true;
       }
@@ -12836,8 +12836,8 @@ var require_luxon = __commonJS({
         const ts1 = localTS - o1 * minuteMs;
         const ts2 = localTS - o2 * minuteMs;
         const c1 = tsToObj(ts1, o1);
-        const c22 = tsToObj(ts2, o2);
-        if (c1.hour === c22.hour && c1.minute === c22.minute && c1.second === c22.second && c1.millisecond === c22.millisecond) {
+        const c2 = tsToObj(ts2, o2);
+        if (c1.hour === c2.hour && c1.minute === c2.minute && c1.second === c2.second && c1.millisecond === c2.millisecond) {
           return [clone2(this, {
             ts: ts1
           }), clone2(this, {
@@ -13235,10 +13235,10 @@ var require_luxon = __commonJS({
         }
         precision = normalizeUnit(precision);
         const ext = format === "extended";
-        let c3 = toISODate(this, ext, precision);
-        if (orderedUnits.indexOf(precision) >= 3) c3 += "T";
-        c3 += toISOTime(this, ext, suppressSeconds, suppressMilliseconds, includeOffset, extendedZone, precision);
-        return c3;
+        let c2 = toISODate(this, ext, precision);
+        if (orderedUnits.indexOf(precision) >= 3) c2 += "T";
+        c2 += toISOTime(this, ext, suppressSeconds, suppressMilliseconds, includeOffset, extendedZone, precision);
+        return c2;
       }
       /**
        * Returns an ISO 8601-compliant string representation of this DateTime's date component
@@ -13297,8 +13297,8 @@ var require_luxon = __commonJS({
           return null;
         }
         precision = normalizeUnit(precision);
-        let c3 = includePrefix && orderedUnits.indexOf(precision) >= 3 ? "T" : "";
-        return c3 + toISOTime(this, format === "extended", suppressSeconds, suppressMilliseconds, includeOffset, extendedZone, precision);
+        let c2 = includePrefix && orderedUnits.indexOf(precision) >= 3 ? "T" : "";
+        return c2 + toISOTime(this, format === "extended", suppressSeconds, suppressMilliseconds, includeOffset, extendedZone, precision);
       }
       /**
        * Returns an RFC 2822-compatible string representation of this DateTime
@@ -17883,7 +17883,7 @@ attempted value: ${formattedValue}
           type: next.type,
           oneOf: next._whitelist.describe(),
           notOneOf: next._blacklist.describe(),
-          tests: next.tests.filter((n, idx, list) => list.findIndex((c3) => c3.OPTIONS.name === n.OPTIONS.name) === idx).map((fn) => {
+          tests: next.tests.filter((n, idx, list) => list.findIndex((c2) => c2.OPTIONS.name === n.OPTIONS.name) === idx).map((fn) => {
             const params = fn.OPTIONS.params && options ? resolveParams(Object.assign({}, fn.OPTIONS.params), options) : fn.OPTIONS.params;
             return {
               name: fn.OPTIONS.name,
@@ -20129,6 +20129,7 @@ var require_utils = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ALLOWED_PATCH_SYSTEM_FIELDS = exports2.getSystemAuthStatus = exports2.detectSystemAuthType = exports2.maskSystemCredentials = exports2.isSensitiveCredentialKey = exports2.ALLOWED_FILE_EXTENSIONS = exports2.getConnectionProtocol = void 0;
+    exports2.isAbortError = isAbortError;
     exports2.validateExternalUrl = validateExternalUrl;
     exports2.flattenAndNamespaceCredentials = flattenAndNamespaceCredentials;
     exports2.flattenAndNamespaceSystemUrls = flattenAndNamespaceSystemUrls;
@@ -20163,6 +20164,8 @@ var require_utils = __commonJS({
     var getConnectionProtocol2 = (url) => {
       if (url.startsWith("postgres://") || url.startsWith("postgresql://"))
         return "postgres";
+      if (url.startsWith("mssql://") || url.startsWith("sqlserver://"))
+        return "mssql";
       if (url.startsWith("redis://") || url.startsWith("rediss://"))
         return "redis";
       if (url.startsWith("ftp://") || url.startsWith("ftps://") || url.startsWith("sftp://"))
@@ -20172,6 +20175,18 @@ var require_utils = __commonJS({
       return "http";
     };
     exports2.getConnectionProtocol = getConnectionProtocol2;
+    function isAbortError(error2) {
+      if (!error2)
+        return false;
+      if (typeof error2 === "string")
+        return error2.startsWith("AbortError:");
+      if (error2 instanceof DOMException)
+        return error2.name === "AbortError";
+      if (error2 instanceof Error) {
+        return error2.name === "AbortError" || error2.message.startsWith("AbortError:");
+      }
+      return false;
+    }
     function validateExternalUrl(raw) {
       const parsed = new URL(raw);
       if (!["http:", "https:"].includes(parsed.protocol)) {
@@ -21381,6 +21396,7 @@ var require_superglue_client = __commonJS({
     exports2.SuperglueClient = void 0;
     var types_js_1 = require_types();
     var sse_log_subscription_js_1 = require_sse_log_subscription();
+    var utils_js_1 = require_utils();
     var SuperglueClient3 = class {
       constructor({ apiKey, apiEndpoint, onInfrastructureError }) {
         this.apiKey = apiKey;
@@ -21389,15 +21405,15 @@ var require_superglue_client = __commonJS({
         this.onInfrastructureError = onInfrastructureError;
       }
       isInfrastructureError(error2) {
+        if ((0, utils_js_1.isAbortError)(error2))
+          return false;
         if (error2 instanceof TypeError && error2.message.toLowerCase().includes("fetch"))
-          return true;
-        if (error2 instanceof DOMException && error2.name === "AbortError")
           return true;
         if (error2 instanceof Error && error2.name === "TimeoutError")
           return true;
         return false;
       }
-      async restRequest(method, path7, body, extraHeaders) {
+      async restRequest(method, path7, body, extraHeaders, requestInit) {
         const url = `${this.apiEndpoint.replace(/\/$/, "")}${path7}`;
         const headers = {
           Authorization: `Bearer ${this.apiKey}`,
@@ -21411,7 +21427,8 @@ var require_superglue_client = __commonJS({
           response = await fetch(url, {
             method,
             headers,
-            body: body ? JSON.stringify(body) : void 0
+            body: body ? JSON.stringify(body) : void 0,
+            signal: requestInit?.signal
           });
         } catch (error2) {
           if (this.isInfrastructureError(error2)) {
@@ -21484,17 +21501,18 @@ var require_superglue_client = __commonJS({
           options: params.options,
           runId: params.runId
         }, params.traceId ? { "X-Trace-Id": params.traceId } : void 0);
+        const success3 = response.status ? response.status === "success" : response.success ?? false;
         return {
-          success: response.success,
+          success: success3,
           data: response.data,
           error: response.error,
-          tool: response.tool,
+          tool: response.tool || params.tool,
           stepResults: response.stepResults?.map((sr) => ({
             stepId: sr.stepId,
             success: sr.success,
             data: sr.data,
             error: sr.error
-          }))
+          })) || []
         };
       }
       async abortToolExecution(runId) {
@@ -21611,13 +21629,23 @@ var require_superglue_client = __commonJS({
         };
       }
       async listRuns(options) {
-        const { limit = 100, page = 1, toolId, status, requestSources, userId, systemId } = options ?? {};
+        const { limit = 100, page = 1, toolId, search, searchUserIds, includeTotal = true, startedAfter, status, requestSources, userId, systemId, signal } = options ?? {};
         const params = new URLSearchParams({
           limit: String(limit),
           page: String(page)
         });
         if (toolId)
           params.set("toolId", toolId);
+        if (search?.trim())
+          params.set("search", search.trim());
+        if (searchUserIds && searchUserIds.length > 0) {
+          params.set("searchUserIds", searchUserIds.join(","));
+        }
+        if (!includeTotal)
+          params.set("includeTotal", "false");
+        if (startedAfter) {
+          params.set("startedAfter", startedAfter instanceof Date ? startedAfter.toISOString() : startedAfter);
+        }
         if (status)
           params.set("status", status);
         if (requestSources && requestSources.length > 0) {
@@ -21627,7 +21655,7 @@ var require_superglue_client = __commonJS({
           params.set("userId", userId);
         if (systemId)
           params.set("systemId", systemId);
-        const response = await this.restRequest("GET", `/v1/runs?${params.toString()}`);
+        const response = await this.restRequest("GET", `/v1/runs?${params.toString()}`, void 0, void 0, { signal });
         return {
           items: response.data.map((run) => this.mapOpenAPIRunToRun(run)),
           total: response.total,
@@ -21978,7 +22006,7 @@ var import_node_util = require("util");
 // package.json
 var package_default = {
   name: "@superglue/cli",
-  version: "1.1.12",
+  version: "1.1.13",
   bin: {
     sg: "./dist/cli.js"
   },
@@ -21989,14 +22017,14 @@ var package_default = {
     "LICENSE"
   ],
   dependencies: {
-    commander: "^13.0.0",
-    "fast-json-patch": "^3.1.1"
+    commander: "15.0.0-0",
+    "fast-json-patch": "3.1.1"
   },
   devDependencies: {
     "@superglue/shared": "file:../shared",
-    "@types/node": "^20.0.0",
-    tsup: "^8.0.0",
-    typescript: "^5.0.0"
+    "@types/node": "25.5.0",
+    tsup: "8.5.1",
+    typescript: "5.8.3"
   },
   scripts: {
     build: "tsup && (cp -r skills dist/ 2>/dev/null || true)",
@@ -23407,13 +23435,18 @@ function registerFindCommand2(parent, getContext2) {
       const mode = opts.mode === "dev" || opts.mode === "prod" ? opts.mode : "all";
       const { items } = await client.listSystems(100, 1, { mode });
       table(
-        items.map((s) => ({
-          id: s.id,
-          name: s.name || "",
-          env: s.environment || "prod",
-          url: (s.url || "").slice(0, 50)
-        })),
-        ["id", "name", "env", "url"]
+        items.map((s) => {
+          const credentialKeys = Object.keys(s.credentials || {});
+          const credPlaceholders = credentialKeys.map((k) => `<<${s.id}_${k}>>`).join(", ");
+          return {
+            id: s.id,
+            name: s.name || "",
+            env: s.environment || "prod",
+            url: (s.url || "").slice(0, 40),
+            credentials: credPlaceholders || "(none)"
+          };
+        }),
+        ["id", "name", "env", "url", "credentials"]
       );
     } catch (err) {
       error(err.message);
@@ -23446,7 +23479,7 @@ function registerFindCommand2(parent, getContext2) {
       if (rawQuery === "*") {
         output({
           success: true,
-          systems: items.map((s) => ({ id: s.id, name: s.name, url: s.url }))
+          systems: items.map((s) => filterSystemFields(s))
         });
         return;
       }
@@ -23457,7 +23490,7 @@ function registerFindCommand2(parent, getContext2) {
       });
       output({
         success: true,
-        systems: filtered.map((s) => ({ id: s.id, name: s.name, url: s.url }))
+        systems: filtered.map((s) => filterSystemFields(s))
       });
     } catch (err) {
       error(err.message);
@@ -23480,6 +23513,46 @@ function registerCallCommand(parent, getContext2) {
     []
   ).addOption(
     new import_commander5.Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"])
+  ).addHelpText(
+    "after",
+    `
+${c.bold}Discovering Credential Placeholders:${c.reset}
+  Use 'sg system find <system-id>' to see available credential placeholders:
+
+    ${c.dim}$${c.reset} sg system find my_postgres
+    ${c.green}\u2192 credentialPlaceholders:${c.reset} ["<<my_postgres_username>>", "<<my_postgres_password>>"]
+
+  Or use 'sg system list' to see credentials for all systems at once.
+
+${c.bold}Examples:${c.reset}
+  ${c.dim}# HTTP API with API key${c.reset}
+  sg system call --system-id stripe \\
+    --url "https://api.stripe.com/v1/customers" \\
+    --headers '{"Authorization": "Bearer <<stripe_api_key>>"}'
+
+  ${c.dim}# PostgreSQL database query${c.reset}
+  sg system call --system-id my_postgres \\
+    --url "postgres://<<my_postgres_username>>:<<my_postgres_password>>@localhost:5432/mydb" \\
+    --body '{"query": "SELECT * FROM users WHERE id = $1", "params": [123]}'
+
+  ${c.dim}# Microsoft SQL Server with parameterized query${c.reset}
+  sg system call --system-id azure_sql \\
+    --url "mssql://<<azure_sql_username>>:<<azure_sql_password>>@server.database.windows.net:1433/mydb" \\
+    --body '{"query": "SELECT * FROM orders WHERE status = @param1", "params": ["pending"]}'
+
+  ${c.dim}# Redis command${c.reset}
+  sg system call --system-id my_redis \\
+    --url "redis://<<my_redis_password>>@localhost:6379" \\
+    --body '{"command": "GET", "args": ["user:123"]}'
+
+  ${c.dim}# SFTP list files${c.reset}
+  sg system call --system-id sftp_server \\
+    --url "sftp://<<sftp_server_username>>:<<sftp_server_password>>@files.example.com:22" \\
+    --body '{"operation": "list", "path": "/uploads"}'
+
+${c.bold}Supported Protocols:${c.reset}
+  HTTP/HTTPS, PostgreSQL, MSSQL/SQL Server, Redis, SFTP/FTP/FTPS, SMB
+`
   ).action(async (opts) => {
     const { client } = getContext2();
     const method = opts.method || "GET";
