@@ -28,14 +28,23 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
       try {
         const mode = opts.mode === "dev" || opts.mode === "prod" ? opts.mode : "all";
         const { items } = await client.listSystems(100, 1, { mode });
+
+        // Table view with credentials column
         table(
-          items.map((s: any) => ({
-            id: s.id,
-            name: s.name || "",
-            env: s.environment || "prod",
-            url: (s.url || "").slice(0, 50),
-          })),
-          ["id", "name", "env", "url"],
+          items.map((s: any) => {
+            const credentialKeys = Object.keys(s.credentials || {});
+            const credPlaceholders = credentialKeys
+              .map((k: string) => `<<${s.id}_${k}>>`)
+              .join(", ");
+            return {
+              id: s.id,
+              name: s.name || "",
+              env: s.environment || "prod",
+              url: (s.url || "").slice(0, 40),
+              credentials: credPlaceholders || "(none)",
+            };
+          }),
+          ["id", "name", "env", "url", "credentials"],
         );
       } catch (err: any) {
         error(err.message);
@@ -77,7 +86,7 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
         if (rawQuery === "*") {
           output({
             success: true,
-            systems: items.map((s: any) => ({ id: s.id, name: s.name, url: s.url })),
+            systems: items.map((s: any) => filterSystemFields(s)),
           });
           return;
         }
@@ -88,9 +97,10 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
           return keywords.some((kw) => text.includes(kw));
         });
 
+        // Always show full details including credentials
         output({
           success: true,
-          systems: filtered.map((s: any) => ({ id: s.id, name: s.name, url: s.url })),
+          systems: filtered.map((s: any) => filterSystemFields(s)),
         });
       } catch (err: any) {
         error(err.message);
