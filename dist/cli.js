@@ -1925,7 +1925,9 @@ var require_types = __commonJS({
       RemoveScope2["ENTRY"] = "ENTRY";
     })(RemoveScope || (exports2.RemoveScope = RemoveScope = {}));
     function isRequestConfig(config) {
-      return config?.type === "request" || !config?.type;
+      if (!config || typeof config !== "object")
+        return false;
+      return config.type === "request" || !("type" in config) || config.type === void 0;
     }
     function isTransformConfig(config) {
       return config?.type === "transform";
@@ -2415,6 +2417,7 @@ Use parameterized queries with $1, $2, etc. placeholders:
               }
             }
           },
+          outputTransform: `(sourceData) => { const quote = sourceData.fetchStock?.data?.["Global Quote"] || {}; return { symbol: quote["01. symbol"] || sourceData.symbol || "AAPL", price: parseFloat(quote["05. price"] || "0").toFixed(2), change: quote["09. change"] || "0", changePercent: quote["10. change percent"] || "0%", volume: parseInt(quote["06. volume"] || "0").toLocaleString(), tradingDay: quote["07. latest trading day"] || "N/A", emailSent: sourceData.sendEmail?.success || false }; }`,
           instruction: "Fetches the current stock quote from Alpha Vantage and sends an email with the stock information to your registered email address."
         }
       ]
@@ -2453,6 +2456,25 @@ var require_templates = __commonJS({
         docsUrl: "https://redis.io/docs/latest/commands/",
         preferredAuthType: "apikey",
         keywords: ["database", "cache", "redis", "key-value", "nosql", "api key"]
+      },
+      azure_sql: {
+        name: "azure_sql",
+        apiUrl: "sqlserver://<<host>>:1433;database=<<database>>",
+        regex: "^.*(azure.*sql|sql.*azure|database\\.windows\\.net).*$",
+        icon: "default",
+        docsUrl: "https://learn.microsoft.com/en-us/azure/azure-sql/",
+        preferredAuthType: "apikey",
+        keywords: [
+          "database",
+          "sql",
+          "azure",
+          "query",
+          "table",
+          "schema",
+          "connection",
+          "mssql",
+          "sqlserver"
+        ]
       },
       stripe: {
         name: "stripe",
@@ -2537,6 +2559,30 @@ var require_templates = __commonJS({
           "products",
           "associations",
           "memberships"
+        ]
+      },
+      hrworks: {
+        name: "hrworks",
+        apiUrl: "https://api.hrworks.de/v2",
+        regex: "(^|.*\\b)(hr\\s?works|hrworks)(\\b.*|$)",
+        icon: "default",
+        docsUrl: "https://developers.hrworks.de/",
+        preferredAuthType: "apikey",
+        keywords: [
+          "hr",
+          "employee",
+          "absence",
+          "vacation",
+          "payroll",
+          "personnel",
+          "time_tracking",
+          "human_resources",
+          "working_time",
+          "attendance",
+          "onboarding",
+          "applicant_management",
+          "travel_expenses",
+          "sick_leave"
         ]
       },
       attio: {
@@ -2804,6 +2850,15 @@ var require_templates = __commonJS({
           "profile",
           "oauth"
         ]
+      },
+      granola: {
+        name: "granola",
+        apiUrl: "https://public-api.granola.ai",
+        regex: "^.*granola.*$",
+        icon: "default",
+        docsUrl: "https://docs.granola.ai",
+        preferredAuthType: "apikey",
+        keywords: ["meeting", "notes", "transcript", "summary", "ai", "recording"]
       },
       googleDrive: {
         name: "googleDrive",
@@ -4306,6 +4361,58 @@ HEADERS: { "Authorization": "Bearer <<token>>", "Content-Type": "application/jso
           "api key"
         ]
       },
+      creatio: {
+        name: "creatio",
+        apiUrl: "https://<<instance>>.creatio.com/0/odata",
+        regex: "^(.*\\.)?creatio\\.com(/.*)?$",
+        icon: "default",
+        docsUrl: "https://academy.creatio.com/docs/developer/integrations_and_api/data_services/odata/overview",
+        preferredAuthType: "oauth",
+        oauth: {
+          authUrl: "https://<<instance>>.creatio.com/0/connect/authorize",
+          tokenUrl: "https://<<instance>>.creatio.com/0/connect/token",
+          scopes: "offline_access",
+          grant_type: "authorization_code"
+        },
+        systemSpecificInstructions: `Creatio uses OIDC-compliant OAuth endpoints. The standard /ServiceModel/AuthService.svc/Authorize and /rest/oauth/token endpoints are behind IIS session auth and will NOT work for OAuth flows \u2014 you MUST use the /0/connect/* OIDC endpoints instead.
+
+To discover the correct endpoints for any Creatio instance, fetch: https://<instance>.creatio.com/0/.well-known/openid-configuration
+
+This returns authorization_endpoint, token_endpoint, and other OIDC URLs.
+
+IMPORTANT \u2014 Scopes:
+- "offline_access" gets you a refresh token but may not grant API access alone.
+- To get actual API access, the user needs the ApplicationAccess scope: "offline_access ApplicationAccess_<GUID>"
+- The GUID is found in Creatio: System Designer \u2192 Lookups \u2192 "OAuth resources" \u2192 Name column (strip dashes).
+- The OAuth app in Creatio must also have this resource added under its permitted resources.
+
+OAuth App Setup in Creatio:
+1. System Designer \u2192 "OAuth 2.0 integrated applications" \u2192 create app with grant type "On behalf of a user (authorization code)"
+2. Set redirect URI to the superglue callback URL
+3. Under the app's permitted resources, add the ApplicationAccess resource
+4. Note the Client ID and Client Secret
+
+API Base URLs:
+- OData 4: https://<instance>.creatio.com/0/odata/ (e.g., /0/odata/Contact)
+- OData 3: https://<instance>.creatio.com/0/ServiceModel/EntityDataService.svc/ (e.g., /EntityDataService.svc/ContactCollection)
+- Use Bearer token auth: Authorization: Bearer <access_token>`,
+        keywords: [
+          "contacts",
+          "accounts",
+          "leads",
+          "opportunities",
+          "activities",
+          "cases",
+          "orders",
+          "products",
+          "invoices",
+          "campaigns",
+          "crm",
+          "bpm",
+          "odata",
+          "oauth"
+        ]
+      },
       sanity: {
         name: "sanity",
         apiUrl: "https://api.sanity.io",
@@ -5365,7 +5472,7 @@ CUSTOM APIs: Publishers expose custom API pages at /api/{publisher}/{group}/{ver
       },
       googleAds: {
         name: "googleAds",
-        apiUrl: "https://googleads.googleapis.com/v20",
+        apiUrl: "https://googleads.googleapis.com/v23",
         regex: "^.*(googleads\\.googleapis|developers\\.google\\.com/google-ads|adwords\\.google).*$",
         icon: "googleads",
         docsUrl: "https://developers.google.com/google-ads/api/docs/concepts/overview",
@@ -5373,11 +5480,24 @@ CUSTOM APIs: Publishers expose custom API pages at /api/{publisher}/{group}/{ver
         oauth: {
           authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
           tokenUrl: "https://oauth2.googleapis.com/token",
-          scopes: "https://www.googleapis.com/auth/adwords https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid"
+          scopes: "https://www.googleapis.com/auth/adwords"
         },
+        systemSpecificInstructions: `Google Ads API requires BOTH OAuth AND a developer token on every request.
+
+REQUIRED HEADERS:
+- Authorization: Bearer <access_token>
+- developer-token: <22-char token from https://ads.google.com/aw/apicenter>
+- login-customer-id: <manager-account-id without hyphens> (only when calling through a manager account)
+
+SETUP: User needs a Google Ads Manager account, a Google Cloud project with OAuth credentials, and a developer token (applied for via the API Center). New tokens start as test-only; production access requires a follow-up application.
+
+QUERYING (GAQL): Use Google Ads Query Language via:
+- POST /v23/customers/{customerId}/googleAds:searchStream (streaming, recommended)
+- POST /v23/customers/{customerId}/googleAds:search (paginated)
+Example: SELECT campaign.name, metrics.impressions FROM campaign WHERE segments.date DURING LAST_30_DAYS`,
         keywords: [
           "campaigns",
-          "ad groups",
+          "ad_groups",
           "ads",
           "keywords",
           "GAQL",
@@ -5390,6 +5510,9 @@ CUSTOM APIs: Publishers expose custom API pages at /api/{publisher}/{group}/{ver
           "accounts",
           "billing",
           "targeting",
+          "search_terms",
+          "metrics",
+          "segments",
           "oauth"
         ]
       },
@@ -5444,6 +5567,33 @@ CUSTOM APIs: Publishers expose custom API pages at /api/{publisher}/{group}/{ver
           "segmentation",
           "track",
           "api key"
+        ]
+      },
+      circleback: {
+        name: "circleback",
+        apiUrl: "https://app.circleback.ai",
+        regex: "^.*circleback.*$",
+        icon: "default",
+        docsUrl: "https://support.circleback.ai/en/articles/13249081-circleback-mcp",
+        preferredAuthType: "oauth",
+        systemSpecificInstructions: `Circleback has NO traditional REST API. Data access is exclusively via their MCP server.
+
+MCP ENDPOINT: https://app.circleback.ai/api/mcp
+PROTOCOL: JSON-RPC 2.0 over Streamable HTTP transport
+AUTH: OAuth 2.0 with dynamic client registration (no app registration needed).
+
+AVAILABLE DATA: meetings, transcripts, action items, calendar events, emails, people, companies.`,
+        keywords: [
+          "meetings",
+          "transcripts",
+          "notes",
+          "action_items",
+          "calendar_events",
+          "attendees",
+          "summaries",
+          "people",
+          "companies",
+          "emails"
         ]
       },
       firecrawl: {
@@ -5710,6 +5860,8 @@ var require_type_utils = __commonJS({
     exports2.PAGINATION_TYPE_MAP = void 0;
     exports2.mapPaginationType = mapPaginationType;
     exports2.mapFailureBehavior = mapFailureBehavior;
+    exports2.validateToolStructure = validateToolStructure;
+    var types_js_1 = require_types();
     exports2.PAGINATION_TYPE_MAP = {
       OFFSET_BASED: "offsetBased",
       PAGE_BASED: "pageBased",
@@ -5728,6 +5880,50 @@ var require_type_utils = __commonJS({
       if (!internal)
         return void 0;
       return internal.toLowerCase();
+    }
+    function validateToolStructure(tool) {
+      if (!tool || typeof tool !== "object") {
+        return { valid: false, error: "Tool must be an object" };
+      }
+      const candidate = tool;
+      if (!candidate.id || typeof candidate.id !== "string") {
+        return { valid: false, error: "Tool must have a valid 'id' string" };
+      }
+      if (!Array.isArray(candidate.steps)) {
+        return { valid: false, error: "Tool must have a 'steps' array" };
+      }
+      if (candidate.steps.length === 0 && !candidate.outputTransform) {
+        return { valid: false, error: "Tool must have at least one step or an outputTransform" };
+      }
+      for (let i = 0; i < candidate.steps.length; i++) {
+        const step = candidate.steps[i];
+        const stepLabel = step?.id ? `Step ${i + 1} (${step.id})` : `Step ${i + 1}`;
+        if (!step?.id) {
+          return { valid: false, error: `Step ${i + 1}: missing 'id'` };
+        }
+        if (!step.config) {
+          return { valid: false, error: `${stepLabel}: missing 'config'` };
+        }
+        if ((0, types_js_1.isTransformConfig)(step.config)) {
+          if (!step.config.transformCode) {
+            return {
+              valid: false,
+              error: `${stepLabel}: transform step missing 'transformCode'`
+            };
+          }
+          continue;
+        }
+        if (!(0, types_js_1.isRequestConfig)(step.config)) {
+          return {
+            valid: false,
+            error: `${stepLabel}: unknown step config type`
+          };
+        }
+        if (typeof step.config.url !== "string" || step.config.url.trim().length === 0) {
+          return { valid: false, error: `${stepLabel}: request step missing 'url'` };
+        }
+      }
+      return { valid: true };
     }
   }
 });
@@ -21697,12 +21893,18 @@ var require_superglue_client = __commonJS({
         const response = await this.restRequest("GET", `/v1/tools?limit=${limit}&page=${page}${archiveParam}`);
         return { items: response.data, total: response.total };
       }
+      async createWorkflow(id, input) {
+        return this.restRequest("POST", "/v1/tools", { ...input, id });
+      }
+      async updateWorkflow(id, input) {
+        return this.restRequest("PUT", `/v1/tools/${encodeURIComponent(id)}`, input);
+      }
       async upsertWorkflow(id, input) {
         const existing = await this.getWorkflow(id);
         if (existing) {
-          return this.restRequest("PUT", `/v1/tools/${encodeURIComponent(id)}`, input);
+          return this.updateWorkflow(id, input);
         } else {
-          return this.restRequest("POST", "/v1/tools", { id, ...input });
+          return this.createWorkflow(id, input);
         }
       }
       async deleteWorkflow(id) {
