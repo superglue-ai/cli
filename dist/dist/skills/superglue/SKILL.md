@@ -66,9 +66,20 @@ This prompts for:
 
 It verifies the connection before saving. On success it creates the config file, a `drafts/` directory, and updates `.gitignore` if using local config.
 
-**Option B: Environment variables (recommended for CI and AI agents)**
+**Option B: Non-interactive init (recommended for CI and AI agents)**
 
-If `sg init` is not practical (non-interactive environments, CI, AI agents), set these env vars instead:
+Pass the global `--api-key` flag to skip interactive prompts and save a config file:
+
+```bash
+sg init --api-key "your-api-key" --global
+sg init --api-key "your-api-key" --endpoint "https://custom.endpoint.com" --global
+```
+
+> **Note:** `--api-key` and `--endpoint` are global flags (not shown in `sg init --help`). They work on all subcommands including `init`.
+
+**Option C: Environment variables (no config file)**
+
+If you don't need a persistent config file, set these env vars instead:
 
 ```bash
 export SUPERGLUE_API_KEY="your-api-key"
@@ -246,15 +257,15 @@ sg system call --url "sftp://<<my_sftp_host>>:22/data" \
   --body '{"operation":"list","path":"/"}'
 ```
 
-| Flag                | Description                                                            |
-| ------------------- | ---------------------------------------------------------------------- |
-| `--url <url>`       | Full URL with protocol (http/https/postgres/redis/rediss/sftp/ftp/smb) |
-| `--system-id <id>`  | System ID for credential injection                                     |
-| `--method <method>` | HTTP method (GET, POST, PUT, DELETE, PATCH)                            |
-| `--headers <json>`  | HTTP headers JSON with credential placeholders                         |
-| `--body <string>`   | Request body (JSON string)                                             |
-| `--env <env>`       | Environment: `dev` or `prod`                                           |
-| `--file <key=path>` | File references (repeatable)                                           |
+| Flag                | Description                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| `--url <url>`       | Full URL with protocol (http/https/postgres/postgresql/mssql/sqlserver/redis/rediss/sftp/ftp/smb) |
+| `--system-id <id>`  | System ID for credential injection                                                                |
+| `--method <method>` | HTTP method (GET, POST, PUT, DELETE, PATCH)                                                       |
+| `--headers <json>`  | HTTP headers JSON with credential placeholders                                                    |
+| `--body <string>`   | Request body (JSON string)                                                                        |
+| `--env <env>`       | Environment: `dev` or `prod`                                                                      |
+| `--file <key=path>` | File references (repeatable)                                                                      |
 
 **`sg system search-docs`** — Search system documentation.
 
@@ -458,7 +469,7 @@ Empty arrays are valid — the step simply skips execution.
 
 ### Two Step Types
 
-**Request step** (HTTP, Postgres, Redis, FTP/SFTP/SMB) — makes an API call:
+**Request step** (HTTP, PostgreSQL, MSSQL, Redis, FTP/SFTP/SMB) — makes an API call:
 
 ```json
 {
@@ -645,7 +656,7 @@ For detailed documentation on specific topics, read these files in the `referenc
 | File                                  | When to read                                                                                     |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `references/integration.md`           | **READ THIS** when deploying tools to production - SDK usage, REST API, webhooks, error handling |
-| `references/databases.md`             | Building tools that query PostgreSQL/MySQL databases                                             |
+| `references/databases.md`             | Building tools that query PostgreSQL or Microsoft SQL Server (Azure SQL) databases               |
 | `references/redis.md`                 | Building tools that interact with Redis (commands, pipelines, data types)                        |
 | `references/file-servers.md`          | Building tools that interact with FTP/SFTP/SMB file servers                                      |
 | `references/transforms-and-output.md` | Complex data transformations, output shaping, JS sandbox constraints                             |

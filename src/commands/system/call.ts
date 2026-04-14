@@ -27,6 +27,47 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
     .addOption(
       new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
     )
+    .addHelpText(
+      "after",
+      `
+${c.bold}Discovering Credential Placeholders:${c.reset}
+  Use 'sg system find <system-id>' to see available credential placeholders:
+
+    ${c.dim}$${c.reset} sg system find my_postgres
+    ${c.green}→ credentialPlaceholders:${c.reset} ["<<my_postgres_username>>", "<<my_postgres_password>>"]
+
+  Or use 'sg system list' to see credentials for all systems at once.
+
+${c.bold}Examples:${c.reset}
+  ${c.dim}# HTTP API with API key${c.reset}
+  sg system call --system-id stripe \\
+    --url "https://api.stripe.com/v1/customers" \\
+    --headers '{"Authorization": "Bearer <<stripe_api_key>>"}'
+
+  ${c.dim}# PostgreSQL database query${c.reset}
+  sg system call --system-id my_postgres \\
+    --url "postgres://<<my_postgres_username>>:<<my_postgres_password>>@localhost:5432/mydb" \\
+    --body '{"query": "SELECT * FROM users WHERE id = $1", "params": [123]}'
+
+  ${c.dim}# Microsoft SQL Server with parameterized query${c.reset}
+  sg system call --system-id azure_sql \\
+    --url "mssql://<<azure_sql_username>>:<<azure_sql_password>>@server.database.windows.net:1433/mydb" \\
+    --body '{"query": "SELECT * FROM orders WHERE status = @param1", "params": ["pending"]}'
+
+  ${c.dim}# Redis command${c.reset}
+  sg system call --system-id my_redis \\
+    --url "redis://<<my_redis_password>>@localhost:6379" \\
+    --body '{"command": "GET", "args": ["user:123"]}'
+
+  ${c.dim}# SFTP list files${c.reset}
+  sg system call --system-id sftp_server \\
+    --url "sftp://<<sftp_server_username>>:<<sftp_server_password>>@files.example.com:22" \\
+    --body '{"operation": "list", "path": "/uploads"}'
+
+${c.bold}Supported Protocols:${c.reset}
+  HTTP/HTTPS, PostgreSQL, MSSQL/SQL Server, Redis, SFTP/FTP/FTPS, SMB
+`,
+    )
     .action(async (opts) => {
       const { client } = getContext();
       const method = opts.method || "GET";
