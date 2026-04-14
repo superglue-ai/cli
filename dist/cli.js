@@ -2391,7 +2391,7 @@ Use parameterized queries with $1, $2, etc. placeholders:
                     
                     <div style="margin-top: 24px; padding: 20px; background: #fefce8; border-radius: 12px; border: 1px solid #fef08a;">
                       <p style="margin: 0; color: #854d0e; font-size: 14px;">
-                        <strong>\u{1F4A1} This is a demo tool!</strong> You just ran your first superglue workflow. 
+                        <strong>\u{1F4A1} This is a demo tool!</strong> You just ran your first superglue tool. 
                         Edit this tool or create your own to automate any API integration.
                       </p>
                     </div>
