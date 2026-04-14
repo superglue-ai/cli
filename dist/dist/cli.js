@@ -4661,6 +4661,54 @@ API Base URLs:
           "api key"
         ]
       },
+      datahub: {
+        name: "datahub",
+        apiUrl: "https://{your-datahub-host}",
+        regex: "^.*(datahub|acryl\\.datahub|datahubproject|datahub-gms|acryl\\.io).*$",
+        icon: "lucide:library-big",
+        docsUrl: "https://docs.datahub.com/docs/api/openapi/openapi-usage-guide",
+        preferredAuthType: "apikey",
+        keywords: [
+          "metadata",
+          "catalog",
+          "data discovery",
+          "lineage",
+          "dataset",
+          "dashboard",
+          "ml model",
+          "governance",
+          "entities",
+          "aspects",
+          "urn",
+          "relationships",
+          "schema",
+          "openapi",
+          "gms",
+          "ingestion",
+          "acryl",
+          "oidc",
+          "api key"
+        ],
+        systemSpecificInstructions: `DataHub is a metadata catalog (discovery, lineage, governance, quality, contracts). Programmatic access for REST-first workflows is the OpenAPI surface on the Metadata Service (GMS), not the marketing or docs site.
+
+OSS vs Cloud (brief): Self-hosted (open-source) means you run DataHub in your environment (Docker/K8s/Helm, etc.) and own URLs, upgrades, and networking. DataHub Cloud (Acryl) is a managed instance: you typically get https://<your-domain>.acryl.io, onboarding from the integrations team, optional AWS PrivateLink into your VPC, and UI login via admin invite or OIDC \u2014 same metadata model and APIs in principle, different hostname, auth onboarding, and who operates the plane. Always use the base URL you were given, not generic doc sites.
+
+DataHub Cloud UI access: Admin users receive an invite link; OIDC uses your IdP\u2019s Client ID, Client Secret, and Discovery URL (must resolve to \u2026/.well-known/openid-configuration). Register redirect/callback https://<your-acryl-domain>.acryl.io/callback/oidc in the IdP. As of current Cloud docs, LDAP/SAML are not supported for that login path \u2014 confirm with Acryl if your requirements differ. Support: http://support.datahub.com/
+
+Ingestion & discovery: Cloud uses push-based ingestion \u2014 run DataHub\u2019s agent inside your network so secrets stay local, with scheduled Python ingestion jobs pushing metadata to your instance. Day-to-day discovery is search and browse in the UI; OpenAPI/GraphQL/Rest.li read and write the same underlying graph.
+
+Base URL (critical): OpenAPI is under /openapi/ on the GMS origin (or the UI origin if it proxies /openapi). Local quickstart: http://localhost:8080/openapi/swagger-ui/index.html \u2014 API base is scheme+host+port only (e.g. https://gms.yourcompany.com, your Cloud hostname, or a frontend that proxies GMS).
+
+Verify the base: {base}/openapi/v3/api-docs or {base}/openapi/v3/api-docs.yaml. No global openApiUrl \u2014 in superglue, import from your instance\u2019s /openapi/v3/api-docs (or .yaml).
+
+Authentication: REST examples use Authorization: Bearer <token>. Token issuance depends on edition (PATs, OIDC/session, etc.); follow DataHub\u2019s authentication and access-token docs for your deployment.
+
+Main OpenAPI groups (paths under /openapi/): entities/v1 \u2014 upsert/read/delete entity+aspect (POST; ?createEntityIfNotExists=true for create-only; GET \u2026/latest?urns&aspectNames; DELETE ?urns&soft=). relationships/v1 \u2014 graph navigation. timeline \u2014 aspect history. platform \u2014 metadata events. v3 adds batch get (/v3/entity/{entityName}/batchGet), conditional writes, JSON Patch-style updates (see OpenAPI guide).
+
+Identifiers are URN-centric (e.g. urn:li:dataset:(...)). Also GraphQL and Rest.li \u2014 see the official API overview to pick an interface.
+
+References: https://docs.datahub.com/docs/features \u2014 product context; https://docs.datahub.com/docs/api/openapi/openapi-usage-guide \u2014 OpenAPI usage; https://docs.datahub.com/docs/managed-datahub/welcome-acryl \u2014 DataHub Cloud getting started (URL pattern, OIDC callback, ingestion); https://docs.datahub.com/docs/managed-datahub/managed-datahub-overview \u2014 OSS vs Cloud feature comparison.`
+      },
       looker: {
         name: "looker",
         apiUrl: "https://{your-domain}.looker.com/api",
