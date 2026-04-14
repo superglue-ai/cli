@@ -66,9 +66,20 @@ This prompts for:
 
 It verifies the connection before saving. On success it creates the config file, a `drafts/` directory, and updates `.gitignore` if using local config.
 
-**Option B: Environment variables (recommended for CI and AI agents)**
+**Option B: Non-interactive init (recommended for CI and AI agents)**
 
-If `sg init` is not practical (non-interactive environments, CI, AI agents), set these env vars instead:
+Pass the global `--api-key` flag to skip interactive prompts and save a config file:
+
+```bash
+sg init --api-key "your-api-key" --global
+sg init --api-key "your-api-key" --endpoint "https://custom.endpoint.com" --global
+```
+
+> **Note:** `--api-key` and `--endpoint` are global flags (not shown in `sg init --help`). They work on all subcommands including `init`.
+
+**Option C: Environment variables (no config file)**
+
+If you don't need a persistent config file, set these env vars instead:
 
 ```bash
 export SUPERGLUE_API_KEY="your-api-key"
