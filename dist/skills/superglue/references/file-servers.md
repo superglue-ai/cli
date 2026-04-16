@@ -12,7 +12,7 @@ smb://user:password@host/sharename/basePath  (port 445)
 smb://domain\user:password@host/sharename/   (domain auth)
 ```
 
-All support `<<variable>>` syntax in the URL.
+All support `<<variable>>` syntax in the URL. **When calling via `call_system`, you MUST inject credentials into the URL using `<<systemId_username>>` and `<<systemId_password>>` placeholders** (e.g. `sftp://<<mySystem_username>>:<<mySystem_password>>@host/path`). Credentials are NOT auto-injected.
 
 SMB requires a share name as the first path segment. Additional segments become a base path prepended to all operation paths.
 
@@ -63,19 +63,21 @@ JSON string — single operation or array of operations (batch):
 | `exists`  | `path`            | `{ exists: boolean, path }`                                             |
 | `stat`    | `path`            | File metadata or `{ exists: false }`                                    |
 
-### `get` — Auto-Parsing
+### `get` — Step File Keys
 
-Downloaded files are all parsed automatically:
+Downloaded files are added to the runtime file store. See the file-handling skill for the full reference on file detection, aliasing, and the `RuntimeExecutionFile` shape.
 
-- CSV, JSON, XML, Excel, PDF, etc. → parsed to JS objects
-- Falls back to UTF-8 string
-- SMB additionally detects binary files (returns `{ _binary: true, encoding: "base64", data: "..." }`)
+- `data` contains the auto-parsed content (CSV -> objects, JSON -> parsed, PDF -> structured, etc.)
+- the step result exposes `stepFileKeys`
+- later steps can reference downloaded files via `file::<stepId>.raw` (exact bytes), `file::<stepId>.base64` (base64 string), or `file::<stepId>.extracted` (parsed content)
+- for multi-file operations, use bracket notation: `file::<stepId>["report.csv"].raw`
 
 ### `put` — Content Handling
 
+- `RawFileBytes` (from `file::<key>.raw`) → written as exact original bytes
 - String → written as-is
 - Buffer → written directly
-- Object/Array → `JSON.stringify` with 2-space indent
+- Object/Array → JSON.stringified with 2-space indent
 
 ## Connection Details
 
@@ -104,33 +106,3 @@ For private systems via Secure Gateway, the host is `tunnelId.tunnel` (e.g., `my
 ## Return Value
 
 Single operation → result directly. Multiple operations → array of results.
-
-## Common Patterns
-
-### Download and process
-
-```json
-{ "operation": "get", "path": "incoming/<<(sourceData) => sourceData.currentItem.filename>>" }
-```
-
-### Upload results
-
-```json
-{
-  "operation": "put",
-  "path": "output/results.json",
-  "content": "<<(sourceData) => JSON.stringify(sourceData.processData.data)>>"
-}
-```
-
-### List then loop
-
-Step 1 lists files, step 2 uses data selector to loop over them:
-
-```javascript
-// Step 1: list files
-// body: {"operation": "list", "path": "incoming"}
-
-// Step 2 dataSelector: (sourceData) => sourceData.listFiles.data.filter(f => f.type === "file")
-// body: {"operation": "get", "path": "<<(sourceData) => sourceData.currentItem.path>>"}
-```

@@ -34,7 +34,9 @@ IMPORTANT FOR AI AGENTS:
     sg skill databases              Print the databases reference
     sg skill integration            Print the SDK/REST/webhook reference
     sg skill file-servers           Print the file servers reference
-    sg skill transforms-and-output  Print the transforms reference
+    sg skill data-handling          Print the data handling reference
+    sg skill file-handling          Print the file handling reference
+    sg skill http-apis              Print the HTTP APIs reference
     sg skill redis                  Print the Redis reference
 
   The main skill reference covers: tool building, system setup, OAuth flows,

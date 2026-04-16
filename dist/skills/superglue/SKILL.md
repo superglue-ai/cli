@@ -653,13 +653,15 @@ with client as c:
 
 For detailed documentation on specific topics, read these files in the `references/` directory:
 
-| File                                  | When to read                                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `references/integration.md`           | **READ THIS** when deploying tools to production - SDK usage, REST API, webhooks, error handling |
-| `references/databases.md`             | Building tools that query PostgreSQL or Microsoft SQL Server (Azure SQL) databases               |
-| `references/redis.md`                 | Building tools that interact with Redis (commands, pipelines, data types)                        |
-| `references/file-servers.md`          | Building tools that interact with FTP/SFTP/SMB file servers                                      |
-| `references/transforms-and-output.md` | Complex data transformations, output shaping, JS sandbox constraints                             |
+| File                          | When to read                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| `references/integration.md`   | **READ THIS** when deploying tools to production - SDK usage, REST API, webhooks, error handling |
+| `references/databases.md`     | Building tools that query PostgreSQL or Microsoft SQL Server (Azure SQL) databases               |
+| `references/redis.md`         | Building tools that interact with Redis (commands, pipelines, data types)                        |
+| `references/file-servers.md`  | Building tools that interact with FTP/SFTP/SMB file servers                                      |
+| `references/data-handling.md` | Variables, selectors, result envelopes, transforms, JS sandbox constraints                       |
+| `references/file-handling.md` | File detection, parsing, producedFiles, file references, aliasing rules                          |
+| `references/http-apis.md`     | HTTP step config — auth patterns, pagination, retries, error detection                           |
 
 **Important:** When the user asks about integrating superglue into their codebase, deploying tools, using the SDK, or calling tools from code, you MUST read `references/integration.md` for complete examples.
 
