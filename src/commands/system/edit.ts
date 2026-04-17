@@ -1,7 +1,7 @@
 import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { output, error, promptHidden, success, spinner, colors as c, warn } from "../../output.js";
+import { output, error, success, spinner, colors as c, warn, isTableMode } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -13,8 +13,7 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
     .option("--name <name>", "New name")
     .option("--url <url>", "New URL")
     .option("--instructions <text>", "New specific instructions")
-    .option("--credentials <json>", "Non-sensitive credentials JSON to merge")
-    .option("--sensitive-credentials <fields>", "Comma-separated sensitive credential field names")
+    .option("--credentials <json>", "Credentials JSON to merge (all fields including secrets)")
     .option("--scrape-url <url>", "Documentation URL to scrape")
     .option("--scrape-keywords <keywords>", "Space-separated scrape keywords")
     .addOption(
@@ -34,27 +33,6 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
           error(`Invalid --credentials JSON: ${err.message}`);
           process.exit(1);
         }
-      }
-
-      if (opts.sensitiveCredentials) {
-        const fields = opts.sensitiveCredentials
-          .split(",")
-          .map((f: string) => f.trim())
-          .filter(Boolean);
-        const creds: Record<string, string> = {};
-        for (const field of fields) {
-          const envKey = `SUPERGLUE_CRED_${field.toUpperCase()}`;
-          const envVal = process.env[envKey];
-          if (envVal) {
-            creds[field] = envVal;
-          } else if (process.stdin.isTTY) {
-            creds[field] = await promptHidden(`  Enter ${field}`);
-          } else {
-            error(`Missing credential: ${field}. Set ${envKey} or use interactive mode.`);
-            process.exit(1);
-          }
-        }
-        patchPayload.credentials = { ...patchPayload.credentials, ...creds };
       }
 
       try {
@@ -89,10 +67,10 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
         }
 
         spin.stop();
-        if (process.argv.includes("--json") || !process.stdout.isTTY) {
-          output({ success: true, system: { id: result.id, name: result.name, url: result.url } });
-        } else {
+        if (isTableMode()) {
           success(`System updated: ${c.bold}${result.id}${c.reset}`);
+        } else {
+          output({ success: true, system: { id: result.id, name: result.name, url: result.url } });
         }
       } catch (err: any) {
         error(err.message);

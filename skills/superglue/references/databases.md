@@ -125,7 +125,13 @@ Both `mssql://` and `sqlserver://` protocols are supported. All credential varia
 For Azure SQL Database, use the fully qualified server name:
 
 ```
-mssql://myuser@myserver:mypassword@myserver.database.windows.net:1433/mydatabase
+mssql://myuser:mypassword@myserver.database.windows.net:1433/mydatabase
+```
+
+Note: Azure SQL usernames often include `@servername` suffix (e.g., `myuser@myserver`). When using in URLs, encode the @ as `%40`:
+
+```
+mssql://myuser%40myserver:mypassword@myserver.database.windows.net:1433/mydatabase
 ```
 
 You can include connection parameters as query strings:

@@ -1,6 +1,6 @@
 {
   "name": "@superglue/cli",
-  "version": "1.1.18",
+  "version": "1.1.19",
   "bin": {
     "sg": "./dist/cli.js"
   },
@@ -15,6 +15,7 @@
     "fast-json-patch": "3.1.1"
   },
   "devDependencies": {
+    "@superglue/shared": "file:./_shared",
     "@types/node": "25.5.0",
     "tsup": "8.5.1",
     "typescript": "5.8.3"

@@ -28,6 +28,9 @@ export async function parseFileFlags(
 
     try {
       const result = await client.extract({ file });
+      if (result.file?.parseError && result.data === undefined) {
+        throw new Error(result.file.parseError);
+      }
       payloads[key] = result.data;
     } catch (err: any) {
       console.error(`Failed to extract file "${key}" (${filePath}): ${err.message}`);
