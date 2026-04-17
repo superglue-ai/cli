@@ -5,7 +5,15 @@ import { normalizeToolSchemas } from "@superglue/shared";
 import * as jsonpatch from "fast-json-patch";
 import type { Operation } from "fast-json-patch";
 import { readDraft, writeDraft } from "../../drafts.js";
-import { output, error, renderDiffs, success, heading, colors as c } from "../../output.js";
+import {
+  output,
+  error,
+  renderDiffs,
+  success,
+  heading,
+  colors as c,
+  isTableMode,
+} from "../../output.js";
 
 type ContextFn = () => { client: SuperglueClient };
 
@@ -16,6 +24,18 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
     .option("--draft <id>", "Draft ID to edit")
     .option("--tool <id>", "Saved tool ID to edit")
     .option("--patches <json-or-file>", "JSON Patch array (inline JSON or file path)")
+    .addHelpText(
+      "after",
+      `
+Patches use JSON Patch (RFC 6902) format:
+  [{"op":"replace","path":"/steps/0/config/url","value":"https://..."}]
+
+Provide --draft or --tool. Editing a saved tool creates a new draft.
+Returns: { success, draftId, diffs }
+
+Run 'sg skill' for common patch patterns and the build→run→edit→save workflow.
+`,
+    )
     .action(async (opts) => {
       const { client } = getContext();
 
@@ -83,7 +103,7 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
         ...("from" in p && (p as any).from ? { from: (p as any).from } : {}),
       }));
 
-      if (process.stdout.isTTY && !process.argv.includes("--json")) {
+      if (isTableMode()) {
         heading("Proposed Changes");
         console.log(renderDiffs(diffs));
         console.log("");
@@ -103,11 +123,11 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
 
       writeDraft(draft);
 
-      if (process.argv.includes("--json") || !process.stdout.isTTY) {
-        output({ success: true, draftId: workingDraftId, diffs });
-      } else {
+      if (isTableMode()) {
         success(`Draft updated: ${c.bold}${workingDraftId}${c.reset}`);
         console.log("");
+      } else {
+        output({ success: true, draftId: workingDraftId, diffs });
       }
     });
 }
