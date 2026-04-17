@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
 import { readDraft, deleteDraft } from "../../drafts.js";
-import { output, error, success, spinner, colors as c } from "../../output.js";
+import { output, error, success, spinner, colors as c, isTableMode } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -32,17 +32,17 @@ export function registerSaveCommand(parent: Command, getContext: ContextFn): voi
         deleteDraft(opts.draft);
         spin.stop();
         const apiEndpoint = config.endpoint;
-        if (process.argv.includes("--json") || !process.stdout.isTTY) {
+        if (isTableMode()) {
+          success(`Tool saved: ${c.bold}${saved.id}${c.reset}`);
+          console.log(`  ${c.dim}webhook:${c.reset} ${apiEndpoint}/v1/hooks/${saved.id}`);
+          console.log(`  ${c.dim}draft ${opts.draft} deleted${c.reset}`);
+          console.log("");
+        } else {
           output({
             success: true,
             toolId: saved.id,
             webhookUrl: `${apiEndpoint}/v1/hooks/${saved.id}?token=YOUR_API_KEY`,
           });
-        } else {
-          success(`Tool saved: ${c.bold}${saved.id}${c.reset}`);
-          console.log(`  ${c.dim}webhook:${c.reset} ${apiEndpoint}/v1/hooks/${saved.id}`);
-          console.log(`  ${c.dim}draft ${opts.draft} deleted${c.reset}`);
-          console.log("");
         }
       } catch (err: any) {
         spin.stop();

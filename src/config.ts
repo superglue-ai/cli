@@ -2,15 +2,21 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
+export type CLIPreset = "runner" | "builder" | "admin";
+
 export interface CLIConfig {
   apiKey: string;
   endpoint: string;
   webEndpoint: string;
   output: { mode: "stdout" | "stdout+file"; directory: string };
+  preset: CLIPreset;
 }
+
+const VALID_PRESETS: Set<string> = new Set(["runner", "builder", "admin"]);
 
 const DEFAULT_CONFIG: Omit<CLIConfig, "apiKey" | "endpoint" | "webEndpoint"> = {
   output: { mode: "stdout", directory: ".superglue/output" },
+  preset: "admin",
 };
 
 export function getConfigDir(preferLocal?: boolean): string {
@@ -67,6 +73,13 @@ export function resolveConfig(flags: { apiKey?: string; endpoint?: string }): CL
     process.env.SUPERGLUE_WEB_ENDPOINT ||
     file.webEndpoint ||
     endpoint.replace(/:3002\b/, ":3001").replace(/api\.superglue/, "app.superglue");
+  const envPreset = process.env.SUPERGLUE_CLI_PRESET;
+  const preset: CLIPreset =
+    envPreset && VALID_PRESETS.has(envPreset)
+      ? (envPreset as CLIPreset)
+      : file.preset && VALID_PRESETS.has(file.preset)
+        ? (file.preset as CLIPreset)
+        : "admin";
 
   return {
     ...DEFAULT_CONFIG,
@@ -74,6 +87,7 @@ export function resolveConfig(flags: { apiKey?: string; endpoint?: string }): CL
     apiKey,
     endpoint,
     webEndpoint,
+    preset,
     output: { ...DEFAULT_CONFIG.output, ...file.output },
   };
 }
