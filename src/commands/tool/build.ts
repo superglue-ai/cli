@@ -6,7 +6,7 @@ import { toJsonSchema, convertRequiredToArray } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
 import { writeDraft } from "../../drafts.js";
 import { parseFileFlags, resolvePayloadWithFiles } from "../../files.js";
-import { output, error, success, colors as c } from "../../output.js";
+import { output, error, success, colors as c, isTableMode } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -29,6 +29,15 @@ export function registerBuildCommand(parent: Command, getContext: ContextFn): vo
         return arr;
       },
       [],
+    )
+    .addHelpText(
+      "after",
+      `
+Run 'sg skill' for the full tool-building reference.
+
+Workflow: build → run --draft → edit --draft (if needed) → save --draft
+Returns: { success, draftId, toolId, config }
+`,
     )
     .action(async (opts) => {
       const { client } = getContext();
@@ -93,9 +102,7 @@ export function registerBuildCommand(parent: Command, getContext: ContextFn): vo
       };
 
       writeDraft(draft);
-      if (process.argv.includes("--json") || !process.stdout.isTTY) {
-        output({ success: true, draftId, toolId: toolConfig.id, config: draft.config });
-      } else {
+      if (isTableMode()) {
         success(`Draft created: ${c.bold}${draftId}${c.reset}`);
         console.log(`  ${c.dim}tool:${c.reset}   ${toolConfig.id}`);
         console.log(`  ${c.dim}steps:${c.reset}  ${toolConfig.steps.length}`);
@@ -103,6 +110,8 @@ export function registerBuildCommand(parent: Command, getContext: ContextFn): vo
           `\n  ${c.dim}Next: ${c.reset}${c.cyan}sg tool run --draft ${draftId}${c.reset}`,
         );
         console.log("");
+      } else {
+        output({ success: true, draftId, toolId: toolConfig.id, config: draft.config });
       }
     });
 }

@@ -3,7 +3,13 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { type Command, Option } from "commander";
 import { SuperglueClient } from "@superglue/shared";
-import { type CLIConfig, getConfigDir, writeConfig, ensureConfigDirs } from "../config.js";
+import {
+  type CLIConfig,
+  type CLIPreset,
+  getConfigDir,
+  writeConfig,
+  ensureConfigDirs,
+} from "../config.js";
 import {
   banner,
   success,
@@ -30,6 +36,11 @@ export function registerInitCommand(program: Command): void {
     )
     .option("--output-dir <dir>", "Output directory for stdout+file mode", ".superglue/output")
     .option("--global", "Save config globally (~/.superglue/) instead of locally")
+    .addOption(
+      new Option("--preset <preset>", "Capability preset: runner, builder, or admin")
+        .choices(["runner", "builder", "admin"])
+        .default("admin"),
+    )
     .action(async function (opts) {
       // Merge parent (global) opts with subcommand opts — Commander parses
       // global flags on the parent program, so subcommand opts may be empty
@@ -46,6 +57,7 @@ export function registerInitCommand(program: Command): void {
       let outputMode: "stdout" | "stdout+file";
       let outputDir: string;
       let preferLocal: boolean;
+      let presetChoice: CLIPreset;
 
       if (isNonInteractive) {
         // Non-interactive mode: use flags/defaults, skip all prompts
@@ -62,6 +74,7 @@ export function registerInitCommand(program: Command): void {
         outputMode = opts.outputMode === "stdout+file" ? "stdout+file" : "stdout";
         outputDir = opts.outputDir;
         preferLocal = !opts.global;
+        presetChoice = opts.preset as CLIPreset;
 
         const spin = spinner("Verifying connection...");
         try {
@@ -139,6 +152,18 @@ export function registerInitCommand(program: Command): void {
           0,
         );
         preferLocal = configLocationIdx === 0;
+
+        heading("Capability Preset");
+        const presetIdx = await choose(
+          "What should this CLI be able to do?",
+          [
+            "runner  — run saved tools by ID (agent-safe, read-only)",
+            "builder — run + build tools, call systems (no system management)",
+            "admin   — full access (default)",
+          ],
+          2,
+        );
+        presetChoice = (["runner", "builder", "admin"] as const)[presetIdx];
       }
 
       const config: CLIConfig = {
@@ -146,6 +171,7 @@ export function registerInitCommand(program: Command): void {
         endpoint,
         webEndpoint,
         output: { mode: outputMode, directory: outputDir },
+        preset: presetChoice,
       };
 
       writeConfig(config, preferLocal);

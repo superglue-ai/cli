@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { output, error, table, info, colors as c } from "../../output.js";
+import { output, error, table, info, colors as c, isTableMode } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -19,8 +19,8 @@ export function registerListCommand(parent: Command, getContext: ContextFn): voi
     .action(async (opts) => {
       const { client } = getContext();
       try {
-        const limit = Math.min(parseInt(opts.limit, 10) || 10, 50);
-        const offset = parseInt(opts.offset, 10) || 0;
+        const limit = Math.min(Math.max(parseInt(opts.limit, 10) || 10, 1), 50);
+        const offset = Math.max(parseInt(opts.offset, 10) || 0, 0);
         const page = Math.ceil((offset + 1) / limit);
         const requestSources = opts.source?.split(",").filter(Boolean) as any;
 
@@ -34,19 +34,7 @@ export function registerListCommand(parent: Command, getContext: ContextFn): voi
           systemId: opts.systemId,
         });
 
-        if (process.argv.includes("--json") || !process.stdout.isTTY) {
-          output({
-            success: true,
-            total: result.total,
-            runs: result.items.map((r: any) => ({
-              runId: r.runId,
-              toolId: r.toolId,
-              status: r.status,
-              requestSource: r.requestSource,
-              error: r.error,
-            })),
-          });
-        } else {
+        if (isTableMode()) {
           if (result.total > 0) {
             info(
               `${result.total} total runs${opts.tool ? ` for ${c.bold}${opts.tool}${c.reset}` : ""}`,
@@ -60,7 +48,20 @@ export function registerListCommand(parent: Command, getContext: ContextFn): voi
               source: r.requestSource || "",
             })),
             ["runId", "toolId", "status", "source"],
+            { total: result.total },
           );
+        } else {
+          output({
+            success: true,
+            total: result.total,
+            items: result.items.map((r: any) => ({
+              runId: r.runId,
+              toolId: r.toolId,
+              status: r.status,
+              requestSource: r.requestSource,
+              error: r.error,
+            })),
+          });
         }
       } catch (err: any) {
         error(err.message);

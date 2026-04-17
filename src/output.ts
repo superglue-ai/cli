@@ -1,7 +1,8 @@
 import * as readline from "node:readline";
 import { CLI_VERSION } from "./version.js";
 
-const isJsonMode = (): boolean => process.argv.includes("--json") || !process.stdout.isTTY;
+export const isTableMode = (): boolean => process.argv.includes("--table") && process.stdout.isTTY;
+export const isFullMode = (): boolean => process.argv.includes("--full");
 
 // ── ANSI helpers ──
 const c = {
@@ -35,7 +36,7 @@ export function link(url: string, label?: string): string {
 
 // ── Banner ──
 export function banner(): void {
-  if (isJsonMode()) return;
+  if (!isTableMode()) return;
   const rst = c.reset;
   const d = c.dim;
   const inv = "\x1b[47;30m";
@@ -80,7 +81,7 @@ export function spinner(message: string): {
   update: (msg: string) => void;
   log: (line: string) => void;
 } {
-  if (isJsonMode()) return { stop: () => {}, update: () => {}, log: () => {} };
+  if (!isTableMode()) return { stop: () => {}, update: () => {}, log: () => {} };
   const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
   let i = 0;
   let currentMsg = message;
@@ -108,15 +109,18 @@ export function spinner(message: string): {
 
 // ── Basic outputs ──
 export function output(data: unknown): void {
-  if (isJsonMode()) {
-    console.log(JSON.stringify(data, null, 2));
-  } else {
+  if (isTableMode()) {
     prettyPrint(data);
+  } else {
+    console.log(JSON.stringify(data, null, 2));
   }
 }
 
 export function success(message: string, data?: unknown): void {
-  if (isJsonMode()) {
+  if (isTableMode()) {
+    console.log(`  ${c.green}✓${c.reset} ${message}`);
+    if (data) prettyPrint(data, 4);
+  } else {
     console.log(
       JSON.stringify({
         success: true,
@@ -124,42 +128,39 @@ export function success(message: string, data?: unknown): void {
         ...(data && typeof data === "object" ? data : { data }),
       }),
     );
-  } else {
-    console.log(`  ${c.green}✓${c.reset} ${message}`);
-    if (data) prettyPrint(data, 4);
   }
 }
 
 export function error(message: string, details?: unknown): void {
-  if (isJsonMode()) {
-    console.error(JSON.stringify({ success: false, error: message, details }));
-  } else {
+  if (isTableMode()) {
     console.error(`  ${c.red}✗${c.reset} ${message}`);
     if (details) prettyPrint(details, 4);
+  } else {
+    console.error(JSON.stringify({ success: false, error: message, details }));
   }
 }
 
 export function warn(message: string): void {
-  if (!isJsonMode()) {
+  if (isTableMode()) {
     console.log(`  ${c.yellow}⚠${c.reset} ${message}`);
   }
 }
 
 export function info(message: string): void {
-  if (!isJsonMode()) {
+  if (isTableMode()) {
     console.log(`  ${c.dim}${message}${c.reset}`);
   }
 }
 
 export function heading(text: string): void {
-  if (!isJsonMode()) {
+  if (isTableMode()) {
     console.log(`\n  ${c.bold}${c.cyan}${text}${c.reset}`);
     console.log(`  ${c.dim}${"─".repeat(text.length)}${c.reset}`);
   }
 }
 
 export function keyValue(key: string, value: unknown, indent = 2): void {
-  if (isJsonMode()) return;
+  if (!isTableMode()) return;
   const pad = " ".repeat(indent);
   const valStr =
     typeof value === "object" && value !== null ? JSON.stringify(value) : String(value ?? "");
@@ -167,17 +168,21 @@ export function keyValue(key: string, value: unknown, indent = 2): void {
 }
 
 // ── Table ──
-export function table(rows: Record<string, unknown>[], columns?: string[]): void {
-  if (isJsonMode()) {
-    console.log(JSON.stringify(rows, null, 2));
+export function table(
+  rows: Record<string, unknown>[],
+  columns?: string[],
+  opts?: { total?: number },
+): void {
+  if (!isTableMode()) {
+    console.log(JSON.stringify({ success: true, total: opts?.total ?? rows.length, items: rows }));
     return;
   }
   if (rows.length === 0) {
-    console.log(`\n  ${c.dim}(no results)${c.reset}\n`);
+    console.log(`\n  ${c.dim}0 results${c.reset}\n`);
     return;
   }
   const cols = columns || Object.keys(rows[0]);
-  const maxColWidth = 60;
+  const maxColWidth = isFullMode() ? Infinity : 60;
   const widths = cols.map((col) =>
     Math.min(
       maxColWidth,
@@ -207,7 +212,12 @@ export function table(rows: Record<string, unknown>[], columns?: string[]): void
         let val = String(row[col] ?? "")
           .replace(/[\n\r]+/g, " ")
           .trim();
-        if (val.length > maxColWidth) val = val.slice(0, maxColWidth - 1) + "…";
+        if (val.length > maxColWidth) {
+          const origLen = val.length;
+          const suffix = `… (${origLen})`;
+          val =
+            val.slice(0, Math.max(0, maxColWidth - suffix.length)) + `${c.dim}${suffix}${c.reset}`;
+        }
 
         if (col === "status") {
           const statusColors: Record<string, string> = {
@@ -226,7 +236,12 @@ export function table(rows: Record<string, unknown>[], columns?: string[]): void
       .join("  ");
     console.log(`  ${line}`);
   }
-  console.log(`\n  ${c.dim}${rows.length} result${rows.length === 1 ? "" : "s"}${c.reset}\n`);
+  const displayTotal = opts?.total ?? rows.length;
+  const countLabel =
+    displayTotal === rows.length
+      ? `${rows.length} result${rows.length === 1 ? "" : "s"}`
+      : `${rows.length} of ${displayTotal} result${displayTotal === 1 ? "" : "s"}`;
+  console.log(`\n  ${c.dim}${countLabel}${c.reset}\n`);
 }
 
 // ── Pretty-print structured data in human mode ──
@@ -259,8 +274,8 @@ function prettyPrint(data: unknown, indent = 2): void {
     }
 
     if (typeof value === "string") {
-      if (value.length > 200) {
-        console.log(`${pad}${c.dim}${key}:${c.reset}`);
+      if (!isFullMode() && value.length > 200) {
+        console.log(`${pad}${c.dim}${key}:${c.reset} (${value.length} chars)`);
         const wrapped = value.match(/.{1,100}/g) || [value];
         for (const line of wrapped.slice(0, 20)) {
           console.log(`${pad}  ${line}`);
@@ -303,7 +318,7 @@ function printCompactJson(data: unknown, indent: number): void {
   const pad = " ".repeat(indent);
   const jsonStr = JSON.stringify(data, null, 2);
   const lines = jsonStr.split("\n");
-  const maxLines = 40;
+  const maxLines = isFullMode() ? Infinity : 40;
   for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
     const line = lines[i];
     const colored = line
