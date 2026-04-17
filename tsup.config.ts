@@ -7,6 +7,7 @@ export default defineConfig({
   platform: "node",
   splitting: false,
   clean: true,
+  minify: true,
   noExternal: ["@superglue/shared"],
   external: ["commander", "fast-json-patch"],
   banner: { js: "#!/usr/bin/env node" },

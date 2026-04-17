@@ -3,26 +3,9 @@ import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import { systems, slugify, findTemplateForSystem } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { output, error, promptHidden, success, spinner, colors as c } from "../../output.js";
+import { output, error, success, spinner, colors as c, isTableMode } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
-
-async function collectSensitiveCredentials(fields: string[]): Promise<Record<string, string>> {
-  const creds: Record<string, string> = {};
-  for (const field of fields) {
-    const envKey = `SUPERGLUE_CRED_${field.toUpperCase()}`;
-    const envVal = process.env[envKey];
-    if (envVal) {
-      creds[field] = envVal;
-    } else if (process.stdin.isTTY) {
-      creds[field] = await promptHidden(`  Enter ${field}`);
-    } else {
-      error(`Missing credential: ${field}. Set ${envKey} or use interactive mode.`);
-      process.exit(1);
-    }
-  }
-  return creds;
-}
 
 export function registerCreateCommand(parent: Command, getContext: ContextFn): void {
   parent
@@ -37,8 +20,7 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
       "Template ID — auto-fills URL, OAuth config, and credentials. Auto-detected from URL if omitted.",
     )
     .option("--instructions <text>", "Specific instructions")
-    .option("--credentials <json>", "Non-sensitive credentials JSON")
-    .option("--sensitive-credentials <fields>", "Comma-separated sensitive credential field names")
+    .option("--credentials <json>", "Credentials JSON (all fields including secrets)")
     .option("--docs-url <url>", "Documentation URL to scrape")
     .option("--openapi-url <url>", "OpenAPI spec URL")
     .addOption(
@@ -61,7 +43,6 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
       if (opts.config) {
         try {
           const parsed = JSON.parse(fs.readFileSync(opts.config, "utf-8"));
-          // Allow --env to override config file environment
           if (opts.env === "dev" || opts.env === "prod") {
             parsed.environment = opts.env;
           }
@@ -90,7 +71,6 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
         };
       }
 
-      // Resolve template: explicit --template flag, or auto-detect from URL/name
       let templateKey: string | undefined = opts.template;
       let template: (typeof systems)[string] | undefined;
 
@@ -136,15 +116,6 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
         };
       }
 
-      if (opts.sensitiveCredentials) {
-        const fields = opts.sensitiveCredentials
-          .split(",")
-          .map((f: string) => f.trim())
-          .filter(Boolean);
-        const sensitive = await collectSensitiveCredentials(fields);
-        systemInput.credentials = { ...systemInput.credentials, ...sensitive };
-      }
-
       if (typeof systemInput.name !== "string" || systemInput.name.trim() === "") {
         error("System name is required (--name)");
         process.exit(1);
@@ -173,16 +144,16 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
           } catch {}
         }
 
-        if (process.argv.includes("--json") || !process.stdout.isTTY) {
-          output({
-            success: true,
-            system: { id: result.id, name: result.name, url: result.url },
-            ...(templateKey ? { template: templateKey } : {}),
-          });
-        } else {
+        if (isTableMode()) {
           success(`System created: ${c.bold}${result.id}${c.reset}`, {
             name: result.name,
             url: result.url,
+            ...(templateKey ? { template: templateKey } : {}),
+          });
+        } else {
+          output({
+            success: true,
+            system: { id: result.id, name: result.name, url: result.url },
             ...(templateKey ? { template: templateKey } : {}),
           });
         }
