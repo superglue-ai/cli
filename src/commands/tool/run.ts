@@ -168,6 +168,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
           ? { stepResults: result.stepResults }
           : {}),
         ...(opts.includeConfig && result.tool ? { config: result.tool } : {}),
+        ...(result.important_notice ? { important_notice: result.important_notice } : {}),
       };
 
       output(out);
