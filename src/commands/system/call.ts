@@ -1,10 +1,19 @@
 import { type Command, Option } from "commander";
-import type { SuperglueClient } from "@superglue/shared";
-import { getConnectionProtocol } from "@superglue/shared";
+import type { SuperglueClient, ConnectionProtocol } from "@superglue/shared";
 import { parseFileFlags } from "../../files.js";
 import { output, error, colors as c } from "../../output.js";
 
 type ContextFn = () => { client: SuperglueClient };
+
+const detectProtocol = (url: string): ConnectionProtocol => {
+  if (url.startsWith("postgres://") || url.startsWith("postgresql://")) return "postgres";
+  if (url.startsWith("mssql://") || url.startsWith("sqlserver://")) return "mssql";
+  if (url.startsWith("redis://") || url.startsWith("rediss://")) return "redis";
+  if (url.startsWith("ftp://") || url.startsWith("ftps://") || url.startsWith("sftp://"))
+    return "sftp";
+  if (url.startsWith("smb://")) return "smb";
+  return "http";
+};
 
 export function registerCallCommand(parent: Command, getContext: ContextFn): void {
   parent
@@ -132,7 +141,7 @@ ${c.bold}Supported Protocols:${c.reset}
         const responseData = result.data?.data !== undefined ? result.data.data : result.data;
         output({
           success: result.success,
-          protocol: getConnectionProtocol(opts.url),
+          protocol: detectProtocol(opts.url),
           data: responseData,
           ...(result.error ? { error: result.error } : {}),
         });
