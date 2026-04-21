@@ -1,6 +1,6 @@
 import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
-import { getConnectionProtocol } from "@superglue/shared";
+import { inferProtocolFromUrl } from "@superglue/shared";
 import { parseFileFlags } from "../../files.js";
 import { output, error, colors as c } from "../../output.js";
 
@@ -34,7 +34,7 @@ ${c.bold}Discovering Credential Placeholders:${c.reset}
   Use 'sg system find <system-id>' to see available credential placeholders:
 
     ${c.dim}$${c.reset} sg system find my_postgres
-    ${c.green}→ credentialPlaceholders:${c.reset} ["<<my_postgres_username>>", "<<my_postgres_password>>"]
+    ${c.green}→ storedCredentials:${c.reset} { username: { placeholder: "<<my_postgres_username>>", value: "admin" }, password: { placeholder: "<<my_postgres_password>>", value: "****" } }
 
   Or use 'sg system list' to see credentials for all systems at once.
 
@@ -132,7 +132,7 @@ ${c.bold}Supported Protocols:${c.reset}
         const responseData = result.data?.data !== undefined ? result.data.data : result.data;
         output({
           success: result.success,
-          protocol: getConnectionProtocol(opts.url),
+          protocol: inferProtocolFromUrl(opts.url),
           data: responseData,
           ...(result.error ? { error: result.error } : {}),
         });

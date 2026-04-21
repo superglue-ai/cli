@@ -13,7 +13,6 @@ Superglue supports both PostgreSQL and Microsoft SQL Server (including Azure SQL
   type: "request",
   systemId: "my_postgres_db",
   url: "postgres://<<my_postgres_db_user>>:<<my_postgres_db_password>>@<<my_postgres_db_host>>:<<my_postgres_db_port>>/<<my_postgres_db_database>>",
-  method: "POST",            // ignored for Postgres but required by schema
   body: '{"query": "SELECT * FROM users WHERE id = $1", "params": [<<userId>>]}'
 }
 ```
@@ -104,7 +103,6 @@ Use a data selector returning an array to execute a query per item:
   type: "request",
   systemId: "my_azure_sql",
   url: "mssql://<<my_azure_sql_user>>:<<my_azure_sql_password>>@<<my_azure_sql_host>>:<<my_azure_sql_port>>/<<my_azure_sql_database>>",
-  method: "POST",            // ignored for MSSQL but required by schema
   body: '{"query": "SELECT * FROM users WHERE id = @param1", "params": [<<userId>>]}'
 }
 ```
@@ -125,7 +123,13 @@ Both `mssql://` and `sqlserver://` protocols are supported. All credential varia
 For Azure SQL Database, use the fully qualified server name:
 
 ```
-mssql://myuser@myserver:mypassword@myserver.database.windows.net:1433/mydatabase
+mssql://myuser:mypassword@myserver.database.windows.net:1433/mydatabase
+```
+
+Note: Azure SQL usernames often include `@servername` suffix (e.g., `myuser@myserver`). When using in URLs, encode the @ as `%40`:
+
+```
+mssql://myuser%40myserver:mypassword@myserver.database.windows.net:1433/mydatabase
 ```
 
 You can include connection parameters as query strings:

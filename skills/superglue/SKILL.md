@@ -19,8 +19,9 @@ description: "Build, test, deploy and integrate superglue tools via the sg CLI a
 
 **Authentication & Credentials:**
 
-- **Auth headers MUST be set explicitly** — credentials are NEVER auto-injected into requests or tool steps
-- Every request step (in tools AND `sg system call`) must include the appropriate auth header using `<<systemId_credentialKey>>` syntax
+- **Authentication must always be explicitly configured** — nothing is injected automatically in any protocol
+- For HTTP: include auth headers using `<<systemId_credentialKey>>` syntax (e.g., `"Authorization": "Bearer <<systemId_access_token>>"`)
+- For databases/Redis/file servers: embed credential placeholders in the connection URL (e.g., `postgres://<<sys_user>>:<<sys_pass>>@host/db`)
 - OAuth systems also require explicit headers — only token refresh is automatic
 
 **Saving Tools:**
@@ -31,7 +32,7 @@ description: "Build, test, deploy and integrate superglue tools via the sg CLI a
 
 **Credentials in Non-Interactive Environments (AI Agents, CI):**
 
-- **Pass ALL credentials (including secrets) directly via `--credentials` JSON** — do NOT use `--sensitive-credentials` (it requires an interactive TTY which agents don't have)
+- **Pass ALL credentials (including secrets) directly via `--credentials` JSON**
 - Ask the user to provide secret values, then pass them in `--credentials '{"api_key":"sk-xxx"}'`
 
 ---
@@ -121,15 +122,67 @@ sg tool save --draft <draftId>
 
 | Flag               | Description                                 |
 | ------------------ | ------------------------------------------- |
-| `--json`           | Force JSON output (auto-enabled in non-TTY) |
+| `--table`          | Human-readable table output (default: JSON) |
+| `--full`           | Disable truncation of large fields          |
 | `--api-key <key>`  | Override API key                            |
 | `--endpoint <url>` | Override API endpoint                       |
+
+## Capability Presets
+
+The CLI supports three capability presets that control which commands are available. Set during `sg init` or via `SUPERGLUE_CLI_PRESET` env var. Stored in `config.json` as `"preset"`.
+
+| Preset    | Description                                                        |
+| --------- | ------------------------------------------------------------------ |
+| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing |
+| `builder` | Runner + build/edit/save tools, call systems. No system CRUD       |
+| `admin`   | Full access (default)                                              |
+
+### Preset-to-Command Matrix
+
+```
+Command                  runner   builder   admin
+─────────────────────────────────────────────────
+sg init                    x         x        x
+sg update                  x         x        x
+sg skill                   x         x        x
+sg tool build              -         x        x
+sg tool run --tool         x         x        x
+sg tool run --config/etc   -         x        x
+sg tool edit               -         x        x
+sg tool save               -         x        x
+sg tool find / list        x         x        x
+sg system create           -         -        x
+sg system edit             -         -        x
+sg system oauth            -         -        x
+sg system call             -         x        x
+sg system search-docs      -         x        x
+sg system find / list      x         x        x
+sg run list                x         x        x
+sg run get                 x         x        x
+```
+
+### Setting the Preset
+
+```bash
+# During init (interactive or non-interactive)
+sg init --preset runner --api-key "..." --global
+
+# Via environment variable (overrides config.json)
+export SUPERGLUE_CLI_PRESET=builder
+
+# Manually edit .superglue/config.json
+{ "preset": "runner", "apiKey": "...", ... }
+```
+
+Blocked commands print a clear error with the current preset name and how to change it.
 
 ## Command Reference
 
 ### `sg init`
 
-Interactive setup — API key, endpoint, output mode. Creates `.superglue/`.
+Interactive setup — API key, endpoint, output mode, capability preset. Creates `.superglue/`.
+
+Non-interactive: `sg init --api-key "..." --preset runner --global`
 
 ### Tool Commands
 
@@ -212,17 +265,16 @@ sg system create --name "Slack" --template slack
 
 **Full flag reference:**
 
-| Flag                               | Description                                                                  |
-| ---------------------------------- | ---------------------------------------------------------------------------- |
-| `--name <name>`                    | Human-readable name — **REQUIRED**                                           |
-| `--id <id>`                        | System ID (lowercase, underscores only) — derived from name if omitted       |
-| `--url <url>`                      | API base URL — **REQUIRED** (auto-filled by `--template`)                    |
-| `--template <id>`                  | Template ID (stripe, shopify, slack, etc.)                                   |
-| `--credentials <json>`             | Credentials JSON (use for ALL creds in non-interactive mode)                 |
-| `--sensitive-credentials <fields>` | Comma-separated fields for masked input (TTY only — do NOT use in AI agents) |
-| `--docs-url <url>`                 | Documentation URL to scrape                                                  |
-| `--openapi-url <url>`              | OpenAPI spec URL                                                             |
-| `--env <environment>`              | Environment: `dev` or `prod` (default: prod)                                 |
+| Flag                   | Description                                                            |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `--name <name>`        | Human-readable name — **REQUIRED**                                     |
+| `--id <id>`            | System ID (lowercase, underscores only) — derived from name if omitted |
+| `--url <url>`          | API base URL — **REQUIRED** (auto-filled by `--template`)              |
+| `--template <id>`      | Template ID (stripe, shopify, slack, etc.)                             |
+| `--credentials <json>` | Credentials JSON (all fields including secrets)                        |
+| `--docs-url <url>`     | Documentation URL to scrape                                            |
+| `--openapi-url <url>`  | OpenAPI spec URL                                                       |
+| `--env <environment>`  | Environment: `dev` or `prod` (default: prod)                           |
 
 **`sg system edit`** — Update system config or credentials. Supports `--env dev|prod`.
 **`sg system list` / `sg system find`** — List or search systems. `find` supports `--env dev|prod`.
@@ -367,7 +419,7 @@ Basic auth is auto-encoded: if the value after `Basic ` isn't already base64, th
 ### Credential Lifecycle
 
 - Non-sensitive creds (`client_id`, `auth_url`, etc.) are stored via `--credentials`
-- Sensitive creds (`api_key`, `client_secret`) — in non-interactive mode (AI agents, CI), pass via `--credentials` JSON. In interactive TTY, use `--sensitive-credentials` for masked input, or set `SUPERGLUE_CRED_<FIELD>` env vars.
+- Sensitive creds (`api_key`, `client_secret`) — pass via `--credentials` JSON: `--credentials '{"client_secret":"..."}'`
 - OAuth tokens (`access_token`, `refresh_token`) are auto-refreshed before each step execution
 
 ---
@@ -549,9 +601,8 @@ All types stop when `stopCondition` returns true, response is empty, or max page
 ### Credential Model
 
 - `credentials` — all credentials passed as JSON via `--credentials`
-- `sensitiveCredentials` — interactive masked prompt for secrets (TTY only, NOT for AI agents or CI)
-- **For AI agents / non-interactive use:** pass ALL credentials (including secrets like api_key, client_secret) directly via `--credentials '{"api_key":"..."}'`. Ask the user to provide the secret values, then include them in the JSON.
-- **For human interactive use:** use `--sensitive-credentials` for masked input of secrets
+- **Pass ALL credentials** (including secrets like api_key, client_secret) directly via `--credentials '{"api_key":"..."}'`. Ask the user to provide the secret values, then include them in the JSON.
+- OAuth tokens (`access_token`, `refresh_token`) are auto-refreshed before each step execution
 
 ### Templates
 
@@ -591,6 +642,165 @@ sg system oauth --system-id gmail --scopes "https://www.googleapis.com/auth/gmai
 
 - Lowercase letters, numbers, underscores only — **no hyphens**
 - Used for credential namespacing: `<<systemId_credKey>>`
+
+---
+
+## Tool Building Guide
+
+### Build Recipe
+
+Before producing a tool config:
+
+1. Load relevant skills: data-handling and protocol skill(s) for the involved systems
+2. Use `sg system find` for every involved system — note `storedCredentials` and URL
+3. Use `sg system search-docs` for each system — look up endpoints, auth patterns, pagination, response structure
+4. Use `sg system call` to test 1-2 primary endpoints — verify response structure and field names before building
+5. Only then call `sg tool build --config '...'` with the full tool config
+
+### Planning Steps
+
+- Fetch prerequisites: available projects, entity types, categories, etc.
+- Each step = one API call, one DB query, one file operation, or a transform step (no compound ops)
+- Final aggregation/filtering/sorting should happen in the `outputTransform`, not in a step
+- Step instructions: 2-3 sentences describing the goal and expected data
+- `instruction`: Write a 1-2 sentence summary of the tool's purpose. Never leave empty.
+
+### Step Result Envelopes
+
+Every step result is wrapped — you MUST account for this in dataSelectors and outputTransform.
+
+- **Object selector (or none)** — access via `sourceData.stepId.data`
+- **Array selector** — access via `sourceData.stepId.map(i => i.data)`
+- **Paginated step** — access via `sourceData.stepId.data` (pages are merged server-side into a single envelope — do NOT `.map()` over it)
+
+NEVER access step results without `.data` — `sourceData.stepId.results` will fail because you're hitting the envelope, not the API response.
+
+### modify Flag
+
+Set `modify: true` only when the step writes, updates, or deletes live data. Don't rely on HTTP method alone — a POST that only reads (e.g., GraphQL query) should be `modify: false`. Default is false.
+
+### Validation Rules
+
+- Tool must have a valid `id` string
+- Tool must have a `steps` array
+- `systemId` is optional on request steps. Setting it makes that system's credentials available as `<<systemId_credKey>>` template variables, and enables `<<systemId_url>>` for the base URL. Omit for public APIs.
+- Every request step must have a non-empty `url`
+- Transform steps must have `transformCode`
+
+### Key Pitfalls
+
+- NEVER guess API endpoints — always verify with `sg system search-docs` or `sg system call` first
+- NEVER put `systemId` on the step object — it belongs inside `step.config.systemId`
+- NEVER use `<<(sourceData) => sourceData.payload.X>>` — payload fields are at root level of sourceData
+- NEVER use `<<currentItem.id>>` — use arrow function syntax: `<<(sourceData) => sourceData.currentItem.id>>`
+- NEVER hardcode pagination params — use `<<page>>`, `<<offset>>`, `<<cursor>>`, `<<limit>>`
+- NEVER add an `outputSchema` unless the user explicitly requested a specific response structure
+- NEVER leave instructions empty
+- ALWAYS explicitly configure authentication in every step — credentials are never automatically included in any protocol
+- PREFER system URL variables (`<<systemId_url>>`) over hardcoded base URLs
+- Check `sg system find` output for `storedCredentials` to know the exact variable names available
+- `outputTransform` must be a single-line JS string (no literal newlines or tabs)
+- NEVER use regex literals with `/` or complex escapes in transforms — they corrupt during serialization. Use `new URL()`, `.split()`, or `new RegExp()` instead. See data-handling reference "Serialization Safety".
+- For complex request bodies, use a preceding transform step — don't put multi-statement logic inside `<<>>` expressions
+- When the body contains nested/stringified JSON (e.g. LLM APIs): have `<<>>` expressions return a string via `JSON.stringify(...)`, and use a single expression for the whole body rather than mixing `<<>>` expressions with static JSON
+
+### Complex Body Construction
+
+When a request body needs data from multiple steps or requires aggregation, use a preceding transform step:
+
+```javascript
+// Step: prepareBody (transform)
+transformCode: "(sourceData) => { var items = sourceData.step1.data.results; return { data: items.filter(function(i) { return i.active; }), count: items.length }; }";
+
+// Step: submitData (request)
+body: "<<(sourceData) => JSON.stringify(sourceData.prepareBody.data)>>";
+```
+
+---
+
+## Tool Editing Guide
+
+Edit tools using RFC 6902 JSON Patch operations via `sg tool edit`.
+
+### Patch Format
+
+Each operation:
+
+```typescript
+{
+  op: "add" | "remove" | "replace" | "move" | "copy" | "test",
+  path: string,      // JSON Pointer (e.g., "/steps/0/config/url")
+  value?: any,       // required for add, replace, test
+  from?: string      // required for move, copy
+}
+```
+
+### Key Paths
+
+- `/instruction` — tool description
+- `/steps/N` — step at index N
+- `/steps/N/config/url`, `/steps/N/config/method`, `/steps/N/config/headers`, etc.
+- `/steps/N/dataSelector` — JS function controlling input + loop mode
+- `/outputTransform` — final output shaping function
+- `/outputSchema` — optional JSON schema for output
+
+### Operations
+
+- **`replace`** — Change an existing value. **Path must exist** — if the field is `null` or absent, `replace` fails. Use `add` instead for optional fields.
+- **`add`** — Creates the field if missing, overwrites if it exists. **Prefer `add` over `replace`** when the field might be null or absent. Append to array with `/steps/-`.
+- **`remove`** — Delete field or array element.
+- **`move`** — Reorder or relocate.
+
+### Validation Rules
+
+- Never patch `id` — tool IDs and draft IDs are immutable when editing
+- `op` and `path` are required on every patch; `path` must start with `/`
+- Patches are applied **sequentially** — later patches see effects of earlier ones
+- After patches, same validation rules as building apply (valid id, steps array, URLs present)
+
+### Principles
+
+- **Check result wrapping** — before writing any dataSelector or outputTransform patch, determine whether the upstream step used an object or array selector, and access `.data` accordingly
+- **Don't forget downstream** — if you change a step's output shape, check if later dataSelectors and outputTransform need updating
+- **Index shifts** — when removing array elements, subsequent indices shift down. Account for this in multi-patch operations.
+
+---
+
+## Systems Handling Guide
+
+Systems are reusable building blocks that store configuration details and credentials.
+
+### Credential Use in Tool Configurations
+
+For every `systemId` referenced in a tool, credentials are namespaced as `<<systemId_credentialKey>>` and must be explicitly placed in the step config. For HTTP: in headers. For databases/Redis/file servers: in the connection URL. Nothing is injected automatically.
+
+```
+System id="stripe", storedCredentials: api_key → "sk_proj****"
+→ Available as: <<stripe_api_key>>
+```
+
+OAuth tokens (`access_token`, `refresh_token`) are auto-refreshed before each step execution. Access tokens must also be explicitly referenced in step headers.
+
+### System URL Variables
+
+System URLs are available as `<<systemId_url>>` and should be used instead of hardcoding base URLs:
+
+```
+System id="salesforce", url="https://mycompany.salesforce.com"
+→ Available as: <<salesforce_url>>
+
+Step config: { "url": "<<salesforce_url>>/services/data/v58.0/sobjects/Account" }
+```
+
+### Dev/Prod Environments
+
+`environment` is `"dev"` or `"prod"` (or unset for legacy systems). Set at creation only — immutable afterward. Two systems with the same ID but different environments are automatically linked. Dev systems inherit documentation from their linked prod system. When creating a dev system, always ask for new credentials — never copy from prod.
+
+Tools reference systems by ID only. Execution mode determines which environment is used (dev mode falls back to prod if no dev system exists).
+
+### System-Specific Instructions
+
+Systems may include `specificInstructions` from the user (visible in `sg system find` output). Follow them when present. These capture API constraints, rate limits, special endpoints, auth requirements, or usage patterns.
 
 ---
 
@@ -653,13 +863,16 @@ with client as c:
 
 For detailed documentation on specific topics, read these files in the `references/` directory:
 
-| File                                  | When to read                                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `references/integration.md`           | **READ THIS** when deploying tools to production - SDK usage, REST API, webhooks, error handling |
-| `references/databases.md`             | Building tools that query PostgreSQL or Microsoft SQL Server (Azure SQL) databases               |
-| `references/redis.md`                 | Building tools that interact with Redis (commands, pipelines, data types)                        |
-| `references/file-servers.md`          | Building tools that interact with FTP/SFTP/SMB file servers                                      |
-| `references/transforms-and-output.md` | Complex data transformations, output shaping, JS sandbox constraints                             |
+| File                          | When to read                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| `references/integration.md`   | **READ THIS** when deploying tools to production - SDK usage, REST API, webhooks, error handling |
+| `references/databases.md`     | Building tools that query PostgreSQL or Microsoft SQL Server (Azure SQL) databases               |
+| `references/redis.md`         | Building tools that interact with Redis (commands, pipelines, data types)                        |
+| `references/file-servers.md`  | Building tools that interact with FTP/SFTP/SMB file servers                                      |
+| `references/data-handling.md` | Variables, selectors, result envelopes, transforms, JS sandbox constraints                       |
+| `references/file-handling.md` | File detection, parsing, producedFiles, file references, aliasing rules                          |
+| `references/http-apis.md`     | HTTP step config — auth patterns, pagination, retries, error detection                           |
+| `references/access-rules.md`  | RBAC roles, tool/system permissions, custom rules, mutation detection (enterprise only)          |
 
 **Important:** When the user asks about integrating superglue into their codebase, deploying tools, using the SDK, or calling tools from code, you MUST read `references/integration.md` for complete examples.
 

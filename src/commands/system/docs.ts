@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { output, error, heading, info, colors as c } from "../../output.js";
+import { output, error, heading, info, colors as c, isTableMode } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -16,21 +16,19 @@ export function registerDocsCommand(parent: Command, getContext: ContextFn): voi
       try {
         const result = await client.searchSystemDocumentation(opts.systemId, opts.keywords);
         if (!result || result.trim().length === 0) {
-          if (process.argv.includes("--json") || !process.stdout.isTTY) {
-            output({ success: false, message: "No documentation found for this system" });
-          } else {
+          if (isTableMode()) {
             info("No documentation found for this system");
+          } else {
+            output({ success: false, message: "No documentation found for this system" });
           }
         } else if (result.startsWith("No relevant sections found")) {
-          if (process.argv.includes("--json") || !process.stdout.isTTY) {
-            output({ success: true, noResults: true, message: result, keywords: opts.keywords });
-          } else {
+          if (isTableMode()) {
             info(result);
+          } else {
+            output({ success: true, total: 0, message: result, keywords: opts.keywords });
           }
         } else {
-          if (process.argv.includes("--json") || !process.stdout.isTTY) {
-            output({ success: true, content: result, keywords: opts.keywords });
-          } else {
+          if (isTableMode()) {
             heading(`Documentation: ${opts.systemId}`);
             console.log(`  ${c.dim}Keywords: ${opts.keywords}${c.reset}\n`);
             const lines = result.split("\n");
@@ -46,6 +44,8 @@ export function registerDocsCommand(parent: Command, getContext: ContextFn): voi
               }
             }
             console.log("");
+          } else {
+            output({ success: true, content: result, keywords: opts.keywords });
           }
         }
       } catch (err: any) {
