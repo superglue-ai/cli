@@ -9,22 +9,15 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install production dependencies
+      - name: Install dependencies
         run: npm install --ignore-scripts
-
-      - name: Verify dist exists
-        run: |
-          if [ ! -d "dist" ] || [ ! -f "dist/cli.js" ]; then
-            echo "ERROR: dist/ folder is missing or incomplete. The sync workflow should have committed it."
-            exit 1
-          fi
 
       - name: Determine publish version
         run: |
@@ -40,6 +33,9 @@ jobs:
           fi
           echo "Publishing as ${PUBLISH_VERSION} (npm current: ${CURRENT_NPM}, package.json: ${PKG_VERSION})"
           npm version "${PUBLISH_VERSION}" --no-git-tag-version --allow-same-version
+
+      - name: Build CLI
+        run: npm run build
 
       - name: Publish to npm
         run: npm publish --access public --ignore-scripts

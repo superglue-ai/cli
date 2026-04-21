@@ -7,7 +7,6 @@
   type: "request",
   systemId: "my_redis",
   url: "redis://<<my_redis_username>>:<<my_redis_password>>@<<my_redis_host>>:<<my_redis_port>>/<<my_redis_database>>",
-  method: "POST",            // ignored for Redis but required by schema
   body: '{"command": "GET", "args": ["<<keyName>>"]}'
 }
 ```
@@ -23,7 +22,7 @@ rediss://user:password@host:port/database   (TLS)
 
 - `redis://` for standard connections
 - `rediss://` for TLS-encrypted connections (e.g. Redis Cloud, AWS ElastiCache with encryption)
-- `/database` is the database number (0-15), defaults to 0 if omitted
+- `/database` is the database number (defaults to 0 if omitted; max depends on the server's `databases` config, commonly 16)
 
 All credential variables are resolved before connecting. Trailing slashes are cleaned.
 
@@ -120,7 +119,7 @@ Multiple commands:
 ## Connection Management
 
 - A fresh connection is created per execution and closed after completion
-- TLS auto-configured for `rediss://` URLs (with `rejectUnauthorized: false`)
+- TLS auto-configured for `rediss://` URLs (currently uses `rejectUnauthorized: false`)
 - 5-second connection timeout, 30-second command timeout
 - Array commands (pipeline) run on a single connection for efficiency
 
@@ -133,7 +132,7 @@ Default retries from server config. On final failure, error includes command and
 Returns the raw Redis response:
 
 - `GET` / `HGET`: string or null
-- `HGETALL`: object with field-value pairs (flattened array from Redis, parsed by ioredis)
+- `HGETALL`: flat array of alternating field-value pairs (e.g., `["name", "Alice", "email", "alice@example.com"]`)
 - `LRANGE` / `SMEMBERS` / `KEYS`: array of strings
 - `SET` / `DEL` / `EXPIRE`: "OK" or integer
 - `INCR` / `LLEN` / `SADD`: integer
@@ -186,5 +185,5 @@ Use a data selector returning an array to execute a command per item:
 
 - All args must be strings (Redis protocol is text-based) - numbers are auto-coerced
 - Use `SCAN` instead of `KEYS` in production for large keyspaces
-- `HGETALL` returns an empty object `{}` for non-existent keys
+- `HGETALL` returns an empty array `[]` for non-existent keys
 - Use array body for multi-command pipelines instead of separate steps

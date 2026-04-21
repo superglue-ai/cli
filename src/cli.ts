@@ -1,5 +1,5 @@
-import { Command } from "commander";
-import { resolveConfig } from "./config.js";
+import { Command, Option } from "commander";
+import { resolveConfig, type CLIPreset } from "./config.js";
 import { createClient } from "./client.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerToolCommands } from "./commands/tool/index.js";
@@ -14,6 +14,38 @@ import {
   printUpdateNotification,
 } from "./version.js";
 
+function findSubcommand(argv: string[]): string | undefined {
+  const globalFlagsWithValues = ["--api-key", "--endpoint"];
+  const globalFlagsNoValue = ["--table", "--full", "--json", "-h", "--help", "-V", "--version"];
+  let i = 2;
+  while (i < argv.length) {
+    const arg = argv[i];
+    if (globalFlagsWithValues.includes(arg)) {
+      i += 2;
+    } else if (globalFlagsNoValue.includes(arg)) {
+      i += 1;
+    } else if (arg.startsWith("-")) {
+      i += 1;
+    } else {
+      return arg;
+    }
+  }
+  return undefined;
+}
+
+function extractFlagValue(argv: string[], flag: string): string | undefined {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg.startsWith(`${flag}=`)) {
+      return arg.slice(flag.length + 1);
+    }
+    if (arg === flag && i + 1 < argv.length) {
+      return argv[i + 1];
+    }
+  }
+  return undefined;
+}
+
 const program = new Command();
 
 program
@@ -22,7 +54,9 @@ program
   .version(CLI_VERSION)
   .option("--api-key <key>", "superglue API key")
   .option("--endpoint <url>", "superglue API endpoint")
-  .option("--json", "force JSON output")
+  .option("--table", "human-readable table output (default: JSON)")
+  .option("--full", "disable truncation of large fields")
+  .addOption(new Option("--json").hideHelp())
   .addHelpText(
     "after",
     `
@@ -34,7 +68,9 @@ IMPORTANT FOR AI AGENTS:
     sg skill databases              Print the databases reference
     sg skill integration            Print the SDK/REST/webhook reference
     sg skill file-servers           Print the file servers reference
-    sg skill transforms-and-output  Print the transforms reference
+    sg skill data-handling          Print the data handling reference
+    sg skill file-handling          Print the file handling reference
+    sg skill http-apis              Print the HTTP APIs reference
     sg skill redis                  Print the Redis reference
 
   The main skill reference covers: tool building, system setup, OAuth flows,
@@ -76,9 +112,21 @@ All Commands:
 Global Flags:
   --api-key <key>    Override API key from config
   --endpoint <url>   Override API endpoint from config
-  --json             Force JSON output (default in non-TTY)
+  --table            Human-readable table output (default: JSON)
+  --full             Disable truncation of large fields
+
+Presets (set via sg init --preset or SUPERGLUE_CLI_PRESET):
+  runner     Run saved tools by ID only (agent-safe, read-only)
+  builder    Runner + build/edit tools, call systems (no system CRUD)
+  admin      Full access (default)
 `,
   );
+
+const earlyConfig = resolveConfig({
+  apiKey: extractFlagValue(process.argv, "--api-key"),
+  endpoint: extractFlagValue(process.argv, "--endpoint"),
+});
+const preset: CLIPreset = earlyConfig.preset;
 
 const getContext = () => {
   const opts = program.opts();
@@ -90,50 +138,14 @@ const getContext = () => {
 registerInitCommand(program);
 registerUpdateCommand(program);
 registerSkillCommand(program);
-registerToolCommands(program, getContext);
-registerSystemCommands(program, getContext);
-registerRunCommands(program, getContext);
+registerToolCommands(program, getContext, preset);
+registerSystemCommands(program, getContext, preset);
+registerRunCommands(program, getContext, preset);
 
 // Check version compatibility before running commands that hit the server
 // Note: We manually extract --api-key and --endpoint from argv since program.opts()
 // returns empty values before parse() is called
 const commandsRequiringServer = ["tool", "system", "run"];
-const globalFlagsWithValues = ["--api-key", "--endpoint"];
-const globalFlagsNoValue = ["--json", "-h", "--help", "-V", "--version"];
-
-// Find the first subcommand, skipping global flags and their values
-function findSubcommand(argv: string[]): string | undefined {
-  let i = 2; // skip node and script path
-  while (i < argv.length) {
-    const arg = argv[i];
-    if (globalFlagsWithValues.includes(arg)) {
-      i += 2; // skip flag and its value
-    } else if (globalFlagsNoValue.includes(arg)) {
-      i += 1; // skip flag only
-    } else if (arg.startsWith("-")) {
-      i += 1; // skip unknown flag
-    } else {
-      return arg; // found subcommand
-    }
-  }
-  return undefined;
-}
-
-// Extract flag value supporting both "--flag value" and "--flag=value" syntax
-function extractFlagValue(argv: string[], flag: string): string | undefined {
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    // Handle --flag=value syntax
-    if (arg.startsWith(`${flag}=`)) {
-      return arg.slice(flag.length + 1);
-    }
-    // Handle --flag value syntax
-    if (arg === flag && i + 1 < argv.length) {
-      return argv[i + 1];
-    }
-  }
-  return undefined;
-}
 
 const subcommand = findSubcommand(process.argv);
 
@@ -145,11 +157,8 @@ const runAndNotify = async (parsePromise: Promise<any>) => {
 };
 
 if (subcommand && commandsRequiringServer.includes(subcommand)) {
-  const cliApiKey = extractFlagValue(process.argv, "--api-key");
-  const cliEndpoint = extractFlagValue(process.argv, "--endpoint");
-  const config = resolveConfig({ apiKey: cliApiKey, endpoint: cliEndpoint });
-  if (config.apiKey) {
-    runAndNotify(checkVersionCompatibility(config.endpoint).then(() => program.parseAsync()));
+  if (earlyConfig.apiKey) {
+    runAndNotify(checkVersionCompatibility(earlyConfig.endpoint).then(() => program.parseAsync()));
   } else {
     runAndNotify(program.parseAsync());
   }

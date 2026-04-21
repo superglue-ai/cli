@@ -19,8 +19,9 @@ description: "Build, test, deploy and integrate superglue tools via the sg CLI a
 
 **Authentication & Credentials:**
 
-- **Auth headers MUST be set explicitly** — credentials are NEVER auto-injected into requests or tool steps
-- Every request step (in tools AND `sg system call`) must include the appropriate auth header using `<<systemId_credentialKey>>` syntax
+- **Authentication must always be explicitly configured** — nothing is injected automatically in any protocol
+- For HTTP: include auth headers using `<<systemId_credentialKey>>` syntax (e.g., `"Authorization": "Bearer <<systemId_access_token>>"`)
+- For databases/Redis/file servers: embed credential placeholders in the connection URL (e.g., `postgres://<<sys_user>>:<<sys_pass>>@host/db`)
 - OAuth systems also require explicit headers — only token refresh is automatic
 
 **Saving Tools:**
@@ -31,7 +32,7 @@ description: "Build, test, deploy and integrate superglue tools via the sg CLI a
 
 **Credentials in Non-Interactive Environments (AI Agents, CI):**
 
-- **Pass ALL credentials (including secrets) directly via `--credentials` JSON** — do NOT use `--sensitive-credentials` (it requires an interactive TTY which agents don't have)
+- **Pass ALL credentials (including secrets) directly via `--credentials` JSON**
 - Ask the user to provide secret values, then pass them in `--credentials '{"api_key":"sk-xxx"}'`
 
 ---
@@ -121,15 +122,67 @@ sg tool save --draft <draftId>
 
 | Flag               | Description                                 |
 | ------------------ | ------------------------------------------- |
-| `--json`           | Force JSON output (auto-enabled in non-TTY) |
+| `--table`          | Human-readable table output (default: JSON) |
+| `--full`           | Disable truncation of large fields          |
 | `--api-key <key>`  | Override API key                            |
 | `--endpoint <url>` | Override API endpoint                       |
+
+## Capability Presets
+
+The CLI supports three capability presets that control which commands are available. Set during `sg init` or via `SUPERGLUE_CLI_PRESET` env var. Stored in `config.json` as `"preset"`.
+
+| Preset    | Description                                                        |
+| --------- | ------------------------------------------------------------------ |
+| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing |
+| `builder` | Runner + build/edit/save tools, call systems. No system CRUD       |
+| `admin`   | Full access (default)                                              |
+
+### Preset-to-Command Matrix
+
+```
+Command                  runner   builder   admin
+─────────────────────────────────────────────────
+sg init                    x         x        x
+sg update                  x         x        x
+sg skill                   x         x        x
+sg tool build              -         x        x
+sg tool run --tool         x         x        x
+sg tool run --config/etc   -         x        x
+sg tool edit               -         x        x
+sg tool save               -         x        x
+sg tool find / list        x         x        x
+sg system create           -         -        x
+sg system edit             -         -        x
+sg system oauth            -         -        x
+sg system call             -         x        x
+sg system search-docs      -         x        x
+sg system find / list      -         x        x
+sg run list                x         x        x
+sg run get                 x         x        x
+```
+
+### Setting the Preset
+
+```bash
+# During init (interactive or non-interactive)
+sg init --preset runner --api-key "..." --global
+
+# Via environment variable (overrides config.json)
+export SUPERGLUE_CLI_PRESET=builder
+
+# Manually edit .superglue/config.json
+{ "preset": "runner", "apiKey": "...", ... }
+```
+
+Blocked commands print a clear error with the current preset name and how to change it.
 
 ## Command Reference
 
 ### `sg init`
 
-Interactive setup — API key, endpoint, output mode. Creates `.superglue/`.
+Interactive setup — API key, endpoint, output mode, capability preset. Creates `.superglue/`.
+
+Non-interactive: `sg init --api-key "..." --preset runner --global`
 
 ### Tool Commands
 
@@ -212,17 +265,16 @@ sg system create --name "Slack" --template slack
 
 **Full flag reference:**
 
-| Flag                               | Description                                                                  |
-| ---------------------------------- | ---------------------------------------------------------------------------- |
-| `--name <name>`                    | Human-readable name — **REQUIRED**                                           |
-| `--id <id>`                        | System ID (lowercase, underscores only) — derived from name if omitted       |
-| `--url <url>`                      | API base URL — **REQUIRED** (auto-filled by `--template`)                    |
-| `--template <id>`                  | Template ID (stripe, shopify, slack, etc.)                                   |
-| `--credentials <json>`             | Credentials JSON (use for ALL creds in non-interactive mode)                 |
-| `--sensitive-credentials <fields>` | Comma-separated fields for masked input (TTY only — do NOT use in AI agents) |
-| `--docs-url <url>`                 | Documentation URL to scrape                                                  |
-| `--openapi-url <url>`              | OpenAPI spec URL                                                             |
-| `--env <environment>`              | Environment: `dev` or `prod` (default: prod)                                 |
+| Flag                   | Description                                                            |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `--name <name>`        | Human-readable name — **REQUIRED**                                     |
+| `--id <id>`            | System ID (lowercase, underscores only) — derived from name if omitted |
+| `--url <url>`          | API base URL — **REQUIRED** (auto-filled by `--template`)              |
+| `--template <id>`      | Template ID (stripe, shopify, slack, etc.)                             |
+| `--credentials <json>` | Credentials JSON (all fields including secrets)                        |
+| `--docs-url <url>`     | Documentation URL to scrape                                            |
+| `--openapi-url <url>`  | OpenAPI spec URL                                                       |
+| `--env <environment>`  | Environment: `dev` or `prod` (default: prod)                           |
 
 **`sg system edit`** — Update system config or credentials. Supports `--env dev|prod`.
 **`sg system list` / `sg system find`** — List or search systems. `find` supports `--env dev|prod`.
@@ -367,7 +419,7 @@ Basic auth is auto-encoded: if the value after `Basic ` isn't already base64, th
 ### Credential Lifecycle
 
 - Non-sensitive creds (`client_id`, `auth_url`, etc.) are stored via `--credentials`
-- Sensitive creds (`api_key`, `client_secret`) — in non-interactive mode (AI agents, CI), pass via `--credentials` JSON. In interactive TTY, use `--sensitive-credentials` for masked input, or set `SUPERGLUE_CRED_<FIELD>` env vars.
+- Sensitive creds (`api_key`, `client_secret`) — pass via `--credentials` JSON: `--credentials '{"client_secret":"..."}'`
 - OAuth tokens (`access_token`, `refresh_token`) are auto-refreshed before each step execution
 
 ---
@@ -549,9 +601,8 @@ All types stop when `stopCondition` returns true, response is empty, or max page
 ### Credential Model
 
 - `credentials` — all credentials passed as JSON via `--credentials`
-- `sensitiveCredentials` — interactive masked prompt for secrets (TTY only, NOT for AI agents or CI)
-- **For AI agents / non-interactive use:** pass ALL credentials (including secrets like api_key, client_secret) directly via `--credentials '{"api_key":"..."}'`. Ask the user to provide the secret values, then include them in the JSON.
-- **For human interactive use:** use `--sensitive-credentials` for masked input of secrets
+- **Pass ALL credentials** (including secrets like api_key, client_secret) directly via `--credentials '{"api_key":"..."}'`. Ask the user to provide the secret values, then include them in the JSON.
+- OAuth tokens (`access_token`, `refresh_token`) are auto-refreshed before each step execution
 
 ### Templates
 
@@ -653,13 +704,15 @@ with client as c:
 
 For detailed documentation on specific topics, read these files in the `references/` directory:
 
-| File                                  | When to read                                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `references/integration.md`           | **READ THIS** when deploying tools to production - SDK usage, REST API, webhooks, error handling |
-| `references/databases.md`             | Building tools that query PostgreSQL or Microsoft SQL Server (Azure SQL) databases               |
-| `references/redis.md`                 | Building tools that interact with Redis (commands, pipelines, data types)                        |
-| `references/file-servers.md`          | Building tools that interact with FTP/SFTP/SMB file servers                                      |
-| `references/transforms-and-output.md` | Complex data transformations, output shaping, JS sandbox constraints                             |
+| File                          | When to read                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| `references/integration.md`   | **READ THIS** when deploying tools to production - SDK usage, REST API, webhooks, error handling |
+| `references/databases.md`     | Building tools that query PostgreSQL or Microsoft SQL Server (Azure SQL) databases               |
+| `references/redis.md`         | Building tools that interact with Redis (commands, pipelines, data types)                        |
+| `references/file-servers.md`  | Building tools that interact with FTP/SFTP/SMB file servers                                      |
+| `references/data-handling.md` | Variables, selectors, result envelopes, transforms, JS sandbox constraints                       |
+| `references/file-handling.md` | File detection, parsing, producedFiles, file references, aliasing rules                          |
+| `references/http-apis.md`     | HTTP step config — auth patterns, pagination, retries, error detection                           |
 
 **Important:** When the user asks about integrating superglue into their codebase, deploying tools, using the SDK, or calling tools from code, you MUST read `references/integration.md` for complete examples.
 

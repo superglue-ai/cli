@@ -4,14 +4,19 @@ import * as crypto from "node:crypto";
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import { RequestSource } from "@superglue/shared";
-import type { CLIConfig } from "../../config.js";
+import type { CLIConfig, CLIPreset } from "../../config.js";
+import { isToolRunModeAllowed } from "../../presets.js";
 import { readDraft } from "../../drafts.js";
 import { parseFileFlags, resolvePayloadWithFiles } from "../../files.js";
 import { output, error, success, spinner, colors as c } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
-export function registerRunCommand(parent: Command, getContext: ContextFn): void {
+export function registerRunCommand(
+  parent: Command,
+  getContext: ContextFn,
+  preset: CLIPreset,
+): void {
   parent
     .command("run")
     .description("Execute a draft, saved tool, or inline tool config")
@@ -32,6 +37,15 @@ export function registerRunCommand(parent: Command, getContext: ContextFn): void
     )
     .option("--include-step-results", "Include raw step results")
     .option("--include-config", "Include full tool config")
+    .addHelpText(
+      "after",
+      `
+Provide exactly one of: --tool, --draft, --config, or --config-file.
+Returns: { success, data, error? }
+
+Run 'sg skill' for payload syntax, variable references, and data selectors.
+`,
+    )
     .action(async (opts) => {
       const { config, client } = getContext();
 
@@ -42,6 +56,20 @@ export function registerRunCommand(parent: Command, getContext: ContextFn): void
       }
       if (selectors.length > 1) {
         error("Only one of --tool, --draft, --config, or --config-file can be used");
+        process.exit(1);
+      }
+
+      const usedMode = opts.tool
+        ? "tool"
+        : opts.draft
+          ? "draft"
+          : opts.configFile
+            ? "config-file"
+            : "config";
+      if (!isToolRunModeAllowed(preset, usedMode)) {
+        error(
+          `--${usedMode} is not available in the '${preset}' preset. Use --tool <id> to run a saved tool, or change preset to 'builder' or 'admin'.`,
+        );
         process.exit(1);
       }
 
