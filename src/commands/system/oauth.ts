@@ -69,11 +69,15 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
       const grantType = opts.grantType ?? system.credentials?.grant_type ?? "authorization_code";
 
       if (!clientId) {
-        error("Missing client_id. Add it to the system credentials first.");
+        error(
+          `Missing client_id. Add it to the system credentials:\n\n  sg system edit --id ${opts.systemId} --credentials '{"client_id":"YOUR_CLIENT_ID","client_secret":"YOUR_CLIENT_SECRET"}'`,
+        );
         process.exit(1);
       }
       if (!tokenUrl) {
-        error("Missing token_url. Provide --token-url or add it to credentials.");
+        error(
+          `Missing token_url. Provide --token-url or add it to credentials:\n\n  sg system edit --id ${opts.systemId} --credentials '{"token_url":"https://..."}'`,
+        );
         process.exit(1);
       }
 
@@ -133,7 +137,9 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
       }
 
       if (!authUrl) {
-        error("Missing auth_url for authorization_code flow. Provide --auth-url.");
+        error(
+          `Missing auth_url for authorization_code flow. Provide --auth-url or add it to credentials:\n\n  sg system edit --id ${opts.systemId} --credentials '{"auth_url":"https://..."}'`,
+        );
         process.exit(1);
       }
 
