@@ -153,7 +153,9 @@ startBackgroundUpdateCheck();
 
 const runAndNotify = async (parsePromise: Promise<any>) => {
   await parsePromise;
-  await printUpdateNotification();
+  if (subcommand !== "update") {
+    await printUpdateNotification();
+  }
 };
 
 if (subcommand && commandsRequiringServer.includes(subcommand)) {

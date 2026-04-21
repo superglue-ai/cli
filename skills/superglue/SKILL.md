@@ -628,6 +628,17 @@ sg system create --name "Gmail" --url https://gmail.googleapis.com \
   --credentials '{"client_id":"...","client_secret":"..."}'
 ```
 
+**For custom OAuth systems without a template**, you must include `client_id`, `client_secret`, `auth_url`, and `token_url` in the credentials at create time — or add them later with `sg system edit` before running `sg system oauth`:
+
+```bash
+sg system create --name "My API" --url https://api.example.com \
+  --credentials '{"client_id":"...","client_secret":"...","auth_url":"https://example.com/oauth/authorize","token_url":"https://example.com/oauth/token"}'
+
+# Or add credentials to an existing system:
+sg system edit --id my_api \
+  --credentials '{"client_id":"...","client_secret":"...","auth_url":"https://...","token_url":"https://..."}'
+```
+
 **Step 2: Authenticate via OAuth**
 
 ```bash
