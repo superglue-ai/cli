@@ -1,0 +1,718 @@
+export type ServiceMetadata = {
+    traceId?: string;
+    orgId?: string;
+    userId?: string;
+    userEmail?: string;
+    roleIds?: string[];
+};
+export interface Log {
+    id: string;
+    message: string;
+    level: string | LogLevel;
+    timestamp: Date;
+    traceId?: string;
+    orgId?: string;
+}
+export interface MessagePart {
+    type: "content" | "tool" | "error";
+    content?: string;
+    errorDetails?: string;
+    tool?: ToolCall;
+    id: string;
+}
+export interface ToolInteractionEntry {
+    id: string;
+    event: string;
+    createdAt: string;
+    payload?: Record<string, unknown>;
+}
+export interface Message {
+    id: string;
+    content: string;
+    role: "user" | "assistant" | "system";
+    timestamp: Date;
+    tools?: ToolCall[];
+    parts?: MessagePart[];
+    isStreaming?: boolean;
+    isHidden?: boolean;
+    attachedFiles?: Array<{
+        name: string;
+        size?: number;
+        key: string;
+        status?: "processing" | "ready" | "error";
+        error?: string;
+    }>;
+}
+export interface ToolCall {
+    id: string;
+    name: string;
+    input?: any;
+    output?: any;
+    interactionLog?: ToolInteractionEntry[];
+    confirmationState?: string;
+    confirmationData?: any;
+    status: "pending" | "awaiting_confirmation" | "running" | "completed" | "declined" | "stopped" | "error";
+    error?: string;
+    startTime?: Date;
+    endTime?: Date;
+    logs?: Array<{
+        id: string;
+        message: string;
+        level: string;
+        timestamp: Date;
+        traceId?: string;
+        orgId?: string;
+    }>;
+    buildResult?: any;
+}
+export interface UserInfo {
+    id: string;
+    email: string | null;
+    name: string | null;
+}
+export interface OrgMember {
+    id: string;
+    email: string | null;
+    name: string | null;
+    userType: "member" | "end_user";
+    roleIds: string[];
+    createdAt?: string;
+    externalId?: string;
+    metadata?: Record<string, any>;
+    credentials?: EndUserCredentialStatus[];
+}
+export interface OrgInvitation {
+    id: string;
+    email: string;
+    role: string;
+    status: string;
+    inviterId: string;
+    expiresAt: string;
+    createdAt: string;
+}
+export declare enum SupportedFileType {
+    JSON = "JSON",
+    CSV = "CSV",
+    XML = "XML",
+    HTML = "HTML",
+    YAML = "YAML",
+    EXCEL = "EXCEL",
+    PDF = "PDF",
+    DOCX = "DOCX",
+    ZIP = "ZIP",
+    GZIP = "GZIP",
+    BINARY = "BINARY",
+    RAW = "RAW",
+    AUTO = "AUTO"
+}
+export type JSONSchema = any;
+export type JSONata = string;
+export type Upload = File | Blob;
+export declare enum HttpMethod {
+    GET = "GET",
+    POST = "POST",
+    PUT = "PUT",
+    DELETE = "DELETE",
+    PATCH = "PATCH",
+    HEAD = "HEAD",
+    OPTIONS = "OPTIONS"
+}
+export declare enum CacheMode {
+    ENABLED = "ENABLED",
+    READONLY = "READONLY",
+    WRITEONLY = "WRITEONLY",
+    DISABLED = "DISABLED"
+}
+export declare enum FileType {
+    CSV = "CSV",
+    JSON = "JSON",
+    XML = "XML",
+    YAML = "YAML",
+    EXCEL = "EXCEL",
+    HTML = "HTML",
+    PDF = "PDF",
+    DOCX = "DOCX",
+    ZIP = "ZIP",
+    BINARY = "BINARY",
+    RAW = "RAW",
+    AUTO = "AUTO"
+}
+export declare enum AuthType {
+    NONE = "NONE",
+    OAUTH2 = "OAUTH2",
+    HEADER = "HEADER",
+    QUERY_PARAM = "QUERY_PARAM"
+}
+export declare enum DecompressionMethod {
+    GZIP = "GZIP",
+    DEFLATE = "DEFLATE",
+    NONE = "NONE",
+    AUTO = "AUTO",
+    ZIP = "ZIP"
+}
+export declare enum PaginationType {
+    OFFSET_BASED = "OFFSET_BASED",
+    PAGE_BASED = "PAGE_BASED",
+    CURSOR_BASED = "CURSOR_BASED",
+    DISABLED = "DISABLED"
+}
+export declare enum LogLevel {
+    DEBUG = "DEBUG",
+    INFO = "INFO",
+    WARN = "WARN",
+    ERROR = "ERROR"
+}
+export declare enum UpsertMode {
+    CREATE = "CREATE",
+    UPDATE = "UPDATE",
+    UPSERT = "UPSERT"
+}
+export declare enum CredentialMode {
+    MERGE = "MERGE",
+    REPLACE = "REPLACE"
+}
+export declare enum RunStatus {
+    RUNNING = "RUNNING",
+    SUCCESS = "SUCCESS",
+    FAILED = "FAILED",
+    ABORTED = "ABORTED"
+}
+export declare enum RequestSource {
+    API = "api",
+    FRONTEND = "frontend",
+    SCHEDULER = "scheduler",
+    MCP = "mcp",
+    TOOL_CHAIN = "tool-chain",
+    WEBHOOK = "webhook",
+    CLI = "cli"
+}
+export type ClientRequestSource = RequestSource.FRONTEND | RequestSource.MCP | RequestSource.CLI;
+export declare enum FilterTarget {
+    KEYS = "KEYS",
+    VALUES = "VALUES",
+    BOTH = "BOTH"
+}
+export declare enum FilterAction {
+    REMOVE = "REMOVE",
+    MASK = "MASK",
+    FAIL = "FAIL"
+}
+export declare enum RemoveScope {
+    FIELD = "FIELD",// Just this field - remove only the matched key-value
+    ITEM = "ITEM",// This item - remove the containing object
+    ENTRY = "ENTRY"
+}
+export interface ResponseFilter {
+    id: string;
+    name?: string;
+    enabled: boolean;
+    target: FilterTarget;
+    pattern: string;
+    action: FilterAction;
+    maskValue?: string;
+    scope?: RemoveScope;
+}
+export interface BaseConfig {
+    id: string;
+    version?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export interface BaseResult {
+    id: string;
+    success: boolean;
+    data?: any;
+    error?: string;
+    headers?: Record<string, any>;
+    statusCode?: number;
+    startedAt: Date;
+    completedAt: Date;
+}
+export type PaginationTypeValue = "offsetBased" | "pageBased" | "cursorBased" | "disabled";
+export interface Pagination {
+    type: PaginationTypeValue;
+    pageSize?: string;
+    cursorPath?: string;
+    stopCondition?: string;
+}
+export type StepConfigType = "request" | "transform";
+export interface RequestStepConfig {
+    type?: "request";
+    url: string;
+    method?: HttpMethod | string;
+    queryParams?: Record<string, any>;
+    headers?: Record<string, any>;
+    body?: string;
+    pagination?: Pagination;
+    systemId?: string;
+}
+export interface TransformStepConfig {
+    type: "transform";
+    transformCode: string;
+}
+export type StepConfig = RequestStepConfig | TransformStepConfig;
+export declare function isRequestConfig(config: StepConfig | null | undefined): config is RequestStepConfig;
+export declare function isTransformConfig(config: StepConfig | null | undefined): config is TransformStepConfig;
+export type FailureBehavior = "fail" | "continue";
+export interface ToolStep {
+    id: string;
+    config: StepConfig;
+    instruction?: string;
+    modify?: boolean;
+    dataSelector?: string;
+    failureBehavior?: FailureBehavior;
+}
+export interface Tool extends BaseConfig {
+    name?: string;
+    steps: ToolStep[];
+    outputTransform?: string;
+    inputSchema?: JSONSchema;
+    outputSchema?: JSONSchema;
+    instruction?: string;
+    folder?: string;
+    archived?: boolean;
+    responseFilters?: ResponseFilter[];
+}
+export interface ExecutionFileEnvelope {
+    kind: "execution_file";
+    filename: string;
+    contentType: string;
+    size: number;
+    rawBase64: string;
+    fileType?: SupportedFileType;
+    extracted?: unknown;
+    parseError?: string;
+}
+export interface RawFileBytes {
+    kind: "raw_file_bytes";
+    base64: string;
+    filename: string;
+    contentType: string;
+}
+export interface ToolStepResult {
+    stepId: string;
+    success: boolean;
+    data?: any;
+    error?: string;
+    stepFileKeys?: string[];
+}
+export interface ToolResult {
+    success: boolean;
+    data?: any;
+    error?: string;
+    tool: Tool;
+    stepResults: ToolStepResult[];
+}
+export interface DocumentationFiles {
+    uploadFileIds?: string[];
+    scrapeFileIds?: string[];
+    openApiFileIds?: string[];
+}
+export interface TunnelTarget {
+    name: string;
+    protocol: string;
+    description?: string;
+}
+export interface TunnelConnection {
+    id: string;
+    orgId: string;
+    connectedAt: string;
+    targets: TunnelTarget[];
+}
+export interface TunnelConfig {
+    tunnelId: string;
+    targetName: string;
+}
+export interface System extends BaseConfig {
+    name?: string;
+    type?: string;
+    url?: string;
+    credentials?: Record<string, any>;
+    documentationUrl?: string;
+    documentation?: string;
+    documentationPending?: boolean;
+    openApiSchema?: string;
+    openApiUrl?: string;
+    specificInstructions?: string;
+    documentationKeywords?: string[];
+    icon?: string;
+    metadata?: Record<string, any>;
+    templateName?: string;
+    documentationFiles?: DocumentationFiles;
+    multiTenancyMode?: MultiTenancyMode;
+    tunnel?: TunnelConfig;
+    environment?: "dev" | "prod";
+}
+export interface SystemInput {
+    id: string;
+    name?: string;
+    url?: string;
+    documentationUrl?: string;
+    documentation?: string;
+    documentationPending?: boolean;
+    specificInstructions?: string;
+    documentationKeywords?: string[];
+    icon?: string;
+    credentials?: Record<string, string>;
+    metadata?: Record<string, any>;
+    templateName?: string;
+    environment?: "dev" | "prod";
+}
+export interface SuggestedTool {
+    id: string;
+    instruction?: string;
+    inputSchema?: JSONSchema;
+    outputSchema?: JSONSchema;
+    steps: Array<{
+        systemId?: string;
+        instruction?: string;
+        config?: {
+            url?: string;
+            method?: string;
+            queryParams?: Record<string, any>;
+            headers?: Record<string, any>;
+            body?: string;
+        };
+    }>;
+    reason: string;
+}
+export interface ExtractResult extends BaseResult {
+    file?: ExecutionFileEnvelope;
+}
+export type ExtractInputRequest = {
+    file: Upload;
+    envelope?: boolean;
+};
+export type ToolInputRequest = {
+    id?: string;
+    workflow?: Tool;
+};
+export type RequestOptions = {
+    cacheMode?: CacheMode;
+    timeout?: number;
+    retries?: number;
+    retryDelay?: number;
+    webhookUrl?: string;
+};
+export interface RunMetadata {
+    startedAt: string;
+    completedAt?: string;
+    durationMs?: number;
+}
+export interface Run {
+    runId: string;
+    toolId: string;
+    tool?: Tool;
+    status: RunStatus;
+    toolPayload?: Record<string, any>;
+    data?: any;
+    error?: string;
+    stepResults?: ToolStepResult[];
+    options?: RequestOptions;
+    requestSource?: RequestSource;
+    traceId?: string;
+    metadata: RunMetadata;
+    resultStorageUri?: string;
+    userId?: string;
+    executionMode?: SystemEnvironment;
+}
+export interface StoredRunResults {
+    runId: string;
+    success: boolean;
+    data: any;
+    stepResults: ToolStepResult[];
+    toolPayload: Record<string, any>;
+    error?: string;
+    storedAt: Date;
+}
+export interface ApiCallArgs {
+    id?: string;
+    endpoint?: RequestStepConfig;
+    payload?: Record<string, any>;
+    credentials?: Record<string, string>;
+    options?: RequestOptions;
+}
+export interface ExtractArgs {
+    file: Upload;
+    envelope?: boolean;
+}
+export interface ToolArgs {
+    id?: string;
+    tool?: Tool;
+    payload?: Record<string, any>;
+    files?: Record<string, ExecutionFileEnvelope>;
+    credentials?: Record<string, string>;
+    options?: RequestOptions;
+    verbose?: boolean;
+    runId?: string;
+    traceId?: string;
+}
+export interface ToolDiff {
+    op: "add" | "remove" | "replace" | "move" | "copy" | "test";
+    path: string;
+    value?: any;
+    from?: string;
+}
+export type SystemList = {
+    items: System[];
+    total: number;
+};
+export type ToolScheduleInput = {
+    id?: string;
+    toolId?: string;
+    cronExpression?: string;
+    timezone?: string;
+    enabled?: boolean;
+    payload?: Record<string, any>;
+    options?: RequestOptions;
+};
+export type ToolSchedule = {
+    id: string;
+    toolId: string;
+    cronExpression: string;
+    timezone: string;
+    enabled: boolean;
+    payload?: Record<string, any>;
+    options?: RequestOptions;
+    createdByUserId?: string;
+    lastRunAt?: Date;
+    nextRunAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+};
+export declare enum DiscoveryRunStatus {
+    PENDING = "PENDING",
+    PROCESSING = "PROCESSING",
+    COMPLETED = "COMPLETED",
+    FAILED = "FAILED",
+    ABORTED = "ABORTED"
+}
+export type DiscoverySourceType = "file" | "url" | "system";
+export interface DiscoverySource {
+    id: string;
+    type: DiscoverySourceType;
+}
+export interface DiscoveryRunData {
+    title?: string;
+    description?: string;
+    systems?: ExtendedSystem[];
+    error?: string;
+}
+export interface DiscoveryRun {
+    id: string;
+    sources: DiscoverySource[];
+    data?: DiscoveryRunData;
+    status: DiscoveryRunStatus;
+    createdAt: Date;
+}
+export declare enum FileStatus {
+    PENDING = "PENDING",
+    UPLOADING = "UPLOADING",
+    PROCESSING = "PROCESSING",
+    COMPLETED = "COMPLETED",
+    FAILED = "FAILED"
+}
+export interface FileReference {
+    id: string;
+    storageUri: string;
+    processedStorageUri?: string;
+    metadata: any;
+    status: FileStatus;
+    error?: string;
+    createdAt?: Date;
+}
+export interface BatchFileUploadRequest {
+    files: Array<{
+        fileName: string;
+        metadata?: {
+            contentType?: string;
+            contentLength?: number;
+            [key: string]: any;
+        };
+    }>;
+}
+export interface BatchFileUploadResponse {
+    success: boolean;
+    files: Array<{
+        id: string;
+        originalFileName: string;
+        uploadUrl: string;
+        expiresIn: number;
+    }>;
+}
+export interface ExtendedSystem extends Omit<System, "icon"> {
+    icon?: {
+        name: string;
+        source: "simpleicons" | "lucide";
+    };
+    sources: string[];
+    capabilities: string[];
+    confidence: "high" | "medium" | "low";
+    evidence: string;
+    systemDetails?: string;
+    matchedSystemId?: string;
+    potentialConnections?: string[];
+}
+export interface DiscoveryResult {
+    title: string;
+    description: string;
+    systems: ExtendedSystem[];
+}
+export declare enum ConfirmationAction {
+    CONFIRMED = "confirmed",
+    DECLINED = "declined",
+    PARTIAL = "partial",
+    OAUTH_SUCCESS = "oauth_success",
+    OAUTH_FAILURE = "oauth_failure"
+}
+export interface AgentRequest {
+    agentId: string;
+    messages: Message[];
+    agentParams?: Record<string, any>;
+    filePayloads?: Record<string, any>;
+}
+export type NotificationMode = "realtime" | "daily_summary" | "weekly_summary";
+export interface NotificationRuleConditions {
+    status: "failed" | "success" | "any";
+    toolIdPattern?: string;
+    requestSources?: RequestSource[];
+    tags?: string[];
+    folders?: string[];
+}
+export interface NotificationRule {
+    id: string;
+    enabled: boolean;
+    mode?: NotificationMode;
+    conditions: NotificationRuleConditions;
+}
+export interface NotificationSummaryPayload {
+    period: "daily" | "weekly";
+    periodStart: string;
+    periodEnd: string;
+    requestSources: RequestSource[];
+    toolStats: Array<{
+        toolId: string;
+        successCount: number;
+        failedCount: number;
+    }>;
+    adminUrl: string;
+}
+export type NotificationChannelStatus = "active" | "failing" | "disabled";
+export interface BaseChannelConfig {
+    enabled: boolean;
+    rules: NotificationRule[];
+    status: NotificationChannelStatus;
+    consecutiveFailures: number;
+    lastError?: string;
+    lastErrorAt?: string;
+}
+export type SlackAuthType = "webhook" | "bot_token" | "oauth";
+export interface SlackChannelConfig extends BaseChannelConfig {
+    authType: SlackAuthType;
+    webhookUrl?: string;
+    botToken?: string;
+    channelId?: string;
+    accessToken?: string;
+    teamId?: string;
+}
+export interface EmailChannelConfig extends BaseChannelConfig {
+    recipients: string[];
+    fromAddress?: string;
+}
+export interface NotificationChannels {
+    slack?: SlackChannelConfig;
+    email?: EmailChannelConfig;
+}
+export interface NotificationRateLimit {
+    maxPerHour: number;
+    currentCount: number;
+    windowStart: string;
+}
+export interface NotificationSettings {
+    channels?: NotificationChannels;
+    rateLimit?: NotificationRateLimit;
+}
+export interface OrgSettings {
+    orgId: string;
+    notifications?: NotificationSettings;
+    preferences: Record<string, any>;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export type MultiTenancyMode = "disabled" | "enabled";
+export type SystemEnvironment = "dev" | "prod";
+export interface EndUser {
+    id: string;
+    orgId: string;
+    externalId: string;
+    email?: string;
+    name?: string;
+    metadata?: Record<string, any>;
+    credentials?: EndUserCredentialStatus[];
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export interface EndUserInput {
+    externalId?: string;
+    email?: string;
+    name?: string;
+    metadata?: Record<string, any>;
+}
+export interface EndUserCredentialStatus {
+    systemId: string;
+    systemName?: string;
+    hasCredentials: boolean;
+    authType?: string;
+    connectedAt?: Date;
+}
+export interface PortalToken {
+    token: string;
+    expiresAt: Date;
+}
+export declare enum SystemAccessLevel {
+    NONE = "none",
+    READ_ONLY = "read-only",
+    READ_WRITE = "read-write"
+}
+export interface CustomRule {
+    id: string;
+    name: string;
+    expression?: string;
+    isActive: boolean;
+}
+export interface CustomRulePermission {
+    rules: CustomRule[];
+}
+export type SystemPermission = SystemAccessLevel | CustomRulePermission;
+export interface Role extends BaseConfig {
+    name: string;
+    description?: string;
+    tools: "ALL" | string[];
+    systems: "ALL" | Record<string, SystemPermission>;
+    isBaseRole?: boolean;
+    userCount?: number;
+}
+export interface RoleInput {
+    name: string;
+    description?: string;
+    tools?: "ALL" | string[];
+    systems?: "ALL" | Record<string, SystemPermission>;
+}
+export interface UserRoleAssignment {
+    userId: string;
+    roleIds: string[];
+}
+export interface PatchSystemBody {
+    name?: string;
+    url?: string;
+    specificInstructions?: string;
+    icon?: string;
+    credentials?: Record<string, any>;
+    metadata?: Record<string, any>;
+    templateName?: string;
+    multiTenancyMode?: MultiTenancyMode;
+    documentationFiles?: DocumentationFiles;
+    tunnel?: TunnelConfig;
+    environment?: "dev" | "prod";
+}
+//# sourceMappingURL=types.d.ts.map

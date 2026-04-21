@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { output, error, table } from "../../output.js";
+import { output, error, table, isTableMode, isFullMode } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -9,18 +9,30 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
   parent
     .command("list")
     .description("List all tools")
-    .action(async () => {
+    .option("--limit <n>", "Max results", "25")
+    .option("--offset <n>", "Skip first N results", "0")
+    .action(async (opts) => {
       const { client } = getContext();
       try {
-        const { items } = await client.listWorkflows(1000);
-        table(
-          items.map((t: any) => ({
-            id: t.id,
-            instruction: (t.instruction || "").slice(0, 60),
-            steps: t.steps?.length || 0,
-          })),
-          ["id", "instruction", "steps"],
-        );
+        const limit = Math.min(Math.max(parseInt(opts.limit, 10) || 25, 1), 100);
+        const offset = Math.max(parseInt(opts.offset, 10) || 0, 0);
+        const { items, total } = await client.listWorkflows(limit, offset);
+        const full = isFullMode();
+        const rows = items.map((t: any) => ({
+          id: t.id,
+          instruction: full ? t.instruction || "" : (t.instruction || "").slice(0, 60),
+          steps: t.steps?.length || 0,
+        }));
+        if (isTableMode()) {
+          table(rows, ["id", "instruction", "steps"], { total });
+        } else {
+          output({
+            success: true,
+            total,
+            hasMore: offset + items.length < total,
+            items: rows,
+          });
+        }
       } catch (err: any) {
         error(err.message);
         process.exit(1);
@@ -65,16 +77,17 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
                   };
                 });
                 const matches = scored.filter((s: any) => s.score > 0);
-                if (matches.length === 0) return items;
                 matches.sort((a: any, b: any) => b.score - a.score);
                 return matches.map((m: any) => m.tool);
               })();
 
+        const full = isFullMode();
         output({
           success: true,
-          tools: filtered.map((t: any) => ({
+          total: filtered.length,
+          items: filtered.map((t: any) => ({
             id: t.id,
-            instruction: (t.instruction || "").slice(0, 80),
+            instruction: full ? t.instruction || "" : (t.instruction || "").slice(0, 80),
             steps: t.steps?.length || 0,
           })),
         });
