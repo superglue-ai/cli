@@ -65,6 +65,10 @@ Rules:
 - For loop iterations: `file::stepId[0].raw`
 - Important: base64 access in transforms is capped at 500MB by design, so base64 encoded binary in transform steps is only available for files smaller than this
 
+## Using file:: with sg system call / inline runs
+
+`file::` is a body/content token, not a URL scheme — inline runs route by `url` protocol, so passing `file::<alias>` as the URL fails with `Unsupported URL protocol`. Put `file::<alias>.raw/.base64/.extracted` in `body` only, with a real protocol URL. To preview an uploaded file, build a transform-only inline tool that returns `sourceData.__files__.<alias>.extracted` as `data`, or echo it through `https://httpbin.org/anything`.
+
 ## File Aliasing
 
 When a step produces files, the runtime first chooses a **root alias**:
