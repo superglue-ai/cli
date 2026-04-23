@@ -284,7 +284,7 @@ Final transformation shaping the tool's output. Runs after all steps complete. C
 Runs in a Deno subprocess sandbox:
 
 - 8192 MB memory limit, 10 min timeout (transforms/selectors), 3s timeout (pagination stops)
-- Async/await IS supported in transforms
+- Async/await IS supported — use `async (sourceData) => { ... }` syntax. The result is awaited automatically.
 - No filesystem access — `--deny-read`, `--deny-write`
 - No subprocess spawning — `--deny-run`
 - Network access IS available (`--allow-net`) — transforms can make HTTP requests

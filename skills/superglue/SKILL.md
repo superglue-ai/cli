@@ -10,7 +10,8 @@ description: "Build, test, deploy and integrate superglue tools via the sg CLI a
 **Pre-requisites for using the CLI**
 
 1. **Check CLI exists**: Run `sg --version`. If it fails with `command not found`, install it: `npm install -g @superglue/cli`
-2. **Check superglue CLI config exists**: Run `sg system list`. If it fails with `fetch failed` or auth errors, the CLI needs configuration via `sg init` (see below).
+2. **Keep CLI and SDK up to date**: Always use the latest versions. Run `sg update` to update the CLI. For the SDK, run `npm install @superglue/client@latest` (JS) or `pip install --upgrade superglue-client` (Python). Older versions may have known bugs.
+3. **Check superglue CLI config exists**: Run `sg system list`. If it fails with `fetch failed` or auth errors, the CLI needs configuration via `sg init` (see below).
 
 **Calling systems and running tools**
 
@@ -802,6 +803,10 @@ System id="salesforce", url="https://mycompany.salesforce.com"
 
 Step config: { "url": "<<salesforce_url>>/services/data/v58.0/sobjects/Account" }
 ```
+
+### IP Whitelisting
+
+If a customer's system requires IP whitelisting (firewall rules, security groups, etc.), superglue's outbound IPs are `34.234.12.178` and `18.198.191.215`.
 
 ### Dev/Prod Environments
 
