@@ -46,9 +46,12 @@ export function registerSystemCommands(
       `
 Skill References:
   sg skill                  Full guide (system setup, credentials, OAuth)
-  sg skill databases        PostgreSQL, MSSQL, Redis connection patterns
-  sg skill file-servers     SFTP, FTP, SMB patterns
-  sg skill http-apis        HTTP API patterns and authentication
+  sg skill postgres         PostgreSQL connection and schema introspection
+  sg skill mssql            MSSQL / Azure SQL connection patterns
+  sg skill redis            Redis commands and connection patterns
+  sg skill sftp-smb         SFTP, FTP, SMB patterns
+  sg skill http             HTTP API patterns and authentication
+  sg skill graphql          GraphQL schema introspection and step config
 
 Quick Reference:
   sg system create --name <n> --url <u>      Create a system (auto-detects OAuth templates)
