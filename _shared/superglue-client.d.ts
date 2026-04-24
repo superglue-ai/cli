@@ -268,6 +268,11 @@ export declare class SuperglueClient {
         id: string;
         fileName: string;
     }>>;
+    processFileReference(fileId: string): Promise<{
+        success: boolean;
+        fileId: string;
+        processedStorageUri?: string;
+    }>;
     listSystemFileReferences(systemId: string): Promise<{
         files: Array<{
             id: string;

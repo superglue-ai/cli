@@ -1,4 +1,4 @@
-# Redis Steps
+# Redis
 
 ## Step Configuration
 
@@ -11,9 +11,19 @@
 }
 ```
 
-Configure the connection URL depending on which credentials are saved in the stored Redis system - reference them accordingly.
+Configure the connection URL based on which credentials are stored in the system — use `sg system find` to check `storedCredentials` and reference them accordingly.
 
-## URL Format
+`method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for Redis steps.
+
+### Fields
+
+| Field      | Required | Notes                                                          |
+| ---------- | -------- | -------------------------------------------------------------- |
+| `url`      | yes      | Connection string with `<<credential>>` placeholders           |
+| `body`     | yes      | JSON: single command object or array for pipeline              |
+| `systemId` | no       | Links system credentials for `<<systemId_credKey>>` resolution |
+
+### URL Format
 
 ```
 redis://user:password@host:port/database
@@ -21,20 +31,18 @@ rediss://user:password@host:port/database   (TLS)
 ```
 
 - `redis://` for standard connections
-- `rediss://` for TLS-encrypted connections (e.g. Redis Cloud, AWS ElastiCache with encryption)
-- `/database` is the database number (defaults to 0 if omitted; max depends on the server's `databases` config, commonly 16)
+- `rediss://` for TLS-encrypted connections (Redis Cloud, AWS ElastiCache with encryption)
+- `/database` is the database number (defaults to 0; max depends on server config, commonly 16)
 
-All credential variables are resolved before connecting. Trailing slashes are cleaned.
+### Body Format
 
-## Body Format
-
-JSON string with `command` (required) and optional `args` array. Body can be a single command object or an array of commands (pipelined in a single round-trip):
+JSON string with `command` (required) and optional `args` array:
 
 ```json
 { "command": "GET", "args": ["mykey"] }
 ```
 
-Multiple commands:
+For pipelines, pass an array of command objects (executed in a single round-trip):
 
 ```json
 [
@@ -43,115 +51,39 @@ Multiple commands:
 ]
 ```
 
-### Common Commands
+All args must be strings — numbers are auto-coerced.
 
-**String operations:**
-
-```json
-{ "command": "GET", "args": ["user:123:name"] }
-{ "command": "SET", "args": ["user:123:name", "Alice"] }
-{ "command": "MGET", "args": ["key1", "key2", "key3"] }
-{ "command": "INCR", "args": ["counter"] }
-```
-
-**Hash operations:**
-
-```json
-{ "command": "HGETALL", "args": ["user:123"] }
-{ "command": "HGET", "args": ["user:123", "email"] }
-{ "command": "HSET", "args": ["user:123", "email", "alice@example.com"] }
-{ "command": "HMGET", "args": ["user:123", "name", "email"] }
-```
-
-**List operations:**
-
-```json
-{ "command": "LRANGE", "args": ["queue:tasks", "0", "-1"] }
-{ "command": "LPUSH", "args": ["queue:tasks", "task1"] }
-{ "command": "RPOP", "args": ["queue:tasks"] }
-{ "command": "LLEN", "args": ["queue:tasks"] }
-```
-
-**Set operations:**
-
-```json
-{ "command": "SMEMBERS", "args": ["tags:post:1"] }
-{ "command": "SADD", "args": ["tags:post:1", "redis", "database"] }
-{ "command": "SISMEMBER", "args": ["tags:post:1", "redis"] }
-```
-
-**Sorted set operations:**
-
-```json
-{ "command": "ZRANGE", "args": ["leaderboard", "0", "-1", "WITHSCORES"] }
-{ "command": "ZADD", "args": ["leaderboard", "100", "player1"] }
-{ "command": "ZRANK", "args": ["leaderboard", "player1"] }
-```
-
-**Key operations:**
-
-```json
-{ "command": "KEYS", "args": ["user:*"] }
-{ "command": "EXISTS", "args": ["mykey"] }
-{ "command": "TTL", "args": ["session:abc"] }
-{ "command": "EXPIRE", "args": ["session:abc", "3600"] }
-{ "command": "DEL", "args": ["mykey"] }
-{ "command": "TYPE", "args": ["mykey"] }
-```
-
-**Scan (safe iteration):**
-
-```json
-{ "command": "SCAN", "args": ["0", "MATCH", "user:*", "COUNT", "100"] }
-{ "command": "HSCAN", "args": ["myhash", "0", "MATCH", "field*"] }
-```
-
-### Dynamic Arguments with Variables
+Dynamic arguments with variables:
 
 ```json
 { "command": "GET", "args": ["<<(sourceData) => `user:${sourceData.userId}:profile`>>"] }
 ```
 
-```json
-{ "command": "HSET", "args": ["<<userKey>>", "<<fieldName>>", "<<fieldValue>>"] }
+## Authentication
+
+Credentials are embedded directly in the connection URL using `<<systemId_credentialKey>>` placeholders. Nothing is injected automatically.
+
+```
+redis://<<my_redis_username>>:<<my_redis_password>>@<<my_redis_host>>:<<my_redis_port>>/<<my_redis_database>>
 ```
 
-## Connection Management
+## Redis Runtime Details
 
-- A fresh connection is created per execution and closed after completion
-- TLS auto-configured for `rediss://` URLs (currently uses `rejectUnauthorized: false`)
-- 5-second connection timeout, 30-second command timeout
-- Array commands (pipeline) run on a single connection for efficiency
+### Return Values
 
-## Retry Logic
+| Command type                 | Returns                                                                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`, `HGET`                | string or null                                                                                                                         |
+| `HGETALL`                    | flat array of alternating field-value pairs, e.g. `["name", "Alice", "email", "alice@example.com"]`. Empty array for non-existent keys |
+| `LRANGE`, `SMEMBERS`, `KEYS` | array of strings                                                                                                                       |
+| `SET`, `DEL`, `EXPIRE`       | `"OK"` or integer                                                                                                                      |
+| `INCR`, `LLEN`, `SADD`       | integer                                                                                                                                |
+| `MGET`, `HMGET`              | array (nulls for missing keys)                                                                                                         |
+| `SCAN`, `HSCAN`              | array of `[cursor, results]`                                                                                                           |
 
-Default retries from server config. On final failure, error includes command and args.
+### Pipeline Results
 
-## Return Value
-
-Returns the raw Redis response:
-
-- `GET` / `HGET`: string or null
-- `HGETALL`: flat array of alternating field-value pairs (e.g., `["name", "Alice", "email", "alice@example.com"]`)
-- `LRANGE` / `SMEMBERS` / `KEYS`: array of strings
-- `SET` / `DEL` / `EXPIRE`: "OK" or integer
-- `INCR` / `LLEN` / `SADD`: integer
-- `MGET` / `HMGET`: array (nulls for missing keys)
-- `SCAN` / `HSCAN`: array of [cursor, results]
-
-## Multiple Commands (Pipeline)
-
-Pass an array of commands to execute them in a single round-trip (like FTP/SFTP batch operations):
-
-```json
-[
-  { "command": "GET", "args": ["user:1:name"] },
-  { "command": "HGETALL", "args": ["user:1"] },
-  { "command": "LRANGE", "args": ["tasks", "0", "-1"] }
-]
-```
-
-Returns an array of results, one per command:
+A single command returns a single result. An array of commands returns an array of results:
 
 ```json
 [
@@ -161,18 +93,13 @@ Returns an array of results, one per command:
 ]
 ```
 
-If an individual command fails, that entry has `error` instead of `result`:
+If an individual command in a pipeline fails, that entry has `error` instead of `result`:
 
 ```json
-[
-  { "command": "GET", "result": "Alice" },
-  { "command": "WRONGCMD", "error": "ERR unknown command 'WRONGCMD'" }
-]
+{ "command": "WRONGCMD", "error": "ERR unknown command 'WRONGCMD'" }
 ```
 
-A single command returns a single result. Multiple commands return an array — same pattern as FTP/SFTP operations.
-
-## Batch Operations via Loop
+### Batch Operations
 
 Use a data selector returning an array to execute a command per item:
 
@@ -181,9 +108,32 @@ Use a data selector returning an array to execute a command per item:
 // body: {"command": "HGETALL", "args": ["<<(sourceData) => `user:${sourceData.currentItem}`>>"]}
 ```
 
-## Important Notes
+Prefer array body pipelines over loop-based batch when commands are independent and don't depend on each other's results.
 
-- All args must be strings (Redis protocol is text-based) - numbers are auto-coerced
-- Use `SCAN` instead of `KEYS` in production for large keyspaces
-- `HGETALL` returns an empty array `[]` for non-existent keys
-- Use array body for multi-command pipelines instead of separate steps
+### Connection Management
+
+- Fresh connection created per execution, closed after completion
+- TLS auto-configured for `rediss://` URLs (`rejectUnauthorized: false`)
+- 5-second connection timeout, 30-second command timeout
+- Pipeline commands run on a single connection
+
+### Retry Behavior
+
+Default retries from server config. On final failure, error includes command and args.
+
+## Common Pitfalls
+
+- Using `KEYS` in production on large keyspaces — use `SCAN` with `MATCH` pattern instead
+- Expecting `HGETALL` to return an object — it returns a flat alternating array `[field, value, field, value, ...]`
+- Accessing step result directly instead of via `.data` — Redis results follow the same envelope as all steps: `sourceData.stepId.data`
+- Using separate steps for independent commands that could be pipelined in a single array body
+
+## Error Recovery
+
+When a Redis step fails:
+
+1. **Read the error message** — superglue includes the command and args in the error. Check for unknown commands, wrong argument counts, or type errors (e.g. running a list command on a string key).
+2. **Verify connection credentials** — use `sg system find` to confirm `storedCredentials` keys match the placeholders in your URL. Test with a simple `PING` command via `sg system call`.
+3. **Check connectivity and access** — connection refused errors typically mean the Redis server is unreachable or requires TLS (`rediss://`). AUTH errors mean the password is wrong or the user lacks access.
+4. **Check key types** — Redis commands are type-specific. Running `GET` on a hash key or `HGETALL` on a string key returns a `WRONGTYPE` error. Use `TYPE` command via `sg system call` to check a key's type before building.
+5. **Verify TLS requirements** — if the error mentions connection reset or handshake failure, try switching between `redis://` and `rediss://`.
