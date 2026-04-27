@@ -7,7 +7,6 @@ export * from "./utils/token-count.js";
 export type ConnectionProtocol = "http" | "postgres" | "mssql" | "redis" | "sftp" | "smb";
 export declare function inferProtocolFromUrl(url: string): ConnectionProtocol;
 export declare function isAbortError(error: unknown): boolean;
-export declare function validateExternalUrl(raw: string): URL;
 export declare const ALLOWED_FILE_EXTENSIONS: readonly [".json", ".csv", ".txt", ".xml", ".xlsx", ".xls", ".pdf", ".docx", ".zip", ".gz", ".yaml", ".yml", ".py", ".ts", ".tsx", ".js", ".jsx", ".java", ".go", ".rs", ".rb", ".php", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".kt", ".scala", ".sh", ".bash", ".sql", ".html", ".css", ".scss", ".md", ".rst"];
 type ParsedToolInputSchema = {
     rawSchema: any | null;
@@ -65,6 +64,7 @@ export declare function resolveOAuthCertAndKey(oauthCert: string, oauthKey: stri
  */
 export declare function isArrowFunction(code: string | undefined | null): boolean;
 export declare function assertValidArrowFunction(code: string | undefined | null): string;
+export declare function normalizeCredentialKey(key: string): string;
 export declare const isSensitiveCredentialKey: (key: string) => boolean;
 export declare const maskCredentialValue: (key: string, value: any) => string;
 export declare function isMaskedValue(value: any): boolean;
@@ -117,11 +117,6 @@ export declare function normalizeToolDiffs<T extends {
 }>(diffs: T[]): T[];
 export declare function composeUrl(host: string, path: string): string;
 export type SystemAuthType = "none" | "oauth" | "apikey" | "connection_string";
-export interface SystemAuthStatus {
-    authType: SystemAuthType;
-    isComplete: boolean;
-    label: string;
-}
 export interface ConnectionFieldDef {
     key: string;
     label: string;
@@ -137,16 +132,6 @@ export declare const detectSystemAuthType: (credentials: Record<string, any> | u
     url?: string;
     templateName?: string;
 }) => SystemAuthType;
-/**
- * Get the authentication status for a system.
- * Handles both normal mode and multi-tenancy mode.
- */
-export declare const getSystemAuthStatus: (system: {
-    credentials?: Record<string, any>;
-    multiTenancyMode?: string;
-    url?: string;
-    templateName?: string;
-}) => SystemAuthStatus;
 export declare const ALLOWED_PATCH_SYSTEM_FIELDS: (keyof PatchSystemBody)[];
 export declare function truncateRunResult(result: unknown, maxLength?: number): unknown;
 export declare function getToolSystemIds(tool: Tool): string[];
