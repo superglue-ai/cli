@@ -13,7 +13,7 @@ export function registerSkillCommand(program: Command): void {
   program
     .command("skill")
     .description("Print the superglue skill reference (SKILL.md) for AI agents")
-    .argument("[topic]", "Optional topic: references/<topic>.md (e.g. databases, integration)")
+    .argument("[topic]", "Optional topic: references/<topic>.md (e.g. postgres, http, integration)")
     .action((topic?: string) => {
       const file = topic
         ? path.join(SKILLS_DIR, "references", `${topic}.md`)
