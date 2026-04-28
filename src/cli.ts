@@ -65,13 +65,16 @@ IMPORTANT FOR AI AGENTS:
   instructions, patterns, and examples:
 
     sg skill                        Print the main SKILL.md reference
-    sg skill databases              Print the databases reference
-    sg skill integration            Print the SDK/REST/webhook reference
-    sg skill file-servers           Print the file servers reference
-    sg skill data-handling          Print the data handling reference
-    sg skill file-handling          Print the file handling reference
-    sg skill http-apis              Print the HTTP APIs reference
-    sg skill redis                  Print the Redis reference
+    sg skill superglue-info         superglue interfaces, company info, UI layout, internals
+    sg skill integration            SDK/REST/webhook integration patterns
+    sg skill http                   HTTP step configuration, auth, pagination
+    sg skill graphql                GraphQL step configuration and schema introspection
+    sg skill postgres               PostgreSQL step configuration and schema introspection
+    sg skill mssql                  MSSQL / Azure SQL step configuration
+    sg skill redis                  Redis commands and connection patterns
+    sg skill sftp-smb               SFTP, FTP, and SMB step configuration
+    sg skill file-handling          File detection, parsing, references, uploads
+    sg skill access-rules           RBAC roles, tool/system permissions (enterprise)
 
   The main skill reference covers: tool building, system setup, OAuth flows,
   credential handling, variable syntax, data selectors, and common pitfalls.

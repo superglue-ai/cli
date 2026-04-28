@@ -32,13 +32,7 @@ npx skills add superglue-ai/cli -g -a cursor
 
 ### As Claude Code Plugin
 
-From the official Anthropic marketplace:
-
-```
-/plugin install superglue@claude-plugins-official
-```
-
-Or load from local install for development:
+Load from local install:
 
 ```bash
 claude --plugin-dir $(npm root -g)/@superglue/cli
