@@ -9,11 +9,13 @@ export interface SSELogSubscriptionOptions {
 export interface SSESubscription {
     unsubscribe: () => void;
 }
+export type TokenProvider = () => Promise<string>;
 export declare class SSELogSubscriptionManager {
     private apiEndpoint;
-    private apiKey;
+    private tokenProvider;
     private controllers;
-    constructor(apiEndpoint: string, apiKey: string);
+    constructor(apiEndpoint: string, tokenProvider: TokenProvider);
+    private getToken;
     subscribeToLogs(options?: SSELogSubscriptionOptions): Promise<SSESubscription>;
     disconnect(): Promise<void>;
 }
