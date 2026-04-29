@@ -73,12 +73,14 @@ curl -X POST "$SUPERGLUE_API_ENDPOINT/v1/runs/{runId}/cancel" \
 
 ## SDK Installation
 
+**Always install the latest version** — older SDK versions may have known bugs (e.g. case-sensitivity issues on Linux in versions before 3.3.0).
+
 ```bash
 # TypeScript/JavaScript
-npm install @superglue/client
+npm install @superglue/client@latest
 
 # Python
-pip install superglue-client
+pip install --upgrade superglue-client
 ```
 
 Both SDKs are auto-generated from the OpenAPI spec (JS via orval, Python via openapi-python-client).
