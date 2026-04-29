@@ -2,7 +2,13 @@ import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
-import { findTemplateForSystem, encryptCliApiKey } from "@superglue/shared";
+import {
+  findTemplateForSystem,
+  encryptCliApiKey,
+  buildClientCredentialsExchangeRequest,
+  getOAuthTokenExchangeConfig,
+  parseJsonRecord,
+} from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
 import { output, error, success, spinner, colors as c } from "../../output.js";
 
@@ -85,21 +91,22 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
         const spin = spinner("Exchanging client credentials...");
 
         try {
+          const tokenConfig = getOAuthTokenExchangeConfig(system);
+          const req = buildClientCredentialsExchangeRequest({
+            tokenUrl,
+            clientId,
+            clientSecret: system.credentials?.client_secret,
+            scopes: opts.scopes,
+            config: tokenConfig,
+          });
           const step = {
             id: `oauth_cc_${Date.now()}`,
             failureBehavior: "continue" as const,
             config: {
-              url: tokenUrl,
+              url: req.url,
               method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: new URLSearchParams({
-                grant_type: "client_credentials",
-                client_id: clientId,
-                ...(system.credentials?.client_secret
-                  ? { client_secret: system.credentials.client_secret }
-                  : {}),
-                ...(opts.scopes ? { scope: opts.scopes } : {}),
-              }).toString(),
+              headers: req.headers,
+              body: req.body,
             },
           };
           const result = await client.executeStep({ step, payload: {} });
@@ -181,6 +188,11 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
 
       const redirectUri = `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`;
 
+      const tokenAuthMethod = system.credentials?.tokenAuthMethod;
+      const tokenContentType = system.credentials?.tokenContentType;
+      const extraHeaders = parseJsonRecord(system.credentials?.extraHeaders);
+      const extraBodyParams = parseJsonRecord(system.credentials?.extraBodyParams);
+
       const state = {
         systemId: opts.systemId,
         orgId,
@@ -192,6 +204,10 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
         ...(clientCredentialsUid ? { client_credentials_uid: clientCredentialsUid } : {}),
         scopes: opts.scopes,
         cliApiKey: encryptedApiKey,
+        ...(tokenAuthMethod && { tokenAuthMethod }),
+        ...(tokenContentType && { tokenContentType }),
+        ...(extraHeaders && { extraHeaders }),
+        ...(extraBodyParams && { extraBodyParams }),
       };
 
       const params = new URLSearchParams({
