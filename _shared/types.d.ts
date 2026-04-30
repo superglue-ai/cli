@@ -64,6 +64,7 @@ export interface ToolCall {
         orgId?: string;
     }>;
     buildResult?: any;
+    executionTraceId?: string;
 }
 export interface UserInfo {
     id: string;
@@ -180,13 +181,14 @@ export declare enum RunStatus {
 export declare enum RequestSource {
     API = "api",
     FRONTEND = "frontend",
+    AGENT = "agent",
     SCHEDULER = "scheduler",
     MCP = "mcp",
     TOOL_CHAIN = "tool-chain",
     WEBHOOK = "webhook",
     CLI = "cli"
 }
-export type ClientRequestSource = RequestSource.FRONTEND | RequestSource.MCP | RequestSource.CLI;
+export type ClientRequestSource = RequestSource.FRONTEND | RequestSource.AGENT | RequestSource.MCP | RequestSource.CLI;
 export declare enum FilterTarget {
     KEYS = "KEYS",
     VALUES = "VALUES",
@@ -278,7 +280,7 @@ export interface ExecutionFileEnvelope {
     filename: string;
     contentType: string;
     size: number;
-    rawBase64: string;
+    rawBase64?: string;
     fileType?: SupportedFileType;
     extracted?: unknown;
     parseError?: string;
@@ -310,7 +312,6 @@ export interface DocumentationFiles {
 }
 export interface TunnelTarget {
     name: string;
-    protocol: string;
     description?: string;
 }
 export interface TunnelConnection {
@@ -321,7 +322,6 @@ export interface TunnelConnection {
 }
 export interface TunnelConfig {
     tunnelId: string;
-    targetName: string;
 }
 export interface System extends BaseConfig {
     name?: string;
@@ -561,7 +561,6 @@ export interface DiscoveryResult {
 export declare enum ConfirmationAction {
     CONFIRMED = "confirmed",
     DECLINED = "declined",
-    PARTIAL = "partial",
     OAUTH_SUCCESS = "oauth_success",
     OAUTH_FAILURE = "oauth_failure"
 }

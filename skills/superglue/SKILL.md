@@ -1,43 +1,62 @@
 ---
 name: superglue
-description: "Build, test, deploy and integrate superglue tools via the sg CLI and superglue SDKs. IMPORTANT — you MUST invoke this skill and read the full reference BEFORE running ANY sg command or writing ANY superglue SDK/REST/webhook integration code. Before using the sg CLI, first check that it is installed (run sg --version; if not found, install with npm install -g @superglue/cli), then verify it is configured (check that sg init has been run or that SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT environment variables are set). If not, guide the user through setup first. After reading the SKILL.md file, also read the relevant references/ files for the specific topic (databases, file servers, transforms, integration/SDK)."
+description: "Build, test, deploy and integrate superglue tools via the sg CLI and superglue SDKs. IMPORTANT — you MUST invoke this skill and read the full reference BEFORE running ANY sg command or writing ANY superglue SDK/REST/webhook integration code. Before using the sg CLI, first check that it is installed (run sg --version; if not found, install with npm install -g @superglue/cli), then verify it is configured (check that sg init has been run or that SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT environment variables are set). If not, guide the user through setup first. After reading SKILL.md, also read the relevant references/ files for the specific protocols and topics involved."
 ---
 
 # superglue CLI (`sg`) — Agent Reference
+
+This file is the entry point for operating superglue via the `sg` CLI. It covers setup, tool building, tool editing, system management, running tools, and deployment via SDK/REST/webhooks.
+
+For protocol-specific details (HTTP, databases, Redis, file servers, GraphQL), file handling, access rules, SDK integration, and general superglue information, read the corresponding file in `references/` (linked throughout and listed at the bottom).
+
+## Reference Files
+
+Read these on demand — they are authoritative for their topic and kept in sync with the web agent's skill references.
+
+| File                           | When to read                                                                                         |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `references/superglue-info.md` | Company info, interfaces (SDK, REST API, MCP, Web), web UI layout, execution pipeline, internals     |
+| `references/integration.md`    | Deploying tools — SDK (TS/Python) usage, REST API calls, webhook triggers, retry patterns            |
+| `references/http.md`           | HTTP step configuration, auth patterns, file uploads, response handling, pagination, error detection |
+| `references/graphql.md`        | GraphQL step config, schema introspection, error recovery                                            |
+| `references/postgres.md`       | PostgreSQL connection URLs, SSL/TLS handling, schema introspection, parameterized queries            |
+| `references/mssql.md`          | MSSQL / Azure SQL connection URLs, schema introspection, parameterized queries                       |
+| `references/redis.md`          | Redis command syntax, connection URLs, key type handling                                             |
+| `references/sftp-smb.md`       | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                         |
+| `references/file-handling.md`  | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
+| `references/access-rules.md`   | RBAC roles, tool/system permissions, mutation detection, custom rules (enterprise only)              |
 
 ## CRITICAL RULES — READ FIRST
 
 **Pre-requisites for using the CLI**
 
-1. **Check CLI exists**: Run `sg --version`. If it fails with `command not found`, install it: `npm install -g @superglue/cli`
-2. **Check superglue CLI config exists**: Run `sg system list`. If it fails with `fetch failed` or auth errors, the CLI needs configuration via `sg init` (see below).
+1. **Check CLI exists**: Run `sg --version`. If it fails with `command not found`, install: `npm install -g @superglue/cli`.
+2. **Keep CLI and SDK up to date**: Always use the latest versions. Run `sg update` to update the CLI. For the SDK, run `npm install @superglue/client@latest` (JS) or `pip install --upgrade superglue-client` (Python).
+3. **Verify configuration**: Run `sg system list`. If it fails with `fetch failed` or auth errors, the CLI needs configuration via `sg init` (see Setup below).
 
 **Calling systems and running tools**
 
-1. ALWAYS make sure you pull the relevant system context using `sg system find` before calling system endpoints and running inline JSON tools or building new tools.
-2. Use `sg system search-docs` to do a targeted keyword search of system docs if you're unsure about how a system works.
+1. ALWAYS pull the relevant system context using `sg system find` before calling system endpoints and before building tools.
+2. Use `sg system search-docs` for a targeted keyword search of system docs when unsure how a system works.
 
-**Authentication & Credentials:**
+**Authentication & Credentials**
 
-- **Authentication must always be explicitly configured** — nothing is injected automatically in any protocol
-- For HTTP: include auth headers using `<<systemId_credentialKey>>` syntax (e.g., `"Authorization": "Bearer <<systemId_access_token>>"`)
-- For databases/Redis/file servers: embed credential placeholders in the connection URL (e.g., `postgres://<<sys_user>>:<<sys_pass>>@host/db`)
-- OAuth systems also require explicit headers — only token refresh is automatic
+- Authentication must ALWAYS be explicitly configured — nothing is injected automatically in any protocol.
+- HTTP: include auth headers using `<<systemId_credentialKey>>` (e.g. `"Authorization": "Bearer <<my_api_access_token>>"`).
+- Databases/Redis/file servers: embed credential placeholders in the connection URL (e.g. `postgres://<<sys_user>>:<<sys_pass>>@host/db`).
+- OAuth: token refresh is automatic, but the header must still be explicit.
 
-**Saving Tools:**
+**Saving tools**
 
-- **Don't save a tool without explicit user confirmation** — always ask "Should I save this tool?" first
-- After `sg tool build` + `sg tool run`, present results to the user and wait for approval
-- Only run `sg tool save --draft <id>` after the user explicitly confirms
+- Never save a tool without explicit user confirmation. Build + run, present results, then save with `sg tool save --draft <id>` only after the user approves.
 
-**Credentials in Non-Interactive Environments (AI Agents, CI):**
+**Non-interactive environments (AI agents, CI)**
 
-- **Pass ALL credentials (including secrets) directly via `--credentials` JSON**
-- Ask the user to provide secret values, then pass them in `--credentials '{"api_key":"sk-xxx"}'`
+- Pass ALL credentials (including secrets) directly via `--credentials '{"api_key":"sk-xxx"}'`. Ask the user for secret values, then include them in the JSON.
 
 ---
 
-## Installation & Setup
+## Setup
 
 ### Installing the CLI
 
@@ -45,80 +64,53 @@ description: "Build, test, deploy and integrate superglue tools via the sg CLI a
 npm install -g @superglue/cli
 ```
 
-After installation, the `sg` command is available globally.
+After installation the `sg` command is available globally.
 
-### Initialization (REQUIRED before first use)
+### Initialization
 
-The CLI **will not work** until configured with an API key. The endpoint defaults to `https://api.superglue.cloud` if not specified.
+The CLI will not work until configured with an API key. The endpoint defaults to `https://api.superglue.cloud`.
 
-**Option A: Interactive setup (recommended for humans)**
+**Interactive (humans):**
 
 ```bash
 sg init
 ```
 
-This prompts for:
+Prompts for: API key (required — get one at https://app.superglue.cloud/admin?view=api-keys), API endpoint, web endpoint (for OAuth callbacks), output mode (`stdout` or `stdout+file`), and config location (project-local `.superglue/config.json` vs global `~/.superglue/config.json`). Verifies the connection before saving.
 
-1. **API Key** (required) — get one at https://app.superglue.cloud/admin?view=api-keys
-2. **API Endpoint** — defaults to `https://api.superglue.cloud`
-3. **Web Endpoint** — for OAuth callbacks, auto-derived from API endpoint
-4. **Output mode** — `stdout` (default) or `stdout+file`
-5. **Config location** — project-local (`.superglue/config.json`) or global (`~/.superglue/config.json`)
-
-It verifies the connection before saving. On success it creates the config file, a `drafts/` directory, and updates `.gitignore` if using local config.
-
-**Option B: Non-interactive init (recommended for CI and AI agents)**
-
-Pass the global `--api-key` flag to skip interactive prompts and save a config file:
+**Non-interactive (CI, agents):**
 
 ```bash
 sg init --api-key "your-api-key" --global
 sg init --api-key "your-api-key" --endpoint "https://custom.endpoint.com" --global
 ```
 
-> **Note:** `--api-key` and `--endpoint` are global flags (not shown in `sg init --help`). They work on all subcommands including `init`.
+`--api-key` and `--endpoint` are global flags and work on all subcommands.
 
-**Option C: Environment variables (no config file)**
-
-If you don't need a persistent config file, set these env vars instead:
+**Environment variables (no config file):**
 
 ```bash
 export SUPERGLUE_API_KEY="your-api-key"
-export SUPERGLUE_API_ENDPOINT="https://api.superglue.cloud"  # optional, this is the default
+export SUPERGLUE_API_ENDPOINT="https://api.superglue.cloud"   # optional, this is the default
 ```
 
-With these set, all `sg` commands work without a config file.
+**Config resolution order:** CLI flags > environment variables > local `.superglue/config.json` > global `~/.superglue/config.json`.
 
-**Option C: CLI flags (per-command override)**
+Verify with `sg system list` — should return a list (possibly empty) without errors.
 
-```bash
-sg system list --api-key "your-key" --endpoint "https://api.superglue.cloud"
-```
+### Capability Presets
 
-### Config Resolution Order
+Set during `sg init` or via `SUPERGLUE_CLI_PRESET` env var. Stored in `config.json` as `"preset"`.
 
-CLI flags > environment variables > config file (local `.superglue/config.json` > global `~/.superglue/config.json`).
+| Preset    | Description                                                        |
+| --------- | ------------------------------------------------------------------ |
+| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing |
+| `builder` | Runner + build/edit/save tools, call systems. No system CRUD       |
+| `admin`   | Full access (default)                                              |
 
-### Verifying Setup
+Blocked commands print a clear error showing the current preset and how to change it.
 
-After configuring, verify the connection works:
-
-```bash
-sg system list    # should return a list (possibly empty) without errors
-```
-
----
-
-## Quick Start
-
-```bash
-sg system list
-sg tool build --config '{"id":"...","instruction":"...","steps":[...]}'
-sg tool run --draft <draftId>
-sg tool save --draft <draftId>
-```
-
-## Global Flags
+### Global Flags
 
 | Flag               | Description                                 |
 | ------------------ | ------------------------------------------- |
@@ -127,243 +119,144 @@ sg tool save --draft <draftId>
 | `--api-key <key>`  | Override API key                            |
 | `--endpoint <url>` | Override API endpoint                       |
 
-## Capability Presets
+---
 
-The CLI supports three capability presets that control which commands are available. Set during `sg init` or via `SUPERGLUE_CLI_PRESET` env var. Stored in `config.json` as `"preset"`.
+## Workflow
 
-| Preset    | Description                                                        |
-| --------- | ------------------------------------------------------------------ |
-| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing |
-| `builder` | Runner + build/edit/save tools, call systems. No system CRUD       |
-| `admin`   | Full access (default)                                              |
+### Building a Tool
 
-### Preset-to-Command Matrix
+1. **Load relevant protocol references** from `references/` based on the systems involved (http, postgres, graphql, etc.)
+2. Use `sg system find` for every involved system — note `storedCredentials` and the system URL
+3. Use `sg system search-docs` for each system — look up endpoints, auth patterns, pagination, response structure
+4. Use `sg system call` to test 1-2 primary endpoints — verify response structure and field names before building
+5. Call `sg tool build --config '{...}'` with the full tool config (see Reference → Tool Config Schema)
+6. Test with `sg tool run --draft <draftId>`. Use `--include-step-results` to inspect raw step data
+7. Iterate using `sg tool edit --draft <draftId> --patches '[...]'` (see Reference → Tool Editing)
+8. Present results to the user and ask for approval. Only then run `sg tool save --draft <draftId>`
 
-```
-Command                  runner   builder   admin
-─────────────────────────────────────────────────
-sg init                    x         x        x
-sg update                  x         x        x
-sg skill                   x         x        x
-sg tool build              -         x        x
-sg tool run --tool         x         x        x
-sg tool run --config/etc   -         x        x
-sg tool edit               -         x        x
-sg tool save               -         x        x
-sg tool find / list        x         x        x
-sg system create           -         -        x
-sg system edit             -         -        x
-sg system oauth            -         -        x
-sg system call             -         x        x
-sg system search-docs      -         x        x
-sg system find / list      x         x        x
-sg run list                x         x        x
-sg run get                 x         x        x
-```
+### Editing a Tool
 
-### Setting the Preset
+1. Use `sg tool find --id <toolId>` or `sg tool find <query>` to locate the tool and inspect its current config
+2. Determine whether upstream steps use object or array selectors so you reference `.data` correctly in downstream code
+3. Plan the JSON Patch operations (RFC 6902)
+4. Apply with `sg tool edit --tool <toolId> --patches '[...]'` (or `--draft <draftId>` for drafts)
+5. Re-run to verify behavior
+
+### Creating/Editing a System
+
+1. Search for an existing system first: `sg system find <query>`
+2. If creating: `sg system create --name "..." --url "..." --credentials '{...}'`. Prefer `--template <id>` when one exists — it auto-fills URL and OAuth config
+3. For OAuth: `sg system oauth --system-id <id> --scopes "..."` opens a browser flow. User approves → tokens saved automatically
+4. Verify connectivity with `sg system call`
+5. For updates: `sg system edit --id <id>` with the fields to change
+
+### Running a Tool (Ad-hoc)
 
 ```bash
-# During init (interactive or non-interactive)
-sg init --preset runner --api-key "..." --global
-
-# Via environment variable (overrides config.json)
-export SUPERGLUE_CLI_PRESET=builder
-
-# Manually edit .superglue/config.json
-{ "preset": "runner", "apiKey": "...", ... }
+sg tool run --tool <toolId> --payload '{"userId":"123"}'
+sg tool run --draft <draftId> --payload-file payload.json
 ```
 
-Blocked commands print a clear error with the current preset name and how to change it.
+Streams live execution logs to the terminal. Use `--include-step-results` for raw per-step responses and `--include-config` for the full config dump.
 
-## Command Reference
+---
 
-### `sg init`
+## Reference
 
-Interactive setup — API key, endpoint, output mode, capability preset. Creates `.superglue/`.
+### Tool Translation (web agent tool → CLI command)
 
-Non-interactive: `sg init --api-key "..." --preset runner --global`
+Agents familiar with the web tool names can map them directly to CLI commands:
 
-### Tool Commands
+| Web agent tool               | CLI command                                   | Notes                                                              |
+| ---------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
+| `build_tool`                 | `sg tool build --config '{...}'`              | CLI is not AI-powered — you provide the full JSON config           |
+| `edit_tool`                  | `sg tool edit --tool <id> --patches '[...]'`  | JSON Patch (RFC 6902). Use `--draft <id>` for drafts               |
+| `run_tool`                   | `sg tool run --tool <id>` / `--draft <id>`    | Add `--include-step-results` to inspect per-step data              |
+| `save_tool`                  | `sg tool save --draft <draftId>`              | Persists a draft to the database                                   |
+| `inspect_tool` / `find_tool` | `sg tool find --id <id>` / `sg tool find <q>` | Full config with `--id`, compact search with a query string        |
+| `create_system`              | `sg system create --name "..." --url "..."`   | Use `--template <id>` when available                               |
+| `edit_system`                | `sg system edit --id <id> ...`                | Supports `--env dev\|prod`                                         |
+| `find_system`                | `sg system find <query>` / `--id <id>`        | Returns `storedCredentials` and system URL                         |
+| `call_system`                | `sg system call --url "..." --system-id <id>` | Authenticated ad-hoc calls for testing / schema introspection      |
+| `search_documentation`       | `sg system search-docs --system-id <id> -k`   | Targeted keyword search over ingested system docs                  |
+| `authenticate_oauth`         | `sg system oauth --system-id <id> --scopes`   | Opens browser flow. Supports `--grant-type client_credentials` too |
+| `get_runs`                   | `sg run list` / `sg run get <runId>`          | Filter `list` by `--tool`, `--status`, `--source`, `--limit`       |
+| (no direct equivalent)       | `sg init`, `sg update`, `sg skill`            | CLI-specific setup, updater, and this reference system             |
 
-**`sg tool build`** — Register a tool config. Returns a `draftId`. Not AI-powered — you provide the full config.
+Web-agent-only concepts with no CLI equivalent: `load_skill` (references are accessed via `sg skill <topic>` instead), `create_schedule`/`edit_schedule`/`find_schedule` (manage schedules via web app or REST API), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`).
+
+### Command Reference
+
+**`sg init`** — Interactive or non-interactive setup. Creates `.superglue/` config. Flags: `--api-key`, `--endpoint`, `--preset`, `--global`.
+
+**Tool commands:**
 
 ```bash
-sg tool build --config '{"id":"...","steps":[...]}'  # inline JSON
-sg tool build --id my-tool --instruction "..." --steps steps.json --payload '{"key":"val"}'
-sg tool build --config tool.json                    # from file
-```
-
-| `--config <file-or-json>` | Full JSON config (file path or inline JSON string) |
-| `--id <id>` | Tool ID (kebab-case) |
-| `--instruction <text>` | Human-readable description |
-| `--steps <file>` | JSON file with steps array |
-| `--payload <json>` | Sample payload |
-| `--file <key=path>` | Attach file reference |
-
-**`sg tool run`** — Execute a draft or saved tool. Streams live execution logs to the terminal.
-
-```bash
+sg tool build --config '{"id":"...","steps":[...]}'       # inline JSON
+sg tool build --config tool.json                          # from file
+sg tool build --id my-tool --instruction "..." --steps steps.json --payload '{...}'
 sg tool run --draft <draftId> --payload '{"userId":"123"}'
-sg tool run --tool my-tool --payload-file payload.json
-```
-
-| `--draft <id>` / `--tool <id>` | Draft ID or saved tool ID |
-| `--payload <json>` / `--payload-file <path>` | Payload |
-| `--include-step-results` | Include raw step results |
-| `--include-config` | Include full tool config |
-
-**`sg tool edit`** — Apply JSON Patch (RFC 6902) operations.
-
-```bash
+sg tool run --tool my-tool --payload-file payload.json --include-step-results
 sg tool edit --draft <draftId> --patches '[{"op":"replace","path":"/steps/0/config/url","value":"..."}]'
 sg tool edit --tool my-tool --patches patches.json
-```
-
-| `--patches <json-or-file>` | JSON Patch array (inline or file) |
-
-**`sg tool save`** — Persist draft to database. Deletes draft file on success.
-
-```bash
 sg tool save --draft <draftId>
+sg tool list
+sg tool find "shopify orders"       # keyword search (compact results)
+sg tool find --id my-tool           # exact lookup (full config)
 ```
 
-**`sg tool list` / `sg tool find`**
+**System commands:**
 
 ```bash
-sg tool list                    # all non-archived tools
-sg tool find "shopify orders"   # search (compact results)
-sg tool find --id my-tool       # exact ID lookup (full config)
-```
-
-### System Commands
-
-**`sg system create`**
-
-**Required flags:**
-
-- `--name <name>` — Human-readable display name
-- `--url <url>` — API base URL (auto-filled when using `--template`)
-
-**Optional:**
-
-- `--id <id>` — System ID (lowercase, underscores only, no hyphens). Derived from `--name` if omitted.
-- `--template <id>` — Pre-configured template (auto-fills name and url if not provided)
-
-**Example with credentials (non-interactive — use this in AI agent / CI contexts):**
-
-```bash
-sg system create --name "My API" --url https://api.example.com \
-  --credentials '{"api_key":"sk-xxx"}'
-```
-
-**With template:**
-
-```bash
+sg system create --name "My API" --url https://api.example.com --credentials '{"api_key":"sk-xxx"}'
 sg system create --name "Slack" --template slack
-```
-
-**Full flag reference:**
-
-| Flag                   | Description                                                            |
-| ---------------------- | ---------------------------------------------------------------------- |
-| `--name <name>`        | Human-readable name — **REQUIRED**                                     |
-| `--id <id>`            | System ID (lowercase, underscores only) — derived from name if omitted |
-| `--url <url>`          | API base URL — **REQUIRED** (auto-filled by `--template`)              |
-| `--template <id>`      | Template ID (stripe, shopify, slack, etc.)                             |
-| `--credentials <json>` | Credentials JSON (all fields including secrets)                        |
-| `--docs-url <url>`     | Documentation URL to scrape                                            |
-| `--openapi-url <url>`  | OpenAPI spec URL                                                       |
-| `--env <environment>`  | Environment: `dev` or `prod` (default: prod)                           |
-
-**`sg system edit`** — Update system config or credentials. Supports `--env dev|prod`.
-**`sg system list` / `sg system find`** — List or search systems. `find` supports `--env dev|prod`.
-
-**`sg system call`** — **CRITICAL for tool building.** Make authenticated calls to APIs, databases, and file servers. Use this to:
-
-- Explore API endpoints and response structures
-- Verify field names and data shapes BEFORE building tools
-
-```bash
-
-# POST request with auth and body
-sg system call --url https://api.example.com/users \
-  --system-id my_api \
-  --method POST \
-  --headers '{"Authorization":"Bearer <<my_api_access_token>>"}' \
-  --body '{"name":"test"}'
-
-# Database query (Postgres)
-sg system call --url "postgres://<<my_db_host>>:5432/mydb" \
-  --system-id my_db \
-  --body '{"query":"SELECT * FROM users LIMIT 5"}'
-
-# Redis command
-sg system call --url "redis://<<my_redis_host>>:6379/0" \
-  --system-id my_redis \
-  --body '{"command":"HGETALL","args":["user:123"]}'
-
-# File server (SFTP)
-sg system call --url "sftp://<<my_sftp_host>>:22/data" \
-  --system-id my_sftp \
-  --body '{"operation":"list","path":"/"}'
-```
-
-| Flag                | Description                                                                                       |
-| ------------------- | ------------------------------------------------------------------------------------------------- |
-| `--url <url>`       | Full URL with protocol (http/https/postgres/postgresql/mssql/sqlserver/redis/rediss/sftp/ftp/smb) |
-| `--system-id <id>`  | System ID for credential injection                                                                |
-| `--method <method>` | HTTP method (GET, POST, PUT, DELETE, PATCH)                                                       |
-| `--headers <json>`  | HTTP headers JSON with credential placeholders                                                    |
-| `--body <string>`   | Request body (JSON string)                                                                        |
-| `--env <env>`       | Environment: `dev` or `prod`                                                                      |
-| `--file <key=path>` | File references (repeatable)                                                                      |
-
-**`sg system search-docs`** — Search system documentation.
-
-```bash
+sg system edit --id my_api --credentials '{...}'
+sg system list
+sg system find slack
+sg system find --id my_api --env dev
+sg system call --url https://api.example.com/users --system-id my_api --method GET \
+  --headers '{"Authorization":"Bearer <<my_api_access_token>>"}'
 sg system search-docs --system-id slack -k "send message channels"
-```
-
-**`sg system oauth`** — Authenticate via OAuth.
-
-```bash
 sg system oauth --system-id gmail --scopes "https://www.googleapis.com/auth/gmail.readonly"
 sg system oauth --system-id my_api --grant-type client_credentials --scopes "read write"
 ```
 
-| `--system-id <id>` | Required |
-| `--scopes <scopes>` | Space-separated OAuth scopes (required) |
-| `--grant-type <type>` | `authorization_code` (default) or `client_credentials` |
+**Run commands:**
 
-### Run Commands
+```bash
+sg run list --tool my-tool --status failed --limit 20
+sg run get <runId> --fetch-results
+```
 
-**`sg run list`** — List execution runs. Filter by `--tool`, `--status`, `--source`, `--limit`.
-**`sg run get <runId>`** — Get run details. `--fetch-results` to include data.
+**File attachments:**
 
----
+```bash
+sg tool run --draft <id> --payload '{"data":"file::mysheet"}' --file mysheet=data.xlsx
+```
 
-## Tool Configuration — Full Schema
+Attach files with repeatable `--file key=path`. Reference in payloads with `file::<key>`. Auto-parsed to JSON where applicable. See `references/file-handling.md` for the full reference syntax including `.raw`, `.base64`, and `.extracted` suffixes.
+
+### Tool Config Schema
 
 ```json
 {
   "id": "kebab-case-tool-name",
-  "instruction": "Brief human-readable description of what this tool does",
+  "instruction": "Brief 1-2 sentence description of what this tool does and returns",
   "steps": [
     {
       "id": "unique-step-id",
       "config": {
+        "type": "request",
         "systemId": "example_system",
-        "url": "https://api.example.com/endpoint?param=<<payload_field>>",
+        "url": "<<example_system_url>>/endpoint?param=<<payload_field>>",
         "method": "GET",
-        "headers": {
-          "Authorization": "Bearer <<example_system_access_token>>"
-        },
+        "headers": { "Authorization": "Bearer <<example_system_access_token>>" },
         "queryParams": { "limit": "10" },
         "body": "{ \"key\": \"<<payload_field>>\" }"
       },
       "dataSelector": "(sourceData) => sourceData.previousStep.data.items",
-      "failureBehavior": "fail"
+      "failureBehavior": "fail",
+      "modify": false
     }
   ],
   "outputTransform": "(sourceData) => sourceData.stepId.data",
@@ -372,91 +265,66 @@ sg system oauth --system-id my_api --grant-type client_credentials --scopes "rea
 }
 ```
 
-### Step Config Fields (Request Steps)
+**Request step fields** (HTTP, Postgres, MSSQL, Redis, FTP/SFTP, SMB) — see protocol-specific references for full details:
 
-| Field         | Type   | Description                                  |
-| ------------- | ------ | -------------------------------------------- |
-| `type`        | string | `"request"` (default, can be omitted)        |
-| `systemId`    | string | System whose credentials to use              |
-| `url`         | string | Full URL with `<<variable>>` placeholders    |
-| `method`      | string | HTTP method                                  |
-| `headers`     | object | HTTP headers with credential placeholders    |
-| `queryParams` | object | URL query parameters                         |
-| `body`        | string | Request body (JSON string with placeholders) |
-| `pagination`  | object | Auto-pagination config (see below)           |
+| Field         | Type   | Description                                                              |
+| ------------- | ------ | ------------------------------------------------------------------------ |
+| `type`        | string | `"request"` (default, can be omitted)                                    |
+| `systemId`    | string | Optional. Links system credentials for `<<systemId_credKey>>` resolution |
+| `url`         | string | Full URL with `<<variable>>` placeholders. Required.                     |
+| `method`      | string | HTTP method (HTTP only)                                                  |
+| `headers`     | object | HTTP headers with credential placeholders (HTTP only)                    |
+| `queryParams` | object | URL query parameters (HTTP only)                                         |
+| `body`        | string | Request body / DB query / Redis command / file operation                 |
+| `pagination`  | object | Auto-pagination config (HTTP only, see `references/http.md`)             |
 
-### Step Config Fields (Transform Steps)
+**Transform step fields:**
 
-| Field           | Type   | Description                                      |
-| --------------- | ------ | ------------------------------------------------ |
-| `type`          | string | `"transform"` — **REQUIRED** for transform steps |
-| `transformCode` | string | JS function: `(sourceData) => transformedData`   |
+| Field           | Type   | Description                                        |
+| --------------- | ------ | -------------------------------------------------- |
+| `type`          | string | `"transform"` — required for transform steps       |
+| `transformCode` | string | `(sourceData) => transformedData` — single-line JS |
 
-### Step Behavior Fields
+Transform steps do NOT have `systemId`, `url`, `method`, `headers`, `body`, `queryParams`, or `pagination`.
 
-| Field             | Type   | Description                                      |
-| ----------------- | ------ | ------------------------------------------------ |
-| `dataSelector`    | string | JS function controlling step input and loop mode |
-| `failureBehavior` | string | `fail` (default) or `continue`                   |
+**Step behavior fields:**
 
----
+| Field             | Type    | Description                                          |
+| ----------------- | ------- | ---------------------------------------------------- |
+| `dataSelector`    | string  | JS function controlling step input and loop mode     |
+| `failureBehavior` | string  | `fail` (default) or `continue`                       |
+| `modify`          | boolean | Set `true` only when the step writes/updates/deletes |
 
-## Credential Placeholders
+### Expression Syntax (`<<>>`)
 
-System credentials are namespaced as `<<systemId_credentialKey>>` and resolved server-side at execution time. **You MUST explicitly reference them in headers.**
+All step config fields (url, headers, body, queryParams) support `<<expression>>` placeholders.
 
-### Auth Header Patterns
+**Simple top-level keys** — only these work without arrow functions:
 
-```json
-{"Authorization": "Bearer <<stripe_api_key>>"}
-{"Authorization": "Bearer <<gmail_access_token>>"}
-{"X-API-Key": "<<my_api_api_key>>"}
-{"Authorization": "Basic <<my_api_username>>:<<my_api_password>>"}
+```
+<<userId>>             payload inputs
+<<currentItem>>        whole current loop item
+<<page>> <<offset>> <<cursor>> <<limit>> <<pageSize>>   pagination variables
+<<systemId_api_key>>   system credentials (namespaced: systemId_credKey)
+<<systemId_url>>       system base URLs (namespaced: systemId_url)
+<<sg_auth_email>>      email of the authenticated user (NOT available in scheduled runs)
 ```
 
-Basic auth is auto-encoded: if the value after `Basic ` isn't already base64, the engine encodes it automatically.
+Simple `<<varName>>` only works for top-level keys. No dots, no nesting. `<<currentItem.id>>`, `<<sourceData.userId>>`, `<<user.name>>` all FAIL at runtime.
 
-### Credential Lifecycle
+**Arrow function expressions** — for everything else:
 
-- Non-sensitive creds (`client_id`, `auth_url`, etc.) are stored via `--credentials`
-- Sensitive creds (`api_key`, `client_secret`) — pass via `--credentials` JSON: `--credentials '{"client_secret":"..."}'`
-- OAuth tokens (`access_token`, `refresh_token`) are auto-refreshed before each step execution
+```
+<<(sourceData) => sourceData.currentItem.player_id>>
+<<(sourceData) => sourceData.getUsers.data.map(u => u.id)>>
+<<(sourceData) => JSON.stringify({ ids: sourceData.fetchUsers.data.map(u => u.id) })>>
+```
 
----
-
-## Variables and Data Flow
-
-### Variable Syntax
-
-All step config fields support `<<variable>>` placeholders:
-
-| Syntax                     | Resolves to                 |
-| -------------------------- | --------------------------- |
-| `<<fieldName>>`            | Payload field or credential |
-| `<<systemId_credKey>>`     | System credential           |
-| `<<sg_auth_email>>`        | Email of authenticated user |
-| `<<(sourceData) => expr>>` | JavaScript expression       |
-
-**CRITICAL**: Simple `<<varName>>` only works for **top-level keys**. No dots, no nesting.
-
-- VALID: `<<userId>>`, `<<currentItem>>`, `<<stripe_api_key>>`, `<<sg_auth_email>>`
-- INVALID: `<<currentItem.id>>`, `<<sourceData.userId>>` — these FAIL at runtime
-
-For nested access, use arrow functions: `<<(sourceData) => sourceData.currentItem.id>>`
-
-### Context Variables
-
-Context variables provide information about the execution environment:
-
-- `<<sg_auth_email>>` — Email of the authenticated user who triggered the tool
-
-**Use case**: Personalize tool outputs based on who runs the tool (e.g., user-specific permissions, account lookups, audit logging).
-
-**Important**: `sg_auth_email` is NOT available in scheduled executions. Tools using `<<sg_auth_email>>` will fail if run via scheduler.
+Object/array return values are `JSON.stringify`'d automatically when spliced into strings.
 
 ### sourceData Object
 
-`sourceData` is the cumulative state available to all JS expressions (data selectors, transforms, variable expressions):
+`sourceData` is the cumulative state available to every JS expression, data selector, and transform:
 
 ```javascript
 sourceData = {
@@ -465,45 +333,30 @@ sourceData = {
   date: "2024-01-15",
 
   // Previous step results, keyed by step ID
-  // Object-selector step:
-  getUsers: { currentItem: {}, data: { users: [...] }, success: true },
-  // Array-selector (loop) step:
-  fetchDetails: [
+  getUsers: { currentItem: {}, data: { users: [...] }, success: true },   // object selector
+  fetchDetails: [                                                           // array selector
     { currentItem: "id1", data: { name: "Alice" }, success: true },
-    { currentItem: "id2", data: { name: "Bob" }, success: true },
+    { currentItem: "id2", data: { name: "Bob" }, success: true }
   ],
 
   // Current loop item (only set inside a looping step's config)
   currentItem: { id: 1 },
 
   // Credentials (flattened, namespaced)
-  systemId_access_token: "...",
-  systemId_api_key: "..."
+  my_api_access_token: "...",
+  my_api_api_key: "..."
 }
 ```
 
-### Step Result Envelope
+### Step Result Envelopes
 
-**Every** step result is wrapped in an envelope — you MUST account for this.
+**Every** step result is wrapped in `{ currentItem, data, success }`. You MUST account for this when writing data selectors or transforms.
 
-**Object selector (or no selector)** — step runs once:
+- **Object selector (or none)** — access via `sourceData.stepId.data`
+- **Array selector (loop)** — array of envelopes: `sourceData.stepId.map(i => i.data)`
+- **Paginated step** — all pages merged into a single `.data` field: access via `sourceData.stepId.data`. Do NOT `.map()` over it — returns a single object if one result, array if multiple (unwrapped from single-element array).
 
-```javascript
-sourceData.stepId = { currentItem: <selectorOutput>, data: <apiResponse>, success: true }
-// Access the API response:
-sourceData.stepId.data
-sourceData.stepId.data.users
-```
-
-**Array selector** — step loops, result is an array of envelopes:
-
-```javascript
-sourceData.stepId = [
-  { currentItem: <item1>, data: <response1>, success: true },
-  { currentItem: <item2>, data: <response2>, success: true },
-  ...
-]
-```
+NEVER access step results without `.data`. `sourceData.stepId.results` hits the envelope, not the API response.
 
 ### Data Selectors
 
@@ -515,209 +368,20 @@ Control what a step receives as input and whether it loops:
 | Array              | Step runs once per item (loop mode) |
 | `undefined`/`null` | Step receives full sourceData       |
 
-In loop mode, `sourceData.currentItem` is set to the current array element.
+In loop mode, `sourceData.currentItem` is set to the current array element. Empty arrays are valid — the step skips execution.
 
-Empty arrays are valid — the step simply skips execution.
+### Transform Steps vs outputTransform
 
-### Two Step Types
+| Need                                        | Use                                                                    |
+| ------------------------------------------- | ---------------------------------------------------------------------- |
+| Reshape data for a SUBSEQUENT request step  | Transform step (`config.type: "transform"`)                            |
+| Shape the final tool output                 | `outputTransform` (runs after all steps; slightly different signature) |
+| Control input / looping for a step          | `dataSelector` on the step                                             |
+| Inline data computation in URL/body/headers | `<<(sourceData) => ...>>` expressions                                  |
 
-**Request step** (HTTP, PostgreSQL, MSSQL, Redis, FTP/SFTP/SMB) — makes an API call:
+`outputTransform` must be a single-line JS string (no literal newlines or tabs).
 
-```json
-{
-  "id": "get-users",
-  "config": {
-    "type": "request",
-    "systemId": "my_api",
-    "url": "https://api.example.com/users",
-    "method": "GET",
-    "headers": { "Authorization": "Bearer <<my_api_access_token>>" }
-  }
-}
-```
-
-**Transform step** — pure JavaScript, no API call. Use when a subsequent request step needs reshaped data:
-
-```json
-{
-  "id": "format-data",
-  "config": {
-    "type": "transform",
-    "transformCode": "(sourceData) => sourceData.getUsers.data.map(u => ({ id: u.id, name: u.fullName }))"
-  }
-}
-```
-
-Transform steps do NOT have: `systemId`, `url`, `method`, `headers`, `body`, `queryParams`, or `pagination`. The `transformCode` function receives `sourceData` (same object available everywhere) and its return value becomes `.data` in the step envelope.
-
-**When to use each:**
-
-| Need                                              | Use                                                                                                 |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Filter/reshape data for a SUBSEQUENT request step | Transform step (`config.type: "transform"`)                                                         |
-| Shape the final tool output                       | `outputTransform` (runs after all steps, has a slightly different schema than transform only steps) |
-| Select input / control looping for a step         | `dataSelector` on the step                                                                          |
-| Inline data computation in URL/body/headers       | `<<(sourceData) => ...>>` expressions                                                               |
-
-### Execution Pipeline
-
-For each step in order:
-
-1. Build `sourceData`: `{ ...originalPayload, ...previousStepResults, ...credentials }`
-2. Run `dataSelector(sourceData)` → determines single vs loop execution
-3. For each item: merge `currentItem` into `sourceData`, resolve `<<>>` variables, execute step
-   - **Request step**: makes the HTTP/DB/FTP call, raw response becomes `.data`
-   - **Transform step**: runs `transformCode(sourceData)`, return value becomes `.data`
-4. Wrap result: `{ currentItem, data, success }` and store in `sourceData[stepId]`
-5. After all steps: run `outputTransform(sourceData)` to shape final output
-
----
-
-## HTTP API Patterns
-
-### Pagination
-
-```json
-{
-  "pagination": {
-    "type": "offset|cursor|page",
-    "pageSize": 100,
-    "cursorPath": "$.nextPageToken",
-    "stopCondition": "(response) => !response.hasMore"
-  }
-}
-```
-
-| Type     | How it works                                                 |
-| -------- | ------------------------------------------------------------ |
-| `offset` | Increments `offset` param by `pageSize` each page            |
-| `cursor` | Extracts next cursor from `cursorPath`, sends as query param |
-| `page`   | Increments `page` query param                                |
-
-All types stop when `stopCondition` returns true, response is empty, or max pages reached.
-
-## Systems
-
-### Credential Model
-
-- `credentials` — all credentials passed as JSON via `--credentials`
-- **Pass ALL credentials** (including secrets like api_key, client_secret) directly via `--credentials '{"api_key":"..."}'`. Ask the user to provide the secret values, then include them in the JSON.
-- OAuth tokens (`access_token`, `refresh_token`) are auto-refreshed before each step execution
-
-### Templates
-
-Templates auto-populate endpoints and OAuth config. Use `sg system find` to discover available templates.
-
-**Preconfigured OAuth** (no user client_id/secret needed): slack, salesforce, asana, notion, airtable, jira, confluence
-
-### OAuth Flow
-
-**IMPORTANT:** For OAuth systems, prefer `--template` when available because it auto-configures OAuth URLs and defaults. OAuth also works without a template if you provide required credentials (for example `client_id`, `auth_url`, and `token_url`) manually.
-
-If you don't know the template ID, the CLI auto-detects it from the URL — but using `--template` explicitly is more reliable.
-
-**Step 1: Create the system with template and credentials**
-
-```bash
-# Best: explicit template (auto-fills URL and OAuth config)
-sg system create --name "Gmail" --template gmail \
-  --credentials '{"client_id":"...","client_secret":"..."}'
-
-# Also works: URL-based auto-detection (template inferred from googleapis.com)
-sg system create --name "Gmail" --url https://gmail.googleapis.com \
-  --credentials '{"client_id":"...","client_secret":"..."}'
-```
-
-**For custom OAuth systems without a template**, you must include `client_id`, `client_secret`, `auth_url`, and `token_url` in the credentials at create time — or add them later with `sg system edit` before running `sg system oauth`:
-
-```bash
-sg system create --name "My API" --url https://api.example.com \
-  --credentials '{"client_id":"...","client_secret":"...","auth_url":"https://example.com/oauth/authorize","token_url":"https://example.com/oauth/token"}'
-
-# Or add credentials to an existing system:
-sg system edit --id my_api \
-  --credentials '{"client_id":"...","client_secret":"...","auth_url":"https://...","token_url":"https://..."}'
-```
-
-**Step 2: Authenticate via OAuth**
-
-```bash
-sg system oauth --system-id gmail --scopes "https://www.googleapis.com/auth/gmail.readonly"
-```
-
-**Step 3:** User authenticates in browser → tokens saved automatically
-
-**Common OAuth templates:** gmail, googleDrive, googleCalendar, googleSheets, slack, salesforce, github, jira, confluence, notion, airtable, hubspot, shopify, dropbox, zoom, microsoft
-
-### System IDs
-
-- Lowercase letters, numbers, underscores only — **no hyphens**
-- Used for credential namespacing: `<<systemId_credKey>>`
-
----
-
-## Tool Building Guide
-
-### Build Recipe
-
-Before producing a tool config:
-
-1. Load relevant skills: data-handling and protocol skill(s) for the involved systems
-2. Use `sg system find` for every involved system — note `storedCredentials` and URL
-3. Use `sg system search-docs` for each system — look up endpoints, auth patterns, pagination, response structure
-4. Use `sg system call` to test 1-2 primary endpoints — verify response structure and field names before building
-5. Only then call `sg tool build --config '...'` with the full tool config
-
-### Planning Steps
-
-- Fetch prerequisites: available projects, entity types, categories, etc.
-- Each step = one API call, one DB query, one file operation, or a transform step (no compound ops)
-- Final aggregation/filtering/sorting should happen in the `outputTransform`, not in a step
-- Step instructions: 2-3 sentences describing the goal and expected data
-- `instruction`: Write a 1-2 sentence summary of the tool's purpose. Never leave empty.
-
-### Step Result Envelopes
-
-Every step result is wrapped — you MUST account for this in dataSelectors and outputTransform.
-
-- **Object selector (or none)** — access via `sourceData.stepId.data`
-- **Array selector** — access via `sourceData.stepId.map(i => i.data)`
-- **Paginated step** — access via `sourceData.stepId.data` (pages are merged server-side into a single envelope — do NOT `.map()` over it)
-
-NEVER access step results without `.data` — `sourceData.stepId.results` will fail because you're hitting the envelope, not the API response.
-
-### modify Flag
-
-Set `modify: true` only when the step writes, updates, or deletes live data. Don't rely on HTTP method alone — a POST that only reads (e.g., GraphQL query) should be `modify: false`. Default is false.
-
-### Validation Rules
-
-- Tool must have a valid `id` string
-- Tool must have a `steps` array
-- `systemId` is optional on request steps. Setting it makes that system's credentials available as `<<systemId_credKey>>` template variables, and enables `<<systemId_url>>` for the base URL. Omit for public APIs.
-- Every request step must have a non-empty `url`
-- Transform steps must have `transformCode`
-
-### Key Pitfalls
-
-- NEVER guess API endpoints — always verify with `sg system search-docs` or `sg system call` first
-- NEVER put `systemId` on the step object — it belongs inside `step.config.systemId`
-- NEVER use `<<(sourceData) => sourceData.payload.X>>` — payload fields are at root level of sourceData
-- NEVER use `<<currentItem.id>>` — use arrow function syntax: `<<(sourceData) => sourceData.currentItem.id>>`
-- NEVER hardcode pagination params — use `<<page>>`, `<<offset>>`, `<<cursor>>`, `<<limit>>`
-- NEVER add an `outputSchema` unless the user explicitly requested a specific response structure
-- NEVER leave instructions empty
-- ALWAYS explicitly configure authentication in every step — credentials are never automatically included in any protocol
-- PREFER system URL variables (`<<systemId_url>>`) over hardcoded base URLs
-- Check `sg system find` output for `storedCredentials` to know the exact variable names available
-- `outputTransform` must be a single-line JS string (no literal newlines or tabs)
-- NEVER use regex literals with `/` or complex escapes in transforms — they corrupt during serialization. Use `new URL()`, `.split()`, or `new RegExp()` instead. See data-handling reference "Serialization Safety".
-- For complex request bodies, use a preceding transform step — don't put multi-statement logic inside `<<>>` expressions
-- When the body contains nested/stringified JSON (e.g. LLM APIs): have `<<>>` expressions return a string via `JSON.stringify(...)`, and use a single expression for the whole body rather than mixing `<<>>` expressions with static JSON
-
-### Complex Body Construction
-
-When a request body needs data from multiple steps or requires aggregation, use a preceding transform step:
+**Complex request bodies** — when a body needs data from multiple steps or aggregation, use a preceding transform step:
 
 ```javascript
 // Step: prepareBody (transform)
@@ -727,26 +391,84 @@ transformCode: "(sourceData) => { var items = sourceData.step1.data.results; ret
 body: "<<(sourceData) => JSON.stringify(sourceData.prepareBody.data)>>";
 ```
 
----
+### Execution Pipeline
 
-## Tool Editing Guide
+For each step in order:
 
-Edit tools using RFC 6902 JSON Patch operations via `sg tool edit`.
+1. Build `sourceData`: `{ ...originalPayload, ...previousStepResults, ...credentials }`
+2. Run `dataSelector(sourceData)` → determines single vs loop execution
+3. For each item: merge `currentItem` into `sourceData`, resolve `<<>>` variables, execute step
+   - **Request step**: makes the HTTP/DB/FTP/Redis call, raw response becomes `.data`
+   - **Transform step**: runs `transformCode(sourceData)`, return value becomes `.data`
+4. Wrap result: `{ currentItem, data, success }` and store in `sourceData[stepId]`
+5. After all steps: run `outputTransform(sourceData)` to shape final output
 
-### Patch Format
+All user-provided JS runs in an isolated Deno sandbox.
 
-Each operation:
+### Credentials and Systems
+
+Credentials are namespaced as `<<systemId_credentialKey>>` and resolved server-side at execution time. You MUST explicitly reference them:
+
+```
+System id="stripe", storedCredentials: api_key → "sk_proj****"
+→ Available as: <<stripe_api_key>>
+```
+
+**Auth header patterns:**
+
+```json
+{"Authorization": "Bearer <<stripe_api_key>>"}
+{"Authorization": "Bearer <<gmail_access_token>>"}
+{"X-API-Key": "<<my_api_api_key>>"}
+{"Authorization": "Basic <<my_api_username>>:<<my_api_password>>"}
+```
+
+Basic auth auto-encodes: if the value after `Basic ` isn't already base64, the engine encodes it.
+
+**System URL variables** — use these instead of hardcoding base URLs. They switch automatically between dev/prod environments:
+
+```json
+{ "url": "<<salesforce_url>>/services/data/v58.0/sobjects/Account" }
+```
+
+**Credential lifecycle:**
+
+- Pass ALL credentials (including secrets) via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
+- OAuth tokens (`access_token`, `refresh_token`) auto-refresh before each step execution
+- Non-sensitive fields (`client_id`, `auth_url`, `token_url`) are stored alongside secrets in the same `--credentials` JSON
+
+**System IDs:** lowercase letters, numbers, underscores only — no hyphens. Used for credential namespacing.
+
+**Templates:** auto-populate endpoints and OAuth config. `sg system find` lists available templates.
+
+- **Preconfigured OAuth** (no user `client_id`/`client_secret` needed): slack, salesforce, asana, notion, airtable, jira, confluence
+- **Common OAuth templates:** gmail, googleDrive, googleCalendar, googleSheets, slack, salesforce, github, jira, confluence, notion, airtable, hubspot, shopify, dropbox, zoom, microsoft
+
+**Custom OAuth (no template):** must include `client_id`, `client_secret`, `auth_url`, `token_url` in credentials at create time — or add later with `sg system edit`:
+
+```bash
+sg system create --name "My API" --url https://api.example.com \
+  --credentials '{"client_id":"...","client_secret":"...","auth_url":"https://example.com/oauth/authorize","token_url":"https://example.com/oauth/token"}'
+```
+
+**Dev/Prod environments:** `--env dev|prod` at creation (immutable afterward). Two systems with the same ID but different environments are automatically linked. Dev systems inherit documentation from their linked prod system. When creating a dev system, always ask for new credentials — never copy from prod.
+
+**System-specific instructions:** systems may include `specificInstructions` from the user (visible in `sg system find` output). Follow them when present — they override general patterns.
+
+### Tool Editing (JSON Patch)
+
+`sg tool edit` applies RFC 6902 JSON Patch operations. Each operation:
 
 ```typescript
 {
   op: "add" | "remove" | "replace" | "move" | "copy" | "test",
-  path: string,      // JSON Pointer (e.g., "/steps/0/config/url")
-  value?: any,       // required for add, replace, test
-  from?: string      // required for move, copy
+  path: string,   // JSON Pointer, e.g. "/steps/0/config/url"
+  value?: any,    // required for add, replace, test
+  from?: string   // required for move, copy
 }
 ```
 
-### Key Paths
+**Key paths:**
 
 - `/instruction` — tool description
 - `/steps/N` — step at index N
@@ -755,148 +477,107 @@ Each operation:
 - `/outputTransform` — final output shaping function
 - `/outputSchema` — optional JSON schema for output
 
-### Operations
+**Operations:**
 
-- **`replace`** — Change an existing value. **Path must exist** — if the field is `null` or absent, `replace` fails. Use `add` instead for optional fields.
-- **`add`** — Creates the field if missing, overwrites if it exists. **Prefer `add` over `replace`** when the field might be null or absent. Append to array with `/steps/-`.
-- **`remove`** — Delete field or array element.
-- **`move`** — Reorder or relocate.
+- `replace` — Change an existing value. **Path must exist** — if the field is `null` or absent, `replace` fails. Prefer `add` when the field might be absent.
+- `add` — Creates if missing, overwrites if present. Append to array with `/steps/-`.
+- `remove` — Delete field or array element.
+- `move` — Reorder or relocate.
 
-### Validation Rules
+**Validation:**
 
-- Never patch `id` — tool IDs and draft IDs are immutable when editing
-- `op` and `path` are required on every patch; `path` must start with `/`
-- Patches are applied **sequentially** — later patches see effects of earlier ones
-- After patches, same validation rules as building apply (valid id, steps array, URLs present)
+- Never patch `id` — tool IDs and draft IDs are immutable
+- `op` and `path` required; `path` must start with `/`
+- Patches applied **sequentially** — later patches see effects of earlier ones
+- After patches, same validation as building (valid id, steps array, URLs on request steps, transformCode on transform steps)
 
-### Principles
+**Downstream shape changes:** if you change a step's output shape, check if later dataSelectors and `outputTransform` need updating. When removing array elements, subsequent indices shift down.
 
-- **Check result wrapping** — before writing any dataSelector or outputTransform patch, determine whether the upstream step used an object or array selector, and access `.data` accordingly
-- **Don't forget downstream** — if you change a step's output shape, check if later dataSelectors and outputTransform need updating
-- **Index shifts** — when removing array elements, subsequent indices shift down. Account for this in multi-patch operations.
+### Draft Management
 
----
+Drafts live in `.superglue/drafts/<draftId>.json`. Created by `sg tool build`, updated by `sg tool edit`, deleted by `sg tool save`. Ephemeral — not persisted across sessions.
 
-## Systems Handling Guide
+### Deployment
 
-Systems are reusable building blocks that store configuration details and credentials.
+After building and saving, tools can be invoked from code via REST API, SDK, or webhook. See `references/integration.md` for complete SDK (TypeScript/Python), REST API, and webhook examples including retry patterns.
 
-### Credential Use in Tool Configurations
+**IP whitelisting:** if a customer's system requires IP whitelisting (firewall rules, security groups, etc.), superglue's outbound IPs are `34.234.12.178` and `18.198.191.215`.
 
-For every `systemId` referenced in a tool, credentials are namespaced as `<<systemId_credentialKey>>` and must be explicitly placed in the step config. For HTTP: in headers. For databases/Redis/file servers: in the connection URL. Nothing is injected automatically.
-
-```
-System id="stripe", storedCredentials: api_key → "sk_proj****"
-→ Available as: <<stripe_api_key>>
-```
-
-OAuth tokens (`access_token`, `refresh_token`) are auto-refreshed before each step execution. Access tokens must also be explicitly referenced in step headers.
-
-### System URL Variables
-
-System URLs are available as `<<systemId_url>>` and should be used instead of hardcoding base URLs:
-
-```
-System id="salesforce", url="https://mycompany.salesforce.com"
-→ Available as: <<salesforce_url>>
-
-Step config: { "url": "<<salesforce_url>>/services/data/v58.0/sobjects/Account" }
-```
-
-### Dev/Prod Environments
-
-`environment` is `"dev"` or `"prod"` (or unset for legacy systems). Set at creation only — immutable afterward. Two systems with the same ID but different environments are automatically linked. Dev systems inherit documentation from their linked prod system. When creating a dev system, always ask for new credentials — never copy from prod.
-
-Tools reference systems by ID only. Execution mode determines which environment is used (dev mode falls back to prod if no dev system exists).
-
-### System-Specific Instructions
-
-Systems may include `specificInstructions` from the user (visible in `sg system find` output). Follow them when present. These capture API constraints, rate limits, special endpoints, auth requirements, or usage patterns.
-
----
-
-## Debugging Failed Tools
-
-### Debug Workflow
-
-1. Run with `--include-step-results` to see raw step responses
-2. Check each step's `data` field — is the API returning what you expect?
-3. Verify credential placeholders match `sg system find --id <systemId>` placeholder list
-4. **Test API calls directly with `sg system call`** — isolate whether the issue is auth, endpoint, or transform
-
----
-
-## Deploying Tools to Production
-
-After building and saving a tool, integrate it into your application:
-
-### REST API (Any Language)
+Quick reference:
 
 ```bash
-# Run a tool
+# REST (sync)
 curl -X POST "https://api.superglue.cloud/v1/tools/{toolId}/run" \
   -H "Authorization: Bearer $SUPERGLUE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"inputs": {"userId": "123"}}'
+  -d '{"inputs":{"userId":"123"}}'
 
 # Webhook trigger (async, fire-and-forget)
 curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"userId": "123"}'
-```
-
-### TypeScript SDK
-
-```typescript
-import { configure, runTool } from "@superglue/client";
-configure({ apiKey: process.env.SUPERGLUE_API_KEY!, baseUrl: "https://api.superglue.cloud/v1" });
-const response = await runTool("my-tool-id", { inputs: { userId: "123" } });
-// response.data is a Run object: { runId, toolId, status, data, error, metadata }
-```
-
-### Python SDK
-
-```python
-import os
-from superglue_client import AuthenticatedClient
-from superglue_client.api.tools import run_tool
-from superglue_client.models.run_request import RunRequest
-from superglue_client.models.run_request_inputs import RunRequestInputs
-
-client = AuthenticatedClient(base_url="https://api.superglue.cloud/v1", token=os.environ["SUPERGLUE_API_KEY"])
-with client as c:
-    result = run_tool.sync("my-tool-id", client=c, body=RunRequest(inputs=RunRequestInputs.from_dict({"userId": "123"})))
+  -d '{"userId":"123"}'
 ```
 
 ---
 
-## Reference Files
+## Common Pitfalls
 
-For detailed documentation on specific topics, read these files in the `references/` directory:
-
-| File                          | When to read                                                                                     |
-| ----------------------------- | ------------------------------------------------------------------------------------------------ |
-| `references/integration.md`   | **READ THIS** when deploying tools to production - SDK usage, REST API, webhooks, error handling |
-| `references/databases.md`     | Building tools that query PostgreSQL or Microsoft SQL Server (Azure SQL) databases               |
-| `references/redis.md`         | Building tools that interact with Redis (commands, pipelines, data types)                        |
-| `references/file-servers.md`  | Building tools that interact with FTP/SFTP/SMB file servers                                      |
-| `references/data-handling.md` | Variables, selectors, result envelopes, transforms, JS sandbox constraints                       |
-| `references/file-handling.md` | File detection, parsing, producedFiles, file references, aliasing rules                          |
-| `references/http-apis.md`     | HTTP step config — auth patterns, pagination, retries, error detection                           |
-| `references/access-rules.md`  | RBAC roles, tool/system permissions, custom rules, mutation detection (enterprise only)          |
-
-**Important:** When the user asks about integrating superglue into their codebase, deploying tools, using the SDK, or calling tools from code, you MUST read `references/integration.md` for complete examples.
+- **Guessing API endpoints** — always verify with `sg system search-docs` or `sg system call` first
+- **`systemId` in the wrong place** — it belongs inside `step.config.systemId`, not on the step object
+- **`<<(sourceData) => sourceData.payload.X>>`** — payload fields are at root level of `sourceData`, not under `.payload`
+- **`<<currentItem.id>>`** — must use arrow function syntax: `<<(sourceData) => sourceData.currentItem.id>>`
+- **Hardcoded pagination params** — use `<<page>>`, `<<offset>>`, `<<cursor>>`, `<<limit>>`
+- **Missing auth headers** — credentials are never automatically included in any protocol, including for OAuth systems (only token refresh is automatic)
+- **Hardcoded base URLs** — prefer system URL variables (`<<systemId_url>>`) for environment portability
+- **Empty `instruction`** — never leave the tool-level `instruction` blank
+- **Adding `outputSchema` unsolicited** — only add when the user explicitly requests a specific response structure
+- **Multi-line `outputTransform`** — must be a single-line JS string (no literal newlines or tabs)
+- **Regex literals in transforms** — `/.../ ` literals and complex escapes corrupt during serialization. Use `new RegExp()`, `.split()`, or `new URL()` instead
+- **Complex bodies inline** — for bodies built from multiple steps, use a preceding transform step rather than stuffing multi-statement logic into `<<>>` expressions
+- **Double-encoded JSON** — when the body contains nested/stringified JSON (e.g. LLM APIs), have `<<>>` expressions return a string via `JSON.stringify(...)`, and use a single expression for the whole body rather than mixing `<<>>` with static JSON
+- **POST for read-only ops** — GraphQL queries via POST should have `modify: false`. Don't rely on HTTP method alone
+- **Saving without approval** — always present `sg tool run` results and ask before `sg tool save`
+- **`sg_auth_email` in scheduled runs** — not available in scheduler-triggered executions. Tools using `<<sg_auth_email>>` will fail
 
 ---
 
-## Draft Management
+## Error Recovery
 
-Drafts live in `.superglue/drafts/<draftId>.json`. Created by `build`, updated by `edit`, deleted by `save`. Ephemeral — not persisted across sessions.
+For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, GraphQL, SFTP/SMB), read the matching reference file in `references/`. General strategies below.
 
-## File References
+### Tool build fails validation
 
-Attach files with `--file key=path`. Reference in payloads with `file::<key>`. Auto-parsed to JSON.
+`sg tool build` returns a validation error. Read the message, fix the config, and re-run. Common causes: missing `id`, empty `steps`, missing `url` on request steps, missing `transformCode` on transform steps, `systemId` on the step object instead of `step.config.systemId`.
 
-```bash
-sg tool run --draft <id> --payload '{"data": "file::mysheet"}' --file mysheet=data.xlsx
-```
+### Tool runs but a step fails
+
+1. Re-run with `--include-step-results` to see raw per-step responses and `data` fields
+2. Use `sg system call` to test the failing endpoint directly — isolates step config vs system/auth issues
+3. Use `sg system find --id <systemId>` to verify `storedCredentials` keys match what the step references
+4. For HTTP: load `references/http.md` and follow the error recovery section (endpoint vs system isolation, credential scopes, rate limiting)
+5. For databases: load `references/postgres.md` or `references/mssql.md` — SSL/TLS and schema issues are common causes
+6. Use `sg system search-docs` and web search to verify the current API shape. APIs change across versions
+
+### Authentication failures
+
+1. Run `sg system find --id <systemId>` → check `storedCredentials` for masked but present values
+2. For OAuth: re-run `sg system oauth` if tokens are missing or expired
+3. For custom OAuth: verify `client_id`, `client_secret`, `auth_url`, `token_url` are all present. Confirm the redirect URI is registered on the provider's OAuth app
+4. Check scopes — 403 / empty responses often mean the token lacks required scopes
+
+### System creation fails
+
+1. Check for an existing system with the same ID — use `sg system edit` to update instead
+2. Ensure `id` uses only lowercase letters, numbers, and underscores (no hyphens)
+3. For templated systems, verify the template ID is correct (`sg system find` lists available templates)
+
+### Data selector / transform returns wrong data
+
+1. Confirm whether the upstream step used an object selector (access `.data` directly) or an array selector (access via `.map(i => i.data)`)
+2. Re-run with `--include-step-results` to see the exact envelope shape
+3. Paginated steps merge into a single `.data` field — do not `.map()` over them
+4. Verify `sourceData.currentItem` is only referenced inside looping steps (set by the step's own `dataSelector`, not upstream)
+
+### Persistent failures
+
+After 3-5 unsuccessful iterations on the same step, stop and ask the user for clarification or additional context (credentials, docs, expected payload shape). Don't keep guessing — gather evidence first.
