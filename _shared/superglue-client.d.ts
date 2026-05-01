@@ -1,15 +1,18 @@
 import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, RequestSource, Run, System, Tool, ToolResult } from "./types.js";
-import { SSELogSubscriptionOptions, SSESubscription } from "./sse-log-subscription.js";
+import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
 export declare class SuperglueClient {
-    private apiKey;
+    private tokenProvider;
     private sseManager;
     readonly apiEndpoint: string;
     private onInfrastructureError?;
-    constructor({ apiKey, apiEndpoint, onInfrastructureError, }: {
-        apiKey: string;
+    constructor({ apiKey, apiEndpoint, onInfrastructureError, sseTokenProvider, tokenProvider, }: {
+        apiKey?: string;
         apiEndpoint?: string;
         onInfrastructureError?: () => void;
+        sseTokenProvider?: TokenProvider;
+        tokenProvider?: TokenProvider;
     });
+    protected getApiKey(): Promise<string>;
     private isInfrastructureError;
     protected restRequest<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: any, extraHeaders?: Record<string, string>, requestInit?: RequestInit): Promise<T>;
     subscribeToLogsSSE(options?: SSELogSubscriptionOptions): Promise<SSESubscription>;
@@ -191,7 +194,6 @@ export declare class SuperglueClient {
         multiTenancyMode?: string;
         tunnel?: {
             tunnelId: string;
-            targetName: string;
         };
         environment?: "dev" | "prod";
     }): Promise<System>;
@@ -201,6 +203,7 @@ export declare class SuperglueClient {
     deleteSystem(id: string, options?: {
         environment?: "dev" | "prod";
     }): Promise<boolean>;
+    switchSystemEnvironment(id: string, targetEnv: "dev" | "prod"): Promise<System>;
     cacheOAuthSecret(args: {
         uid: string;
         clientId: string;
@@ -268,6 +271,11 @@ export declare class SuperglueClient {
         id: string;
         fileName: string;
     }>>;
+    processFileReference(fileId: string): Promise<{
+        success: boolean;
+        fileId: string;
+        processedStorageUri?: string;
+    }>;
     listSystemFileReferences(systemId: string): Promise<{
         files: Array<{
             id: string;
