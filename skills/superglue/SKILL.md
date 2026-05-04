@@ -381,6 +381,8 @@ In loop mode, `sourceData.currentItem` is set to the current array element. Empt
 
 `outputTransform` must be a single-line JS string (no literal newlines or tabs).
 
+**File output:** To make files downloadable from the tool's API response, set `outputFile: true` on the step that produces the file. The `outputTransform` is for shaping JSON data only — it does not handle files. Libraries `Papa` (CSV), `XLSX` (Excel), and `yaml` (YAML) are available in all transforms. See `sg skill file-handling` for details. Use `sg run download <runId>` to download artifacts.
+
 **Complex request bodies** — when a body needs data from multiple steps or aggregation, use a preceding transform step:
 
 ```javascript
