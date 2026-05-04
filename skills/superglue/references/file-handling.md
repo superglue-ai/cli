@@ -139,22 +139,48 @@ Prefer discovering aliases dynamically via `stepFileKeys`:
 
 ### Producing Files From Transforms
 
-Return a `__files__` key from a transform to produce new files:
+Return a `__files__` key from a transform to produce new files. The **key name is the filename** — content type is inferred from the extension. Values can be plain strings, bytes, or full file objects:
+
+```javascript
+// Simplest: key = filename, value = string content (auto-encoded to bytes)
+(sourceData) => ({
+  __files__: {
+    "report.csv": Papa.unparse(sourceData.step1.data),
+  },
+})
+
+// Multiple files with different types
+(sourceData) => ({
+  __files__: {
+    "data.csv": Papa.unparse(sourceData.step1.data),
+    "config.yaml": yaml.dump(sourceData.step1.data),
+  },
+  summary: { rowCount: sourceData.step1.data.length },
+})
+```
+
+Supported value types for `__files__` entries:
+
+- **String** — auto-encoded to UTF-8 bytes. Filename and content type from the key.
+- **Uint8Array / ArrayBuffer** — used as-is. Filename and content type from the key.
+- **Object with `raw`** — `raw` is normalized (string/bytes/array), `filename` defaults to key if missing, `contentType` inferred from key extension if missing.
+- **Full file object** — `{ filename, contentType, raw }` for explicit control (backwards compatible).
+
+Everything except `__files__` becomes the step's `data`. Single-file transforms get the step ID as alias; multi-file transforms use bracket notation.
+
+**Available libraries in transforms:** The following libraries are available for file generation in any transform code (step transforms and output transforms):
+
+- `Papa` — [papaparse](https://www.papaparse.com/). Use `Papa.unparse(rows)` to generate CSV from an array of objects. Handles quoting, escaping, and special characters automatically.
+- `XLSX` — [SheetJS](https://sheetjs.com/). Use `XLSX.utils.json_to_sheet(data)` + `XLSX.write(wb, { type: "array", bookType: "xlsx" })` to generate Excel files.
+- `yaml` — [js-yaml](https://github.com/nodeca/js-yaml). Use `yaml.dump(obj)` to generate YAML.
+
+Example — CSV with Papa:
 
 ```javascript
 (sourceData) => ({
-  summary: "processed",
-  __files__: {
-    "output.csv": {
-      filename: "output.csv",
-      contentType: "text/csv",
-      raw: new TextEncoder().encode("a,b\n1,2\n"),
-    },
-  },
+  __files__: { "report.csv": Papa.unparse(sourceData.step1) },
 });
 ```
-
-Everything except `__files__` becomes the step's `data`. Single-file transforms get the step ID as alias; multi-file transforms use bracket notation.
 
 **Auto-parsing of transform-produced files:** if `extracted` is omitted from the file object, the runtime runs the full detection and parsing pipeline on the raw bytes (same as for HTTP/file server responses). This means a CSV file produced with `raw: "a,b\n1,2"` will automatically get `extracted: [{a: "1", b: "2"}]`. To skip auto-parsing and keep the raw content as-is, set `extracted` explicitly (e.g. `extracted: null`).
 
@@ -166,6 +192,32 @@ Everything except `__files__` becomes the step's `data`. Single-file transforms 
 - `null` / `undefined` — produces an empty file (0 bytes)
 - For binary formats (xlsx, zip, pdf): pass through original bytes via `sourceData.__files__.stepId.raw` — never construct the internal file structure as a JS object
 
+### Returning Files as Tool Output
+
+To make files downloadable from the tool's API response, set `outputFile: true` on the step that produces the file. The output transform is only for shaping JSON data — it has nothing to do with files.
+
+```json
+{
+  "steps": [
+    {
+      "id": "generateReport",
+      "config": {
+        "type": "transform",
+        "transformCode": "(sourceData) => ({ __files__: { \"report.csv\": Papa.unparse(sourceData.step1.data) } })"
+      },
+      "outputFile": true
+    }
+  ],
+  "outputTransform": "(sourceData) => ({ rowCount: sourceData.generateReport.data.length })"
+}
+```
+
+Only steps with `outputFile: true` have their files stored to S3 and returned as downloadable artifacts. Steps without the flag keep their files internal (for inter-step passing only).
+
+This works on any step type — transform steps, HTTP steps, SFTP/FTP steps. Just set `outputFile: true`.
+
+Use `sg run download <runId>` to download file artifacts from the CLI.
+
 ## Common Pitfalls
 
 - Using bare `file::<key>` without `.raw`, `.base64`, or `.extracted` suffix — causes a runtime error
@@ -174,6 +226,8 @@ Everything except `__files__` becomes the step's `data`. Single-file transforms 
 - Hardcoding bracket aliases like `sourceData.__files__["step[\"file.csv\"]"]` — prefer `stepFileKeys` or `Object.keys(sourceData.__files__)` to discover aliases dynamically
 - Trying to construct binary file internals (xlsx, zip) as JS objects — always pass through original bytes via `.raw`
 - Accessing `sourceData.__files__` in step configs — `file::` syntax is for step configs, `sourceData.__files__` is for transform code
+- Manually base64-encoding file content with `btoa()` — never do this. Return raw bytes (Uint8Array) or strings directly. The runtime handles encoding automatically. Use `XLSX.write(wb, { type: "array" })` not `type: "buffer"` followed by manual btoa.
+- Putting file logic in the output transform — the output transform is for JSON data only. Use `outputFile: true` on the step instead.
 
 ## Error Recovery
 

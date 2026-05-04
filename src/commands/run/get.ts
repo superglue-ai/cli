@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { output, error, isFullMode } from "../../output.js";
+import { output, error, info, isFullMode } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -30,6 +30,7 @@ export function registerGetCommand(parent: Command, getContext: ContextFn): void
           process.exit(1);
         }
         const full = isFullMode();
+        const fileArtifacts = run.fileArtifacts;
         output({
           success: true,
           run: {
@@ -43,8 +44,23 @@ export function registerGetCommand(parent: Command, getContext: ContextFn): void
             ...(run.stepResults
               ? { stepResults: full ? run.stepResults : truncateField(run.stepResults) }
               : {}),
+            ...(fileArtifacts && fileArtifacts.length > 0
+              ? {
+                  fileArtifacts: fileArtifacts.map((f: any) => ({
+                    fileKey: f.fileKey,
+                    filename: f.filename,
+                    contentType: f.contentType,
+                    size: f.size,
+                  })),
+                }
+              : {}),
           },
         });
+        if (fileArtifacts && fileArtifacts.length > 0) {
+          info(
+            `${fileArtifacts.length} file(s) available — download with: sg run download ${runId}`,
+          );
+        }
       } catch (err: any) {
         error(err.message);
         process.exit(1);

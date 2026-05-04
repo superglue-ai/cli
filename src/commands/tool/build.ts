@@ -45,9 +45,16 @@ Returns: { success, draftId, toolId, config }
       let toolConfig: any;
       if (opts.config) {
         const raw = opts.config.trim();
-        toolConfig = raw.startsWith("{")
-          ? JSON.parse(raw)
-          : JSON.parse(fs.readFileSync(raw, "utf-8"));
+        try {
+          toolConfig = raw.startsWith("{")
+            ? JSON.parse(raw)
+            : JSON.parse(fs.readFileSync(raw, "utf-8"));
+        } catch (err: any) {
+          error(
+            `Invalid tool config JSON: ${err.message}. Run 'sg skill' for the full tool-building reference.`,
+          );
+          process.exit(1);
+        }
       } else {
         toolConfig = {
           id: opts.id,
@@ -61,7 +68,9 @@ Returns: { success, draftId, toolId, config }
       }
 
       if (!toolConfig.id || !toolConfig.instruction || !toolConfig.steps) {
-        error("Required: id, instruction, and steps");
+        error(
+          "Required: id, instruction, and steps. Run 'sg skill' for the full tool-building reference.",
+        );
         process.exit(1);
       }
 

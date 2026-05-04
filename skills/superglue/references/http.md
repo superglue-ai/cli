@@ -224,10 +224,15 @@ pagination: {
 
 **Paginated step results:** all pages merge into a single result. Access via `sourceData.stepId.data` — it is NOT an array of per-page results. Do not call `.map()` on a paginated step result. Returns single object if one result, array if multiple (unwrapped from single-element array).
 
+### File Output
+
+When an HTTP step downloads a file (PDF, CSV, binary response), set `outputFile: true` on the step to make it downloadable by the user. Without the flag, downloaded files stay internal (only accessible to subsequent steps via `file::` references).
+
 ## Common Pitfalls
 
 - Hardcoding base URLs that match the system's base URL instead of using `<<systemId_url>>`
 - Forgetting auth headers entirely — nothing is injected automatically, including for OAuth systems (only token refresh is automatic)
+- Forgetting `outputFile: true` on steps that download files the user wants
 - Putting pagination variables in the config but not setting a `pagination` block, or vice versa
 - Using `<<currentItem.id>>` — must use arrow function syntax: `<<(sourceData) => sourceData.currentItem.id>>`
 - Mixing multiple `<<>>` expressions in one body string when the API expects nested JSON — use a transform step instead

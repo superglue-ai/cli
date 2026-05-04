@@ -134,9 +134,14 @@ Single operation returns the result directly. Array of operations returns an arr
 
 Default retries from server config. On final failure, error includes the full operations list. Each retry creates a fresh connection.
 
+### File Output
+
+When the user wants to **download** a file fetched via SFTP/SMB/FTP, set `outputFile: true` on the step. This stores the file in S3 and returns a download link in the API response. Without the flag, fetched files stay internal (only accessible to subsequent steps via `file::` references).
+
 ## Common Pitfalls
 
 - Using absolute filesystem paths instead of paths relative to the URL base path
+- Forgetting `outputFile: true` on steps that download files the user wants — without it, the file is only available internally between steps
 - Forgetting that SMB requires a share name as the first URL path segment
 - Using `file::<key>` without a suffix in `put` content. Use `file::<key>.raw` to preserve original bytes
 - Missing the double-data access pattern for `get` results: `sourceData.stepId.data` gives you the parsed file content (through the step envelope)

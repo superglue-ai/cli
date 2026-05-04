@@ -8,7 +8,7 @@ import type { CLIConfig, CLIPreset } from "../../config.js";
 import { isToolRunModeAllowed } from "../../presets.js";
 import { readDraft } from "../../drafts.js";
 import { parseFileFlags, resolvePayloadWithFiles } from "../../files.js";
-import { output, error, success, spinner, colors as c } from "../../output.js";
+import { output, error, success, info, spinner, colors as c } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -51,7 +51,9 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
 
       const selectors = [opts.tool, opts.draft, opts.config, opts.configFile].filter(Boolean);
       if (selectors.length === 0) {
-        error("Provide one of --tool, --draft, --config, or --config-file");
+        error(
+          "Provide one of --tool, --draft, --config, or --config-file. Run 'sg skill' for usage examples.",
+        );
         process.exit(1);
       }
       if (selectors.length > 1) {
@@ -74,11 +76,17 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
       }
 
       const filePayloads = await parseFileFlags(opts.file, client);
-      let payload = opts.payloadFile
-        ? JSON.parse(fs.readFileSync(opts.payloadFile, "utf-8"))
-        : opts.payload
-          ? JSON.parse(opts.payload)
-          : undefined;
+      let payload: any;
+      try {
+        payload = opts.payloadFile
+          ? JSON.parse(fs.readFileSync(opts.payloadFile, "utf-8"))
+          : opts.payload
+            ? JSON.parse(opts.payload)
+            : undefined;
+      } catch (err: any) {
+        error(`Invalid payload JSON: ${err.message}. Run 'sg skill' for payload syntax.`);
+        process.exit(1);
+      }
 
       if (payload) {
         const fileResult = resolvePayloadWithFiles(payload, filePayloads);
@@ -145,7 +153,9 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
         } catch (err: any) {
           logSub.unsubscribe();
           spin.stop();
-          error(`Invalid tool config JSON: ${err.message}`);
+          error(
+            `Invalid tool config JSON: ${err.message}. Run 'sg skill' for the full tool-building reference.`,
+          );
           process.exit(1);
         }
         result = await runToolConfig(toolConfig);
@@ -164,6 +174,9 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
         success: result.success,
         data: result.data,
         ...(result.error ? { error: result.error } : {}),
+        ...(result.fileArtifacts && result.fileArtifacts.length > 0
+          ? { fileArtifacts: result.fileArtifacts }
+          : {}),
         ...(opts.includeStepResults && result.stepResults
           ? { stepResults: result.stepResults }
           : {}),
@@ -172,6 +185,12 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
       };
 
       output(out);
+
+      if (result.fileArtifacts && result.fileArtifacts.length > 0) {
+        info(
+          `${result.fileArtifacts.length} file(s) available — use the downloadUrl from the output to download`,
+        );
+      }
 
       if (config.output.mode === "stdout+file") {
         const outDir = path.resolve(config.output.directory);
