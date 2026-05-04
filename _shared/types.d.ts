@@ -263,6 +263,7 @@ export interface ToolStep {
     modify?: boolean;
     dataSelector?: string;
     failureBehavior?: FailureBehavior;
+    outputFile?: boolean;
 }
 export interface Tool extends BaseConfig {
     name?: string;
@@ -304,6 +305,17 @@ export interface ToolResult {
     error?: string;
     tool: Tool;
     stepResults: ToolStepResult[];
+    fileArtifacts?: FileArtifact[];
+}
+/** File artifact produced by a tool's output transform.
+ *  Stored in the run record with storageUri; served to clients with downloadUrl. */
+export interface FileArtifact {
+    fileKey: string;
+    filename: string;
+    contentType: string;
+    size: number;
+    storageUri?: string;
+    downloadUrl?: string;
 }
 export interface DocumentationFiles {
     uploadFileIds?: string[];
@@ -415,6 +427,7 @@ export interface Run {
     resultStorageUri?: string;
     userId?: string;
     executionMode?: SystemEnvironment;
+    fileArtifacts?: FileArtifact[];
 }
 export interface StoredRunResults {
     runId: string;
@@ -424,6 +437,7 @@ export interface StoredRunResults {
     toolPayload: Record<string, any>;
     error?: string;
     storedAt: Date;
+    fileArtifacts?: FileArtifact[];
 }
 export interface ApiCallArgs {
     id?: string;
