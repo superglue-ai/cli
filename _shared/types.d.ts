@@ -653,6 +653,7 @@ export interface OrgSettings {
     updatedAt?: Date;
 }
 export type MultiTenancyMode = "disabled" | "enabled";
+export type OrgStatus = "free" | "team" | "enterprise";
 export type SystemEnvironment = "dev" | "prod";
 export interface EndUser {
     id: string;
