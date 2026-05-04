@@ -1,30 +1,31 @@
 ---
 name: superglue
-description: "Build, test, deploy and integrate superglue tools via the sg CLI and superglue SDKs. IMPORTANT — you MUST invoke this skill and read the full reference BEFORE running ANY sg command or writing ANY superglue SDK/REST/webhook integration code. Before using the sg CLI, first check that it is installed (run sg --version; if not found, install with npm install -g @superglue/cli), then verify it is configured (check that sg init has been run or that SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT environment variables are set). If not, guide the user through setup first. After reading SKILL.md, also read the relevant references/ files for the specific protocols and topics involved."
+description: "Build, test, deploy and integrate superglue tools via the sg CLI and superglue SDKs. IMPORTANT — you MUST invoke this skill and read the full reference BEFORE running ANY sg command or writing ANY superglue SDK/REST/webhook integration code. Before using the sg CLI, first check that it is installed (run sg --version; if not found, install with npm install -g @superglue/cli), then verify it is configured (check that sg init has been run or that SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT environment variables are set). If not, guide the user through setup first. After reading SKILL.md, also run `sg skill <topic>` for the specific protocols and topics involved."
 ---
 
 # superglue CLI (`sg`) — Agent Reference
 
 This file is the entry point for operating superglue via the `sg` CLI. It covers setup, tool building, tool editing, system management, running tools, and deployment via SDK/REST/webhooks.
 
-For protocol-specific details (HTTP, databases, Redis, file servers, GraphQL), file handling, access rules, SDK integration, and general superglue information, read the corresponding file in `references/` (linked throughout and listed at the bottom).
+For protocol-specific details (HTTP, databases, Redis, file servers, GraphQL), file handling, access rules, SDK integration, and general superglue information, run `sg skill <topic>` (linked throughout and listed at the bottom).
 
 ## Reference Files
 
 Read these on demand — they are authoritative for their topic and kept in sync with the web agent's skill references.
 
-| File                           | When to read                                                                                         |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `references/superglue-info.md` | Company info, interfaces (SDK, REST API, MCP, Web), web UI layout, execution pipeline, internals     |
-| `references/integration.md`    | Deploying tools — SDK (TS/Python) usage, REST API calls, webhook triggers, retry patterns            |
-| `references/http.md`           | HTTP step configuration, auth patterns, file uploads, response handling, pagination, error detection |
-| `references/graphql.md`        | GraphQL step config, schema introspection, error recovery                                            |
-| `references/postgres.md`       | PostgreSQL connection URLs, SSL/TLS handling, schema introspection, parameterized queries            |
-| `references/mssql.md`          | MSSQL / Azure SQL connection URLs, schema introspection, parameterized queries                       |
-| `references/redis.md`          | Redis command syntax, connection URLs, key type handling                                             |
-| `references/sftp-smb.md`       | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                         |
-| `references/file-handling.md`  | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
-| `references/access-rules.md`   | RBAC roles, tool/system permissions, mutation detection, custom rules (enterprise only)              |
+| `sg skill` command        | When to read                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `sg skill superglue-info` | Company info, interfaces (SDK, REST API, MCP, Web), web UI layout, execution pipeline, internals     |
+| `sg skill integration`    | Deploying tools — SDK (TS/Python) usage, REST API calls, webhook triggers, retry patterns            |
+| `sg skill http`           | HTTP step configuration, auth patterns, file uploads, response handling, pagination, error detection |
+| `sg skill graphql`        | GraphQL step config, schema introspection, error recovery                                            |
+| `sg skill postgres`       | PostgreSQL connection URLs, SSL/TLS handling, schema introspection, parameterized queries            |
+| `sg skill mssql`          | MSSQL / Azure SQL connection URLs, schema introspection, parameterized queries                       |
+| `sg skill odbc`           | ODBC connections (SAP ASE / Sybase via FreeTDS), driver config, positional `?` params                |
+| `sg skill redis`          | Redis command syntax, connection URLs, key type handling                                             |
+| `sg skill sftp-smb`       | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                         |
+| `sg skill file-handling`  | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
+| `sg skill access-rules`   | RBAC roles, tool/system permissions, mutation detection, custom rules (enterprise only)              |
 
 ## CRITICAL RULES — READ FIRST
 
@@ -125,7 +126,7 @@ Blocked commands print a clear error showing the current preset and how to chang
 
 ### Building a Tool
 
-1. **Load relevant protocol references** from `references/` based on the systems involved (http, postgres, graphql, etc.)
+1. **Load relevant protocol references** via `sg skill <topic>` based on the systems involved (http, postgres, graphql, etc.)
 2. Use `sg system find` for every involved system — note `storedCredentials` and the system URL
 3. Use `sg system search-docs` for each system — look up endpoints, auth patterns, pagination, response structure
 4. Use `sg system call` to test 1-2 primary endpoints — verify response structure and field names before building
@@ -234,7 +235,7 @@ sg run get <runId> --fetch-results
 sg tool run --draft <id> --payload '{"data":"file::mysheet"}' --file mysheet=data.xlsx
 ```
 
-Attach files with repeatable `--file key=path`. Reference in payloads with `file::<key>`. Auto-parsed to JSON where applicable. See `references/file-handling.md` for the full reference syntax including `.raw`, `.base64`, and `.extracted` suffixes.
+Attach files with repeatable `--file key=path`. Reference in payloads with `file::<key>`. Auto-parsed to JSON where applicable. See `sg skill file-handling` for the full reference syntax including `.raw`, `.base64`, and `.extracted` suffixes.
 
 ### Tool Config Schema
 
@@ -276,7 +277,7 @@ Attach files with repeatable `--file key=path`. Reference in payloads with `file
 | `headers`     | object | HTTP headers with credential placeholders (HTTP only)                    |
 | `queryParams` | object | URL query parameters (HTTP only)                                         |
 | `body`        | string | Request body / DB query / Redis command / file operation                 |
-| `pagination`  | object | Auto-pagination config (HTTP only, see `references/http.md`)             |
+| `pagination`  | object | Auto-pagination config (HTTP only, see `sg skill http`)                  |
 
 **Transform step fields:**
 
@@ -380,6 +381,8 @@ In loop mode, `sourceData.currentItem` is set to the current array element. Empt
 | Inline data computation in URL/body/headers | `<<(sourceData) => ...>>` expressions                                  |
 
 `outputTransform` must be a single-line JS string (no literal newlines or tabs).
+
+**File output:** To make files downloadable from the tool's API response, set `outputFile: true` on the step that produces the file. The `outputTransform` is for shaping JSON data only — it does not handle files. Libraries `Papa` (CSV), `XLSX` (Excel), and `yaml` (YAML) are available in all transforms. See `sg skill file-handling` for details. Use `sg run download <runId>` to download artifacts.
 
 **Complex request bodies** — when a body needs data from multiple steps or aggregation, use a preceding transform step:
 
@@ -499,7 +502,7 @@ Drafts live in `.superglue/drafts/<draftId>.json`. Created by `sg tool build`, u
 
 ### Deployment
 
-After building and saving, tools can be invoked from code via REST API, SDK, or webhook. See `references/integration.md` for complete SDK (TypeScript/Python), REST API, and webhook examples including retry patterns.
+After building and saving, tools can be invoked from code via REST API, SDK, or webhook. See `sg skill integration` for complete SDK (TypeScript/Python), REST API, and webhook examples including retry patterns.
 
 **IP whitelisting:** if a customer's system requires IP whitelisting (firewall rules, security groups, etc.), superglue's outbound IPs are `34.234.12.178` and `18.198.191.215`.
 
@@ -543,7 +546,7 @@ curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API
 
 ## Error Recovery
 
-For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, GraphQL, SFTP/SMB), read the matching reference file in `references/`. General strategies below.
+For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, GraphQL, SFTP/SMB), run `sg skill <protocol>`. General strategies below.
 
 ### Tool build fails validation
 
@@ -554,8 +557,8 @@ For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, GraphQL, SFT
 1. Re-run with `--include-step-results` to see raw per-step responses and `data` fields
 2. Use `sg system call` to test the failing endpoint directly — isolates step config vs system/auth issues
 3. Use `sg system find --id <systemId>` to verify `storedCredentials` keys match what the step references
-4. For HTTP: load `references/http.md` and follow the error recovery section (endpoint vs system isolation, credential scopes, rate limiting)
-5. For databases: load `references/postgres.md` or `references/mssql.md` — SSL/TLS and schema issues are common causes
+4. For HTTP: run `sg skill http` and follow the error recovery section (endpoint vs system isolation, credential scopes, rate limiting)
+5. For databases: run `sg skill postgres` or `sg skill mssql` — SSL/TLS and schema issues are common causes
 6. Use `sg system search-docs` and web search to verify the current API shape. APIs change across versions
 
 ### Authentication failures

@@ -109,6 +109,7 @@ export declare class SuperglueClient {
         error?: string;
         updatedTransform?: string;
         updatedOutputSchema?: any;
+        outputFiles?: Record<string, ExecutionFileEnvelope>;
     }>;
     /**
      * Create a run entry in the database after manual tool execution.

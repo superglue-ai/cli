@@ -10,7 +10,7 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
   parent
     .command("call")
     .description("Call a system (API, database, file server)")
-    .requiredOption("--url <url>", "Full URL including protocol")
+    .option("--url <url>", "Full URL including protocol")
     .option("--system-id <id>", "System ID for credential injection")
     .option("--method <method>", "HTTP method", "GET")
     .option("--headers <json>", "HTTP headers JSON")
@@ -69,6 +69,12 @@ ${c.bold}Supported Protocols:${c.reset}
 `,
     )
     .action(async (opts) => {
+      if (!opts.url) {
+        error(
+          `Missing required option --url. Run 'sg skill <protocol>' (e.g. 'sg skill odbc') for URL formats and usage.`,
+        );
+        process.exit(1);
+      }
       const { client } = getContext();
       const method = opts.method || "GET";
 
