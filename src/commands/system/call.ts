@@ -135,7 +135,7 @@ ${c.bold}Supported Protocols:${c.reset}
       try {
         const mode = opts.env === "dev" || opts.env === "prod" ? opts.env : undefined;
         const result = await client.executeStep({ step, payload: {}, mode });
-        const responseData = result.data?.data !== undefined ? result.data.data : result.data;
+        const responseData = result.data;
         output({
           success: result.success,
           protocol: inferProtocolFromUrl(opts.url),
