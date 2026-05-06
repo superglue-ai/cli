@@ -1,4 +1,4 @@
-import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, RequestSource, Run, System, Tool, ToolResult } from "./types.js";
+import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, RequestSource, RunExecutionKind, Run, System, Tool, ToolResult } from "./types.js";
 import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
 export declare class SuperglueClient {
     private tokenProvider;
@@ -50,16 +50,18 @@ export declare class SuperglueClient {
         runId?: string;
         traceId?: string;
         createRun?: boolean;
+        executionKind?: RunExecutionKind;
+        parentToolId?: string;
+        draftId?: string;
     }): Promise<ToolResult>;
     abortToolExecution(runId: string): Promise<{
         success: boolean;
         runId: string;
     }>;
     /**
-     * Execute a single step without creating a run in the database.
-     * Used for individual step testing in the playground.
+     * Execute a single step. Individual playground tests can opt into run persistence.
      */
-    executeStep({ step, payload, files, previousResults, credentials, options, runId, mode, systemIds, }: {
+    executeStep({ step, payload, files, previousResults, credentials, options, runId, mode, systemIds, createRun, parentToolId, stepIndex, stepId, }: {
         step: any;
         payload?: Record<string, any>;
         files?: Record<string, ExecutionFileEnvelope>;
@@ -71,6 +73,10 @@ export declare class SuperglueClient {
         runId?: string;
         mode?: "dev" | "prod";
         systemIds?: string[];
+        createRun?: boolean;
+        parentToolId?: string;
+        stepIndex?: number;
+        stepId?: string;
     }): Promise<{
         stepId: string;
         success: boolean;
@@ -88,10 +94,9 @@ export declare class SuperglueClient {
         runId: string;
     }>;
     /**
-     * Execute a final transform without creating a run in the database.
-     * Used for transform testing in the playground.
+     * Execute a final transform. Playground tests can opt into run persistence.
      */
-    executeTransformOnly({ outputTransform, outputSchema, inputSchema, payload, files, stepResults, responseFilters, options, runId, }: {
+    executeTransformOnly({ outputTransform, outputSchema, inputSchema, payload, files, stepResults, responseFilters, options, runId, createRun, parentToolId, stepId, }: {
         outputTransform: string;
         outputSchema?: any;
         inputSchema?: any;
@@ -103,6 +108,9 @@ export declare class SuperglueClient {
             timeout?: number;
         };
         runId?: string;
+        createRun?: boolean;
+        parentToolId?: string;
+        stepId?: string;
     }): Promise<{
         success: boolean;
         data?: any;
@@ -115,7 +123,7 @@ export declare class SuperglueClient {
      * Create a run entry in the database after manual tool execution.
      * Used when "Run All Steps" completes in the playground.
      */
-    createRun({ toolId, toolConfig, toolResult, stepResults, toolPayload, status, error, startedAt, completedAt, }: {
+    createRun({ toolId, toolConfig, toolResult, stepResults, toolPayload, status, error, startedAt, completedAt, executionKind, parentToolId, draftId, }: {
         toolId: string;
         toolConfig: Tool;
         toolResult?: unknown;
@@ -131,6 +139,9 @@ export declare class SuperglueClient {
         error?: string;
         startedAt: Date;
         completedAt: Date;
+        executionKind?: RunExecutionKind;
+        parentToolId?: string;
+        draftId?: string;
     }): Promise<{
         runId: string;
         toolId: string;
@@ -151,6 +162,7 @@ export declare class SuperglueClient {
         startedAfter?: string | Date;
         status?: "running" | "success" | "failed" | "aborted";
         requestSources?: RequestSource[];
+        executionKinds?: RunExecutionKind[];
         userId?: string;
         systemId?: string;
         signal?: AbortSignal;
