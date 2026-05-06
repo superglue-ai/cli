@@ -34,9 +34,9 @@ The path contains the **database name**. The ODBC driver is specified via the `D
 
 **Supported drivers:**
 
-| Driver    | Database                     | Default Port |
-| --------- | ---------------------------- | ------------ |
-| `FreeTDS` | SAP ASE (Sybase), SQL Server | 5000         |
+| Driver    | Database                                   | Default Port |
+| --------- | ------------------------------------------ | ------------ |
+| `FreeTDS` | SAP ASE (Sybase), SQL Anywhere, SQL Server | 5000         |
 
 Additional query parameters (beyond `DRIVER`) are passed through to the ODBC connection string as key=value pairs.
 
@@ -136,11 +136,28 @@ FreeTDS defaults to TDS 5.0 for Sybase connections. If you encounter protocol er
 odbc://user:pass@host:5000/mydb?DRIVER=FreeTDS&TDS_Version=5.0
 ```
 
-| TDS Version | Use Case                   |
-| ----------- | -------------------------- |
-| `5.0`       | SAP ASE / Sybase (default) |
-| `7.0`       | SQL Server 7.0+            |
-| `7.4`       | SQL Server 2012+           |
+| TDS Version | Use Case                           |
+| ----------- | ---------------------------------- |
+| `5.0`       | SAP ASE / Sybase, SAP SQL Anywhere |
+| `7.0`       | SQL Server 7.0+                    |
+| `7.4`       | SQL Server 2012+                   |
+
+### SAP SQL Anywhere
+
+SQL Anywhere (SA16/SA17) works with FreeTDS using TDS version 5.0. Always specify `TDS_Version=5.0` explicitly:
+
+```
+odbc://user:pass@host:2638/mydb?DRIVER=FreeTDS&TDS_Version=5.0
+```
+
+Key differences from SAP ASE:
+
+- Default port is **2638** (not 5000)
+- Uses `TOP n` instead of `SET ROWCOUNT n` for row limiting: `SELECT TOP 10 * FROM table`
+- Does not support `LIMIT` syntax
+- `DB_NAME()` returns the current database name
+- `sa_db_info()` lists all running databases on the server
+- Only databases explicitly loaded by the server process are available — if you get "database not found", the database name must match the logical name the server assigned at startup (either from `-n` flag or the `.db` filename without extension)
 
 ## Common Pitfalls
 
