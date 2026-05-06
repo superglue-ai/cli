@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as crypto from "node:crypto";
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
-import { RequestSource } from "@superglue/shared";
+import { RequestSource, RunExecutionKind } from "@superglue/shared";
 import type { CLIConfig, CLIPreset } from "../../config.js";
 import { isToolRunModeAllowed } from "../../presets.js";
 import { readDraft } from "../../drafts.js";
@@ -109,7 +109,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
         })
         .catch(() => ({ unsubscribe: () => {} }));
 
-      const runToolConfig = async (toolConfig: any) => {
+      const runToolConfig = async (toolConfig: any, draftId?: string) => {
         try {
           const res = await client.runToolConfig({
             tool: toolConfig,
@@ -117,6 +117,9 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
             options: { requestSource: RequestSource.CLI },
             traceId,
             createRun: true,
+            executionKind: RunExecutionKind.DRAFT,
+            parentToolId: toolConfig.id,
+            draftId,
           });
           logSub.unsubscribe();
           spin.stop();
@@ -167,7 +170,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
           error(`Draft not found: ${opts.draft}`);
           process.exit(1);
         }
-        result = await runToolConfig(draft.config);
+        result = await runToolConfig(draft.config, draft.draftId);
       }
 
       const out: any = {
