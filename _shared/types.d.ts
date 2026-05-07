@@ -188,6 +188,11 @@ export declare enum RequestSource {
     WEBHOOK = "webhook",
     CLI = "cli"
 }
+export declare enum RunExecutionKind {
+    FULL = "full",
+    DRAFT = "draft",
+    SINGLE_STEP = "single-step"
+}
 export type ClientRequestSource = RequestSource.FRONTEND | RequestSource.AGENT | RequestSource.MCP | RequestSource.CLI;
 export declare enum FilterTarget {
     KEYS = "KEYS",
@@ -410,6 +415,8 @@ export interface RunMetadata {
     startedAt: string;
     completedAt?: string;
     durationMs?: number;
+    executionKind?: RunExecutionKind;
+    parentToolId?: string;
 }
 export interface Run {
     runId: string;
