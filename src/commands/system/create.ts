@@ -21,8 +21,15 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
     )
     .option("--instructions <text>", "Specific instructions")
     .option("--credentials <json>", "Credentials JSON (all fields including secrets)")
+    .option("--authentication <json>", "Authentication config JSON")
     .option("--docs-url <url>", "Documentation URL to scrape")
     .option("--openapi-url <url>", "OpenAPI spec URL")
+    .addOption(
+      new Option("--credential-ownership <ownership>", "Credential ownership").choices([
+        "organization",
+        "user",
+      ]),
+    )
     .addOption(
       new Option("--env <environment>", "Environment: dev or prod (default: prod)").choices([
         "dev",
@@ -53,11 +60,20 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
         }
       } else {
         let credentials: any;
+        let authentication: any;
         if (opts.credentials) {
           try {
             credentials = JSON.parse(opts.credentials);
           } catch (err: any) {
             error(`Invalid --credentials JSON: ${err.message}`);
+            process.exit(1);
+          }
+        }
+        if (opts.authentication) {
+          try {
+            authentication = JSON.parse(opts.authentication);
+          } catch (err: any) {
+            error(`Invalid --authentication JSON: ${err.message}`);
             process.exit(1);
           }
         }
@@ -67,6 +83,8 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
           url: opts.url,
           specificInstructions: opts.instructions,
           credentials,
+          authentication,
+          credentialOwnership: opts.credentialOwnership,
           environment: opts.env === "dev" || opts.env === "prod" ? opts.env : undefined,
         };
       }

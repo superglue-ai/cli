@@ -1,10 +1,7 @@
-import { System } from "./types.js";
-import { PatchSystemBody } from "./types.js";
-import { Tool } from "./types.js";
+import type { AgentCompactionPayload, ConnectionProtocol, ExecutionFileEnvelope, Message, PatchSystemBody, System, Tool, ToolCall } from "./types.js";
 export * from "./utils/cron.js";
 export * from "./utils/model-context-length.js";
 export * from "./utils/token-count.js";
-export type ConnectionProtocol = "http" | "postgres" | "mssql" | "redis" | "sftp" | "smb" | "odbc";
 export declare function inferProtocolFromUrl(url: string): ConnectionProtocol;
 export declare function isReadOnlyCallSystem(input: {
     protocol?: ConnectionProtocol;
@@ -71,6 +68,11 @@ export declare function resolveOAuthCertAndKey(oauthCert: string, oauthKey: stri
 export declare function isArrowFunction(code: string | undefined | null): boolean;
 export declare function assertValidArrowFunction(code: string | undefined | null): string;
 export declare function normalizeCredentialKey(key: string): string;
+export declare const CREDENTIAL_KEY_PATTERN: RegExp;
+export declare const CREDENTIAL_KEY_VALIDATION_DESCRIPTION = "Credential keys must start with a letter or underscore and contain only letters, numbers, and underscores.";
+export declare function isValidCredentialKey(key: string): boolean;
+export declare function getCredentialKeyValidationError(key: string): string | null;
+export declare function getInvalidCredentialKeyNames(keys: Iterable<string>): string[];
 export declare const isSensitiveCredentialKey: (key: string) => boolean;
 export declare const maskCredentialValue: (key: string, value: any) => string;
 export declare function isMaskedValue(value: any): boolean;
@@ -78,6 +80,23 @@ export declare function mergeCredentials(incoming: Record<string, any> | null | 
 export declare function maskCredentials(message: string, credentials?: Record<string, string>): string;
 export declare function sampleResultObject(value: any, sampleSize?: number, seen?: WeakSet<object>): any;
 export declare function safeStringify(value: any, indent?: number): string;
+export declare function coerceDate(value: unknown, fallback?: Date): Date;
+export declare function normalizeToolCallDates(tool: ToolCall & {
+    output?: unknown;
+}): ToolCall;
+export declare function normalizeMessageDates(message: Message & {
+    context?: {
+        stale?: true;
+    };
+}): Message;
+export declare function cloneMessagesWithDates(messages: Message[]): Message[];
+export declare function applyAgentCompactionToMessages(messages: Message[], compaction: AgentCompactionPayload): Message[];
+export declare function getMessageContent(message: Message): string;
+export declare function hasAssistantOutput(message: Message): boolean;
+export declare function isEmptyAssistantMessage(message: Message): boolean;
+export declare function isRenderableAgentMessage(message: Message): boolean;
+export declare function pruneEmptyAssistantMessages(messages: Message[]): Message[];
+export declare function getMeaningfulMessages(messages: Message[]): Message[];
 /**
  * Truncates a value for use in LLM prompts.
  * Uses sampleResultObject to intelligently sample large arrays/objects first,
@@ -89,6 +108,8 @@ export declare function getDateMessage(): {
     role: "system";
     content: string;
 };
+export declare function getErrorMessage(err: unknown): string;
+export declare function pickReferencedExecutionFiles(value: any, availableFiles: Record<string, ExecutionFileEnvelope> | undefined): Record<string, ExecutionFileEnvelope>;
 export type IconSource = "simpleicons" | "lucide";
 export interface ParsedIcon {
     source: IconSource;
@@ -122,7 +143,6 @@ export declare function normalizeToolDiffs<T extends {
     value?: any;
 }>(diffs: T[]): T[];
 export declare function composeUrl(host: string, path: string): string;
-export type SystemAuthType = "none" | "oauth" | "apikey" | "connection_string";
 export interface ConnectionFieldDef {
     key: string;
     label: string;
@@ -131,15 +151,10 @@ export interface ConnectionFieldDef {
     required?: boolean;
     defaultValue?: string;
 }
-/**
- * Detect the authentication type from system credentials
- */
-export declare const detectSystemAuthType: (credentials: Record<string, any> | undefined, options?: {
-    url?: string;
-    templateName?: string;
-}) => SystemAuthType;
 export declare const ALLOWED_PATCH_SYSTEM_FIELDS: (keyof PatchSystemBody)[];
 export declare function truncateRunResult(result: unknown, maxLength?: number): unknown;
 export declare function getToolSystemIds(tool: Tool): string[];
+export declare function getCredentialPlaceholderKeysForSystem(value: unknown, systemId: string): string[];
+export declare function getToolCredentialPlaceholderKeys(tool: Tool): Record<string, string[]>;
 export declare function isProductionSystem(system: System): boolean;
 //# sourceMappingURL=utils.d.ts.map

@@ -3,24 +3,52 @@ import type { SuperglueClient } from "@superglue/shared";
 import { findTemplateForSystem, maskCredentialValue } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
 import { output, error, table, isTableMode, isFullMode } from "../../output.js";
+import { getMySystemCredentials } from "./user-credentials-api.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
-function filterSystemFields(system: any) {
-  const credentials = system.credentials || {};
+function formatCredentialPlaceholders(systemId: string, credentials: Record<string, unknown>) {
   const storedCredentials = Object.fromEntries(
     Object.entries(credentials).map(([key, value]) => [
       key,
-      { placeholder: `<<${system.id}_${key}>>`, value: maskCredentialValue(key, value) },
+      { placeholder: `<<${systemId}_${key}>>`, value: maskCredentialValue(key, value) },
     ]),
   );
+  return Object.keys(storedCredentials).length > 0 ? storedCredentials : undefined;
+}
+
+function getAuthType(system: any): string {
+  return system.authentication?.type || "none";
+}
+
+function getCredentialSummary(system: any): string {
+  if (system.credentialOwnership === "user") {
+    return system.hasUserCredentials ? "user-owned: configured" : "user-owned: missing";
+  }
+
+  const credentialKeys = Object.keys(system.credentials || {});
+  return credentialKeys.map((k: string) => `<<${system.id}_${k}>>`).join(", ") || "(none)";
+}
+
+function filterSystemFields(system: any, userCredentials?: Record<string, unknown>) {
+  const ownership = system.credentialOwnership || "organization";
+  const credentials = ownership === "user" ? userCredentials || {} : system.credentials || {};
+  const credentialPlaceholders = formatCredentialPlaceholders(system.id, credentials);
   return {
     id: system.id,
     name: system.name,
     url: system.url,
     environment: system.environment,
+    credentialOwnership: ownership,
+    authType: getAuthType(system),
+    ...(ownership === "user" ? { hasUserCredentials: Boolean(system.hasUserCredentials) } : {}),
+    ...(Array.isArray(system.suggestedCredentialKeys) && system.suggestedCredentialKeys.length > 0
+      ? { suggestedCredentialKeys: system.suggestedCredentialKeys }
+      : {}),
     specificInstructions: system.specificInstructions,
-    storedCredentials: Object.keys(storedCredentials).length > 0 ? storedCredentials : undefined,
+    ...(ownership === "user"
+      ? { userCredentials: credentialPlaceholders }
+      : { storedCredentials: credentialPlaceholders }),
   };
 }
 
@@ -44,19 +72,19 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
         const full = isFullMode();
 
         const rows = items.map((s: any) => {
-          const credentialKeys = Object.keys(s.credentials || {});
-          const credPlaceholders = credentialKeys.map((k: string) => `<<${s.id}_${k}>>`).join(", ");
           return {
             id: s.id,
             name: s.name || "",
             env: s.environment || "prod",
+            owner: s.credentialOwnership || "organization",
+            auth: getAuthType(s),
             url: full ? s.url || "" : (s.url || "").slice(0, 40),
-            credentials: credPlaceholders || "(none)",
+            credentials: getCredentialSummary(s),
           };
         });
 
         if (isTableMode()) {
-          table(rows, ["id", "name", "env", "url", "credentials"], { total });
+          table(rows, ["id", "name", "env", "owner", "auth", "url", "credentials"], { total });
         } else {
           output({
             success: true,
@@ -79,7 +107,7 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
       new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
     )
     .action(async (query: string | undefined, opts) => {
-      const { client } = getContext();
+      const { config, client } = getContext();
       try {
         if (opts.id) {
           const envOption =
@@ -90,9 +118,14 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
             process.exit(1);
           }
           const templateMatch = findTemplateForSystem(system);
+          let userCredentials: Record<string, unknown> | undefined;
+          if (system.credentialOwnership === "user" && system.hasUserCredentials) {
+            userCredentials = (await getMySystemCredentials(config, system.id, envOption))
+              .credentials;
+          }
           output({
             success: true,
-            system: filterSystemFields(system),
+            system: filterSystemFields(system, userCredentials),
             template: templateMatch?.template || null,
           });
           return;

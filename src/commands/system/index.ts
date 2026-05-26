@@ -7,6 +7,7 @@ import { registerCreateCommand } from "./create.js";
 import { registerEditCommand } from "./edit.js";
 import { registerFindCommand } from "./find.js";
 import { registerCallCommand } from "./call.js";
+import { registerCredentialsCommand } from "./credentials.js";
 import { registerDocsCommand } from "./docs.js";
 import { registerOAuthCommand } from "./oauth.js";
 
@@ -58,8 +59,9 @@ Quick Reference:
   sg system edit --id <id> --credentials <j> Update credentials or config
   sg system list [--limit N]                 List systems (default 25)
   sg system find --id <id>                   Get full system config + credential placeholders
+  sg system credentials get --system-id <id> Get current user's credentials
   sg system call --url <url> --system-id <id>  Call an API/DB/file-server with credential injection
-  sg system oauth --system-id <id> --scopes <s>  OAuth authentication flow
+  sg system oauth --system-id <id> [--scopes <s>] OAuth authentication flow
   sg system search-docs --system-id <id> -k <kw> Search system documentation
 
 Credentials: pass ALL credentials (including secrets) via --credentials JSON.
@@ -90,6 +92,9 @@ Output: JSON by default. Use --table for human-readable, --full to disable trunc
   }
   gatedRegister(system, "call", "system.call", preset, () =>
     registerCallCommand(system, getContext),
+  );
+  gatedRegister(system, "credentials", "system.credentials", preset, () =>
+    registerCredentialsCommand(system, getContext),
   );
   gatedRegister(system, "search-docs", "system.docs", preset, () =>
     registerDocsCommand(system, getContext),

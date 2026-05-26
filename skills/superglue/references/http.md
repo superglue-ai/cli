@@ -29,6 +29,9 @@ All fields support `<<variable>>` and `<<(sourceData) => ...>>` expressions.
 | `pagination`  | no       | See Pagination section                                  |
 | `systemId`    | no       | Links system credentials and URL. Omit for public APIs  |
 
+For APIs that require the same query key multiple times, use an array value:
+`{ metadataHeaders: ["From", "Subject"] }` -> `?metadataHeaders=From&metadataHeaders=Subject`.
+
 ## Authentication
 
 Credentials are never injected automatically. You must place auth headers explicitly using `<<systemId_credentialKey>>` syntax.

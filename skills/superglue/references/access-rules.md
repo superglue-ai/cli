@@ -123,15 +123,25 @@ Every user has exactly **one** base role. There are three:
 
 - **`admin`** — Full access to everything. Bypasses all RBAC checks. The admin role is **immutable** — it cannot be edited at all, nor can it be re-assigned.
 - **`member`** — Default for org team members. Starts with `tools: "ALL"`, `systems: "ALL"`. Tool and system allowlists can be narrowed to restrict access. Name and description cannot be changed. Cannot be deleted.
-- **`enduser`** — Default for end users / portal consumers. Starts with `tools: []`, `systems: {}` (no access). Tool and system allowlists must be explicitly populated to grant access. Name and description cannot be changed. Cannot be deleted.
+- **`enduser`** — Default for end users with Credentials-only access. Starts with `tools: []`, `systems: {}` (no access). Tool and system allowlists must be explicitly populated to grant access. Name and description cannot be changed. Cannot be deleted.
 
 Base roles define the starting permissions that custom roles can extend or build on top of. Users can also have additional **custom roles** on top of their base role. Custom roles are fully editable (name, description, tools, systems) and can be created and deleted.
 
+## Personal Roles
+
+Admins can create a **personal role** for a specific user. A personal role is a per-user override that scopes which tools and systems that individual can access — independent of their base role and shared custom roles.
+
+- Each user can have at most one personal role
+- Personal roles follow the same structure as custom roles (tools allowlist, systems map, custom rules)
+- Resolution: personal role permissions are unioned with the user's other roles (most permissive wins)
+- Use case: giving a single team member access to a sensitive system without creating a shared role
+- Managed via the **Personal Roles** tab in Access Rules (web app) or the REST API (`POST /v1/users/:userId/personal-role`)
+
 ### Auto-append on resource creation
 
-When a user creates a new tool or system, the backend automatically adds it to the **creator's base role** — but only if that base role uses SPECIFIC mode (not `"ALL"`) for the relevant field:
+When a user creates a new tool or system, the backend automatically adds it to the **creator's personal role**:
 
-- New tool created → appended to the creator's base role's `tools` list (skipped if `tools: "ALL"`)
-- New system created → appended to the creator's base role's `systems` map with `read-write` access (skipped if `systems: "ALL"`)
+- New tool created → appended to the creator's personal role's `tools` list
+- New system created → appended to the creator's personal role's `systems` map with `read-write` access
 
-This only affects the base role, not additional custom roles. It ensures that a user on a restricted allowlist automatically gets access to resources they create.
+This only affects the creator's personal role, not base roles or additional custom roles. It ensures that a user on a restricted allowlist automatically gets access to resources they create without granting those resources to everyone with the same base role.

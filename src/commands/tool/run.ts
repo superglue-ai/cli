@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as crypto from "node:crypto";
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
-import { RequestSource } from "@superglue/shared";
+import { RequestSource, RunExecutionKind } from "@superglue/shared";
 import type { CLIConfig, CLIPreset } from "../../config.js";
 import { isToolRunModeAllowed } from "../../presets.js";
 import { readDraft } from "../../drafts.js";
@@ -109,14 +109,25 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
         })
         .catch(() => ({ unsubscribe: () => {} }));
 
-      const runToolConfig = async (toolConfig: any) => {
+      const runToolConfig = async (
+        toolConfig: any,
+        options: {
+          executionKind: RunExecutionKind;
+          draftId?: string;
+          parentToolId?: string;
+        },
+      ) => {
         try {
           const res = await client.runToolConfig({
             tool: toolConfig,
             payload,
+            includeStepResultData: opts.includeStepResults === true,
             options: { requestSource: RequestSource.CLI },
             traceId,
             createRun: true,
+            executionKind: options.executionKind,
+            parentToolId: options.parentToolId,
+            draftId: options.draftId,
           });
           logSub.unsubscribe();
           spin.stop();
@@ -134,6 +145,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
           result = await client.runTool({
             toolId: opts.tool,
             payload,
+            includeStepResultData: opts.includeStepResults === true,
             options: { requestSource: RequestSource.CLI, traceId },
           });
           logSub.unsubscribe();
@@ -158,7 +170,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
           );
           process.exit(1);
         }
-        result = await runToolConfig(toolConfig);
+        result = await runToolConfig(toolConfig, { executionKind: RunExecutionKind.FULL });
       } else {
         const draft = readDraft(opts.draft);
         if (!draft) {
@@ -167,7 +179,11 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
           error(`Draft not found: ${opts.draft}`);
           process.exit(1);
         }
-        result = await runToolConfig(draft.config);
+        result = await runToolConfig(draft.config, {
+          executionKind: RunExecutionKind.DRAFT,
+          draftId: draft.draftId,
+          parentToolId: draft.config?.id,
+        });
       }
 
       const out: any = {
