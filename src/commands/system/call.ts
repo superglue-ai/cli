@@ -6,6 +6,22 @@ import { output, error, colors as c } from "../../output.js";
 
 type ContextFn = () => { client: SuperglueClient };
 
+function isStepResponseEnvelope(value: unknown): value is {
+  currentItem: unknown;
+  data: unknown;
+  success: boolean;
+  error?: unknown;
+} {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    "currentItem" in value &&
+    "data" in value &&
+    typeof (value as { success?: unknown }).success === "boolean"
+  );
+}
+
 export function registerCallCommand(parent: Command, getContext: ContextFn): void {
   parent
     .command("call")
@@ -15,6 +31,7 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
     .option("--method <method>", "HTTP method", "GET")
     .option("--headers <json>", "HTTP headers JSON")
     .option("--body <string>", "Request body")
+    .option("--continue-on-error", "Return failed response envelope instead of exiting non-zero")
     .option(
       "--file <key=path...>",
       "File references",
@@ -122,7 +139,7 @@ ${c.bold}Supported Protocols:${c.reset}
 
       const step = {
         id: `call_system_${Date.now()}`,
-        failureBehavior: "continue",
+        failureBehavior: opts.continueOnError ? "continue" : "fail",
         config: {
           url: opts.url,
           method,
@@ -136,13 +153,18 @@ ${c.bold}Supported Protocols:${c.reset}
         const mode = opts.env === "dev" || opts.env === "prod" ? opts.env : undefined;
         const result = await client.executeStep({ step, payload: {}, mode });
         const responseData = result.data;
+        const responseEnvelope = isStepResponseEnvelope(responseData) ? responseData : undefined;
+        const nestedFailure = responseEnvelope?.success === false;
+        const commandSuccess = result.success && (opts.continueOnError || !nestedFailure);
         output({
-          success: result.success,
+          success: commandSuccess,
           protocol: inferProtocolFromUrl(opts.url),
           data: responseData,
-          ...(result.error ? { error: result.error } : {}),
+          ...(result.error || responseEnvelope?.error
+            ? { error: result.error || responseEnvelope?.error }
+            : {}),
         });
-        if (!result.success) process.exit(1);
+        if (!commandSuccess) process.exit(1);
       } catch (err: any) {
         error(err.message);
         process.exit(1);

@@ -101,9 +101,11 @@ All Commands:
   sg system list                                 List all systems
   sg system find [query]                         Search systems by keyword
   sg system find --id <id>                       Get full config of a system
+  sg system credentials get --system-id <id>     Get current user's system credentials
+  sg system credentials set --system-id <id>     Set current user's system credentials
   sg system call --url <url> [--method GET]      Call an API, database, or file server
   sg system search-docs --system-id <id> -k <kw> Search system documentation
-  sg system oauth --system-id <id> --scopes <s>  Authenticate a system via OAuth
+  sg system oauth --system-id <id> [--scopes <s>] Authenticate a system via OAuth
 
   sg run list [toolId]                           List runs, optionally filtered by tool
   sg run get <runId>                             Get details of a specific run

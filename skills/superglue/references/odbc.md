@@ -34,9 +34,9 @@ The path contains the **database name**. The ODBC driver is specified via the `D
 
 **Supported drivers:**
 
-| Driver    | Database                     | Default Port |
-| --------- | ---------------------------- | ------------ |
-| `FreeTDS` | SAP ASE (Sybase), SQL Server | 5000         |
+| Driver    | Database                                   | Default Port |
+| --------- | ------------------------------------------ | ------------ |
+| `FreeTDS` | SAP ASE (Sybase), SQL Anywhere, SQL Server | 5000         |
 
 Additional query parameters (beyond `DRIVER`) are passed through to the ODBC connection string as key=value pairs.
 
@@ -136,11 +136,41 @@ FreeTDS defaults to TDS 5.0 for Sybase connections. If you encounter protocol er
 odbc://user:pass@host:5000/mydb?DRIVER=FreeTDS&TDS_Version=5.0
 ```
 
-| TDS Version | Use Case                   |
-| ----------- | -------------------------- |
-| `5.0`       | SAP ASE / Sybase (default) |
-| `7.0`       | SQL Server 7.0+            |
-| `7.4`       | SQL Server 2012+           |
+| TDS Version | Use Case                           |
+| ----------- | ---------------------------------- |
+| `5.0`       | SAP ASE / Sybase, SAP SQL Anywhere |
+| `7.0`       | SQL Server 7.0+                    |
+| `7.4`       | SQL Server 2012+                   |
+
+### SAP SQL Anywhere
+
+SQL Anywhere (SA16/SA17) works with FreeTDS using TDS version 5.0. Always specify `TDS_Version=5.0` explicitly:
+
+```
+odbc://user:pass@host:2638/mydb?DRIVER=FreeTDS&TDS_Version=5.0
+```
+
+Key differences from SAP ASE:
+
+- Default port is **2638** (not 5000)
+- Uses `TOP n` instead of `SET ROWCOUNT n` for row limiting: `SELECT TOP 10 * FROM table`
+- Does not support `LIMIT` syntax
+- `DB_NAME()` returns the current database name
+- `sa_db_info()` lists all running databases on the server
+- Only databases explicitly loaded by the server process are available — if you get "database not found", the database name must match the logical name the server assigned at startup (either from `-n` flag or the `.db` filename without extension)
+
+### Database-Specific Error Codes
+
+ODBC often surfaces error codes from the underlying database or driver. Do not treat those codes as generic ODBC meanings. If the message identifies a database engine, use that vendor's SQLCODE documentation instead of inferring from connection-string shape.
+
+For SQL Anywhere errors surfaced through ODBC:
+
+| SQLCODE | Meaning                      | Implication                                                                                                                   |
+| ------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `-103`  | Invalid user ID or password  | The database was reached far enough to reject authentication. Do not treat this as a missing database name.                   |
+| `-83`   | Specified database not found | The database name/path could not be resolved. Check the database name, DBN/DBF settings, server name, and TDS/driver routing. |
+
+For other ODBC-backed databases, look up the database/driver-specific error code before concluding what failed.
 
 ## Common Pitfalls
 
@@ -154,7 +184,7 @@ odbc://user:pass@host:5000/mydb?DRIVER=FreeTDS&TDS_Version=5.0
 
 When an ODBC step fails and the cause is not obvious:
 
-1. **Read the error message** — superglue includes the a truncated query preview in the error. Check for syntax errors, missing columns, or type mismatches.
+1. **Read the error message** — superglue includes a truncated query preview in the error. Check for syntax errors, missing columns, or type mismatches.
 2. **Verify connection credentials** — use `sg system find` to confirm `storedCredentials` keys match the placeholders in your URL. Test connectivity with a simple `SELECT 1` via `sg system call`.
 3. **Check database-side access** — connection refused or permission denied errors typically mean the database user lacks access. Verify with the user that the credentials have the required grants.
 4. **Check driver availability** — if the error mentions "driver not found", the `DRIVER` query parameter does not match any registered driver in `/etc/odbcinst.ini`. Verify the driver name is correct and the driver is installed in the Docker image.

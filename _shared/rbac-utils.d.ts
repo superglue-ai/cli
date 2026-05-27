@@ -11,4 +11,6 @@ export declare function hasRole(roles: Role[], roleId: string): boolean;
 export declare function getRoleIds(roles: Role[]): string[];
 export declare function getBaseRole(roles: Role[]): Role | null;
 export declare function getBaseRoleId(roles: Role[]): string | null;
+export declare function getPersonalRole(roles: Role[]): Role | null;
+export declare function getPersonalRoleId(roles: Role[]): string | null;
 //# sourceMappingURL=rbac-utils.d.ts.map

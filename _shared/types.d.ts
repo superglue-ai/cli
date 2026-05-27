@@ -1,3 +1,4 @@
+import type { AuthenticationType, SystemAuthentication } from "./authentication.js";
 export type ServiceMetadata = {
     traceId?: string;
     orgId?: string;
@@ -5,6 +6,7 @@ export type ServiceMetadata = {
     userEmail?: string;
     roleIds?: string[];
 };
+export type ConnectionProtocol = "http" | "postgres" | "mssql" | "redis" | "sftp" | "smb" | "odbc";
 export interface Log {
     id: string;
     message: string;
@@ -20,12 +22,6 @@ export interface MessagePart {
     tool?: ToolCall;
     id: string;
 }
-export interface ToolInteractionEntry {
-    id: string;
-    event: string;
-    createdAt: string;
-    payload?: Record<string, unknown>;
-}
 export interface Message {
     id: string;
     content: string;
@@ -35,6 +31,7 @@ export interface Message {
     parts?: MessagePart[];
     isStreaming?: boolean;
     isHidden?: boolean;
+    stale?: true;
     attachedFiles?: Array<{
         name: string;
         size?: number;
@@ -47,8 +44,13 @@ export interface ToolCall {
     id: string;
     name: string;
     input?: any;
-    output?: any;
-    interactionLog?: ToolInteractionEntry[];
+    frontendOutput?: any;
+    llmOutput?: any;
+    resultMetadata?: {
+        path: string;
+        bytes: number;
+        truncated?: boolean;
+    };
     confirmationState?: string;
     confirmationData?: any;
     status: "pending" | "awaiting_confirmation" | "running" | "completed" | "declined" | "stopped" | "error";
@@ -78,9 +80,6 @@ export interface OrgMember {
     userType: "member" | "end_user";
     roleIds: string[];
     createdAt?: string;
-    externalId?: string;
-    metadata?: Record<string, any>;
-    credentials?: EndUserCredentialStatus[];
 }
 export interface OrgInvitation {
     id: string;
@@ -188,6 +187,11 @@ export declare enum RequestSource {
     WEBHOOK = "webhook",
     CLI = "cli"
 }
+export declare enum RunExecutionKind {
+    FULL = "full",
+    DRAFT = "draft",
+    SINGLE_STEP = "single-step"
+}
 export type ClientRequestSource = RequestSource.FRONTEND | RequestSource.AGENT | RequestSource.MCP | RequestSource.CLI;
 export declare enum FilterTarget {
     KEYS = "KEYS",
@@ -217,8 +221,10 @@ export interface ResponseFilter {
 export interface BaseConfig {
     id: string;
     version?: string;
+    createdByUserId?: string;
     createdAt?: Date;
     updatedAt?: Date;
+    lastUsedAt?: Date;
 }
 export interface BaseResult {
     id: string;
@@ -340,6 +346,8 @@ export interface System extends BaseConfig {
     type?: string;
     url?: string;
     credentials?: Record<string, any>;
+    authentication?: SystemAuthentication;
+    hasUserCredentials?: boolean;
     documentationUrl?: string;
     documentation?: string;
     documentationPending?: boolean;
@@ -351,9 +359,12 @@ export interface System extends BaseConfig {
     metadata?: Record<string, any>;
     templateName?: string;
     documentationFiles?: DocumentationFiles;
-    multiTenancyMode?: MultiTenancyMode;
+    credentialOwnership?: CredentialOwnership;
+    suggestedCredentialKeys?: string[];
     tunnel?: TunnelConfig;
     environment?: "dev" | "prod";
+    createdByUserName?: string;
+    createdByUserEmail?: string;
 }
 export interface SystemInput {
     id: string;
@@ -366,6 +377,7 @@ export interface SystemInput {
     documentationKeywords?: string[];
     icon?: string;
     credentials?: Record<string, string>;
+    authentication?: SystemAuthentication;
     metadata?: Record<string, any>;
     templateName?: string;
     environment?: "dev" | "prod";
@@ -410,6 +422,8 @@ export interface RunMetadata {
     startedAt: string;
     completedAt?: string;
     durationMs?: number;
+    executionKind?: RunExecutionKind;
+    parentToolId?: string;
 }
 export interface Run {
     runId: string;
@@ -572,17 +586,196 @@ export interface DiscoveryResult {
     description: string;
     systems: ExtendedSystem[];
 }
+export declare enum AgentType {
+    MAIN = "main",
+    PLAYGROUND = "playground",
+    SYSTEM_PLAYGROUND = "system_playground",
+    ACCESS_RULES = "access_rules"
+}
+export declare const PLAYGROUND_TOOL_DRAFT_ID = "@playground-draft";
+export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool"];
+export declare const AGENT_TOOLS: Record<AgentType, string[]>;
+export declare const DYNAMIC_AGENT_TOOLS: readonly ["web_search"];
+export declare const SKILL_BODY_NAMES: readonly ["tool-building", "tool-editing", "system-setup", "access-rule-setup", "tool-deployment", "demos"];
+export type SkillBody = (typeof SKILL_BODY_NAMES)[number];
+export declare const SKILL_REFERENCE_NAMES: readonly ["superglue-info", "http", "graphql", "postgres", "mssql", "odbc", "redis", "sftp-smb", "file-handling", "systems-handling"];
+export type SkillReference = (typeof SKILL_REFERENCE_NAMES)[number];
+export declare const LOADABLE_MARKDOWN_NAMES: readonly ["tool-building", "tool-editing", "system-setup", "access-rule-setup", "tool-deployment", "demos", "superglue-info", "http", "graphql", "postgres", "mssql", "odbc", "redis", "sftp-smb", "file-handling", "systems-handling"];
+export type LoadableMarkdown = SkillBody | SkillReference;
+export declare const SKILL_GATED_TOOLS: Partial<Record<LoadableMarkdown, string[]>>;
 export declare enum ConfirmationAction {
     CONFIRMED = "confirmed",
     DECLINED = "declined",
     OAUTH_SUCCESS = "oauth_success",
     OAUTH_FAILURE = "oauth_failure"
 }
+export type OAuthFields = Record<string, string> & {
+    grant_type: "authorization_code" | "client_credentials";
+};
+export interface SectionStatus {
+    isComplete: boolean;
+    hasErrors: boolean;
+    label: string;
+}
+export interface FrontendDraftSectionStatus {
+    isComplete: boolean;
+    label: string;
+}
+export interface SystemKnowledgeBaseDraftFile {
+    id: string;
+    source: "upload" | "scrape" | "openapi";
+    status: string;
+    fileName: string;
+    sourceUrl?: string;
+    error?: string;
+    createdAt?: string;
+    contentLength?: number;
+    stagedAction?: "add" | "delete";
+}
+export interface SystemKnowledgeBaseDraft {
+    files: SystemKnowledgeBaseDraftFile[];
+    pendingFileReferences: SystemKnowledgeBaseDraftFile[];
+    pendingDeletes: string[];
+}
+export type SystemFrontendDraft = {
+    isNewSystem: boolean;
+    credentialDraftTouched?: boolean;
+    system: Record<string, any> & {
+        id: string;
+        url: string;
+        environment?: "dev" | "prod";
+        specificInstructions: string;
+        credentials: Record<string, any>;
+        authentication?: SystemAuthentication;
+        credentialOwnership: CredentialOwnership;
+    };
+    authType: AuthenticationType;
+    sectionStatuses: Record<"configuration" | "authentication" | "context", FrontendDraftSectionStatus>;
+    knowledgeBase: SystemKnowledgeBaseDraft;
+};
+export type StagedDocumentationUpload = {
+    id: string;
+    fileName: string;
+    sourceKind: "browser-file" | "resolved-payload";
+    contentType?: string;
+    contentLength?: number;
+    file?: Blob;
+    content?: string | Uint8Array;
+};
+export type SystemChangeItem = {
+    label: string;
+    value: string;
+};
+export type PlaygroundToolContext = Record<string, any> & {
+    toolId: string;
+    instruction: string;
+    steps: any[];
+};
+export interface DraftLookup {
+    config: Tool;
+    systemIds: string[];
+    instruction: string;
+    executionResults?: Record<string, {
+        status: string;
+        result?: string;
+        error?: string;
+    }>;
+}
+export type AccessRulesContext = Record<string, any> & {
+    role: {
+        id: string;
+        name: string;
+        tools: "ALL" | string[];
+        systems: "ALL" | Record<string, any>;
+        description?: string;
+        isBaseRole?: boolean;
+    };
+    users: Array<{
+        id: string;
+        email: string | null;
+        name: string | null;
+    }>;
+    isEditing: boolean;
+};
+export interface FrontendDrafts {
+    tool?: DraftLookup;
+    system?: SystemFrontendDraft;
+    role?: Record<string, unknown>;
+}
+export interface AgentContextUsage {
+    inputTokens?: number;
+    outputTokens?: number;
+    usedTokens: number;
+    contextWindow: number;
+    percent: number;
+}
+export type AgentExecutionMode = "auto" | "confirm_before_execution" | "confirm_after_execution";
+export type ExecutionMode = AgentExecutionMode;
+export type EditToolSaveResult = {
+    success: true;
+    toolId: string;
+} | {
+    success: false;
+    error: string;
+} | undefined;
+export interface AgentCompactionPayload {
+    memoryMessage: Message | null;
+    staleMessageIds: string[];
+    tokenEstimate?: {
+        before: number;
+        after: number;
+    };
+}
 export interface AgentRequest {
-    agentId: string;
+    agentId: AgentType;
     messages: Message[];
     agentParams?: Record<string, any>;
-    filePayloads?: Record<string, any>;
+    userMessage?: string;
+    visibleUserMessageId?: string;
+    resumeToolCallId?: string;
+    conversationId?: string;
+    loadedSkills?: string[];
+    frontendDrafts?: FrontendDrafts;
+    accessRulesContext?: AccessRulesContext;
+    isFreeTier?: boolean;
+    contextUsage?: AgentContextUsage;
+}
+export interface AgentStreamChunk {
+    type: "content" | "system_message" | "context_usage" | "compaction_start" | "compaction_complete" | "tool_call_start" | "tool_call_complete" | "tool_call_update" | "done" | "paused" | "error";
+    content?: string;
+    errorDetails?: string;
+    contextUsage?: AgentContextUsage;
+    compaction?: AgentCompactionPayload;
+    systemMessage?: {
+        id: string;
+        content: string;
+    };
+    toolCall?: Record<string, any> & {
+        id: string;
+        name: string;
+    };
+    executionMode?: AgentExecutionMode;
+    awaitingConfirmation?: boolean;
+    pauseReason?: "awaiting_confirmation";
+}
+export interface CallSystemArgs {
+    systemId?: string;
+    environment?: "dev" | "prod";
+    protocol?: ConnectionProtocol;
+    url: string;
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+    askToConfirm?: boolean;
+}
+export interface CallSystemResult {
+    success: boolean;
+    protocol: ConnectionProtocol;
+    status?: number;
+    statusText?: string;
+    headers?: Record<string, string>;
+    data?: any;
+    error?: string;
 }
 export type NotificationMode = "realtime" | "daily_summary" | "weekly_summary";
 export interface NotificationRuleConditions {
@@ -652,37 +845,9 @@ export interface OrgSettings {
     createdAt?: Date;
     updatedAt?: Date;
 }
-export type MultiTenancyMode = "disabled" | "enabled";
+export type CredentialOwnership = "organization" | "user";
 export type OrgStatus = "free" | "team" | "enterprise";
 export type SystemEnvironment = "dev" | "prod";
-export interface EndUser {
-    id: string;
-    orgId: string;
-    externalId: string;
-    email?: string;
-    name?: string;
-    metadata?: Record<string, any>;
-    credentials?: EndUserCredentialStatus[];
-    createdAt?: Date;
-    updatedAt?: Date;
-}
-export interface EndUserInput {
-    externalId?: string;
-    email?: string;
-    name?: string;
-    metadata?: Record<string, any>;
-}
-export interface EndUserCredentialStatus {
-    systemId: string;
-    systemName?: string;
-    hasCredentials: boolean;
-    authType?: string;
-    connectedAt?: Date;
-}
-export interface PortalToken {
-    token: string;
-    expiresAt: Date;
-}
 export declare enum SystemAccessLevel {
     NONE = "none",
     READ_ONLY = "read-only",
@@ -704,6 +869,10 @@ export interface Role extends BaseConfig {
     tools: "ALL" | string[];
     systems: "ALL" | Record<string, SystemPermission>;
     isBaseRole?: boolean;
+    isPersonalRole?: boolean;
+    userId?: string;
+    ownerName?: string;
+    ownerEmail?: string;
     userCount?: number;
 }
 export interface RoleInput {
@@ -722,11 +891,33 @@ export interface PatchSystemBody {
     specificInstructions?: string;
     icon?: string;
     credentials?: Record<string, any>;
+    authentication?: SystemAuthentication;
     metadata?: Record<string, any>;
     templateName?: string;
-    multiTenancyMode?: MultiTenancyMode;
+    credentialOwnership?: CredentialOwnership;
     documentationFiles?: DocumentationFiles;
-    tunnel?: TunnelConfig;
+    tunnel?: TunnelConfig | null;
     environment?: "dev" | "prod";
+}
+export declare const MCP_SERVER_AUTH_MODES: readonly ["oauth", "creator_api_key"];
+export type McpServerAuthMode = (typeof MCP_SERVER_AUTH_MODES)[number];
+export interface McpServerConfig {
+    id: string;
+    orgId: string;
+    name: string;
+    displayName?: string;
+    description?: string;
+    authMode?: McpServerAuthMode;
+    toolIds: string[];
+    createdByUserId?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export interface McpServerConfigInput {
+    name: string;
+    displayName?: string;
+    description?: string;
+    authMode?: McpServerAuthMode;
+    toolIds: string[];
 }
 //# sourceMappingURL=types.d.ts.map

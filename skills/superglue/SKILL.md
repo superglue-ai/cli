@@ -147,9 +147,10 @@ Blocked commands print a clear error showing the current preset and how to chang
 
 1. Search for an existing system first: `sg system find <query>`
 2. If creating: `sg system create --name "..." --url "..." --credentials '{...}'`. Prefer `--template <id>` when one exists — it auto-fills URL and OAuth config
-3. For OAuth: `sg system oauth --system-id <id> --scopes "..."` opens a browser flow. User approves → tokens saved automatically
-4. Verify connectivity with `sg system call`
-5. For updates: `sg system edit --id <id>` with the fields to change
+3. For OAuth: `sg system oauth --system-id <id> [--scopes "..."]` opens a browser flow. User approves → tokens saved automatically
+4. For user-owned non-OAuth credentials: `sg system credentials set --system-id <id> --credentials '{...}'`
+5. Verify connectivity with `sg system call`
+6. For updates: `sg system edit --id <id>` with the fields to change
 
 ### Running a Tool (Ad-hoc)
 
@@ -168,23 +169,24 @@ Streams live execution logs to the terminal. Use `--include-step-results` for ra
 
 Agents familiar with the web tool names can map them directly to CLI commands:
 
-| Web agent tool               | CLI command                                   | Notes                                                              |
-| ---------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
-| `build_tool`                 | `sg tool build --config '{...}'`              | CLI is not AI-powered — you provide the full JSON config           |
-| `edit_tool`                  | `sg tool edit --tool <id> --patches '[...]'`  | JSON Patch (RFC 6902). Use `--draft <id>` for drafts               |
-| `run_tool`                   | `sg tool run --tool <id>` / `--draft <id>`    | Add `--include-step-results` to inspect per-step data              |
-| `save_tool`                  | `sg tool save --draft <draftId>`              | Persists a draft to the database                                   |
-| `inspect_tool` / `find_tool` | `sg tool find --id <id>` / `sg tool find <q>` | Full config with `--id`, compact search with a query string        |
-| `create_system`              | `sg system create --name "..." --url "..."`   | Use `--template <id>` when available                               |
-| `edit_system`                | `sg system edit --id <id> ...`                | Supports `--env dev\|prod`                                         |
-| `find_system`                | `sg system find <query>` / `--id <id>`        | Returns `storedCredentials` and system URL                         |
-| `call_system`                | `sg system call --url "..." --system-id <id>` | Authenticated ad-hoc calls for testing / schema introspection      |
-| `search_documentation`       | `sg system search-docs --system-id <id> -k`   | Targeted keyword search over ingested system docs                  |
-| `authenticate_oauth`         | `sg system oauth --system-id <id> --scopes`   | Opens browser flow. Supports `--grant-type client_credentials` too |
-| `get_runs`                   | `sg run list` / `sg run get <runId>`          | Filter `list` by `--tool`, `--status`, `--source`, `--limit`       |
-| (no direct equivalent)       | `sg init`, `sg update`, `sg skill`            | CLI-specific setup, updater, and this reference system             |
+| Web agent tool                               | CLI command                                   | Notes                                                              |
+| -------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
+| `build_tool`                                 | `sg tool build --config '{...}'`              | CLI is not AI-powered — you provide the full JSON config           |
+| `edit_tool`                                  | `sg tool edit --tool <id> --patches '[...]'`  | JSON Patch (RFC 6902). Use `--draft <id>` for drafts               |
+| `run_tool`                                   | `sg tool run --tool <id>` / `--draft <id>`    | Add `--include-step-results` to inspect per-step data              |
+| `save_tool`                                  | `sg tool save --draft <draftId>`              | Persists a draft to the database                                   |
+| `run_command` with `vfs` for `/org/tools/`   | `sg tool find --id <id>` / `sg tool find <q>` | Full config with `--id`, compact search with a query string        |
+| `create_system`                              | `sg system create --name "..." --url "..."`   | Use `--template <id>` when available                               |
+| `edit_system`                                | `sg system edit --id <id> ...`                | Supports `--env dev\|prod`                                         |
+| `run_command` with `vfs` for `/org/systems/` | `sg system find <query>` / `--id <id>`        | Returns `storedCredentials` and system URL                         |
+| Credentials VFS / user-owned credentials     | `sg system credentials get/set/clear`         | Manage current user's credentials for user-owned systems           |
+| `call_system`                                | `sg system call --url "..." --system-id <id>` | Authenticated ad-hoc calls for testing / schema introspection      |
+| `run_command search`                         | `sg system search-docs --system-id <id> -k`   | Targeted keyword search over ingested system docs                  |
+| `authenticate_oauth`                         | `sg system oauth --system-id <id> [--scopes]` | Opens browser flow. Supports `--grant-type client_credentials` too |
+| `run_command` with `vfs` for `/org/runs/`    | `sg run list` / `sg run get <runId>`          | Filter `list` by `--tool`, `--status`, `--source`, `--limit`       |
+| (no direct equivalent)                       | `sg init`, `sg update`, `sg skill`            | CLI-specific setup, updater, and this reference system             |
 
-Web-agent-only concepts with no CLI equivalent: `load_skill` (references are accessed via `sg skill <topic>` instead), `create_schedule`/`edit_schedule`/`find_schedule` (manage schedules via web app or REST API), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`).
+Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `create_schedule`/`edit_schedule` (manage schedules via web app or REST API), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`).
 
 ### Command Reference
 
@@ -215,6 +217,9 @@ sg system edit --id my_api --credentials '{...}'
 sg system list
 sg system find slack
 sg system find --id my_api --env dev
+sg system credentials get --system-id my_api
+sg system credentials set --system-id my_api --credentials '{"api_key":"sk-xxx"}'
+sg system credentials clear --system-id my_api
 sg system call --url https://api.example.com/users --system-id my_api --method GET \
   --headers '{"Authorization":"Bearer <<my_api_access_token>>"}'
 sg system search-docs --system-id slack -k "send message channels"
@@ -437,6 +442,8 @@ Basic auth auto-encodes: if the value after `Basic ` isn't already base64, the e
 **Credential lifecycle:**
 
 - Pass ALL credentials (including secrets) via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
+- For user-owned systems, use `sg system credentials set --system-id <id> --credentials '{...}'` to save credentials for the current API-key user
+- Use `sg system credentials get --system-id <id>` to inspect current-user credential keys; values are masked unless `--reveal` is passed
 - OAuth tokens (`access_token`, `refresh_token`) auto-refresh before each step execution
 - Non-sensitive fields (`client_id`, `auth_url`, `token_url`) are stored alongside secrets in the same `--credentials` JSON
 

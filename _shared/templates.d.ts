@@ -1,5 +1,6 @@
-import { System } from "./types";
-import { ConnectionFieldDef } from "./utils";
+import { type AuthenticationType, type SystemAuthentication } from "./authentication.js";
+import type { System } from "./types.js";
+import type { ConnectionFieldDef } from "./utils.js";
 export interface SystemConfig {
     name: string;
     apiUrl: string;
@@ -8,7 +9,7 @@ export interface SystemConfig {
     docsUrl: string;
     openApiUrl?: string;
     openApiSchema?: string;
-    preferredAuthType?: "oauth" | "apikey" | "basic" | "none" | "connection_string";
+    preferredAuthType?: AuthenticationType;
     connectionFields?: ConnectionFieldDef[];
     oauth?: {
         authUrl?: string;
@@ -26,6 +27,15 @@ export interface SystemConfig {
     systemSpecificInstructions?: string;
     hideInTemplatePicker?: boolean;
 }
+export declare function getSystemTemplateAuthentication(template: SystemConfig | undefined): SystemAuthentication | undefined;
+export declare function mergeSystemTemplateAuthentication({ authentication, template, }: {
+    authentication: SystemAuthentication | undefined;
+    template: SystemConfig | undefined;
+}): SystemAuthentication | undefined;
+export declare function resolveSystemAuthentication(system: Partial<System> & {
+    credentials?: Record<string, unknown>;
+    authentication?: SystemAuthentication;
+}): SystemAuthentication;
 export declare const systems: Record<string, SystemConfig>;
 export declare const systemOptions: {
     value: string;

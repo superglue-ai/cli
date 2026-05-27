@@ -1,4 +1,5 @@
-import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, RequestSource, Run, System, Tool, ToolResult } from "./types.js";
+import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, RequestSource, RunExecutionKind, Run, System, Tool, ToolResult } from "./types.js";
+import type { SystemAuthentication } from "./authentication.js";
 import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
 export declare class SuperglueClient {
     private tokenProvider;
@@ -33,6 +34,8 @@ export declare class SuperglueClient {
             requestSource?: ClientRequestSource;
         };
         runId?: string;
+        includeStepResultData?: boolean;
+        signal?: AbortSignal;
     }): Promise<ToolResult>;
     /**
      * Execute a tool config directly without persisting the tool.
@@ -50,16 +53,20 @@ export declare class SuperglueClient {
         runId?: string;
         traceId?: string;
         createRun?: boolean;
+        executionKind?: RunExecutionKind;
+        parentToolId?: string;
+        draftId?: string;
+        includeStepResultData?: boolean;
+        signal?: AbortSignal;
     }): Promise<ToolResult>;
     abortToolExecution(runId: string): Promise<{
         success: boolean;
         runId: string;
     }>;
     /**
-     * Execute a single step without creating a run in the database.
-     * Used for individual step testing in the playground.
+     * Execute a single step. Individual playground tests can opt into run persistence.
      */
-    executeStep({ step, payload, files, previousResults, credentials, options, runId, mode, systemIds, }: {
+    executeStep({ step, payload, files, previousResults, credentials, options, runId, mode, systemIds, createRun, parentToolId, stepIndex, stepId, signal, }: {
         step: any;
         payload?: Record<string, any>;
         files?: Record<string, ExecutionFileEnvelope>;
@@ -71,6 +78,11 @@ export declare class SuperglueClient {
         runId?: string;
         mode?: "dev" | "prod";
         systemIds?: string[];
+        createRun?: boolean;
+        parentToolId?: string;
+        stepIndex?: number;
+        stepId?: string;
+        signal?: AbortSignal;
     }): Promise<{
         stepId: string;
         success: boolean;
@@ -88,10 +100,9 @@ export declare class SuperglueClient {
         runId: string;
     }>;
     /**
-     * Execute a final transform without creating a run in the database.
-     * Used for transform testing in the playground.
+     * Execute a final transform. Playground tests can opt into run persistence.
      */
-    executeTransformOnly({ outputTransform, outputSchema, inputSchema, payload, files, stepResults, responseFilters, options, runId, }: {
+    executeTransformOnly({ outputTransform, outputSchema, inputSchema, payload, files, stepResults, responseFilters, options, runId, createRun, parentToolId, stepId, }: {
         outputTransform: string;
         outputSchema?: any;
         inputSchema?: any;
@@ -103,6 +114,9 @@ export declare class SuperglueClient {
             timeout?: number;
         };
         runId?: string;
+        createRun?: boolean;
+        parentToolId?: string;
+        stepId?: string;
     }): Promise<{
         success: boolean;
         data?: any;
@@ -115,7 +129,7 @@ export declare class SuperglueClient {
      * Create a run entry in the database after manual tool execution.
      * Used when "Run All Steps" completes in the playground.
      */
-    createRun({ toolId, toolConfig, toolResult, stepResults, toolPayload, status, error, startedAt, completedAt, }: {
+    createRun({ toolId, toolConfig, toolResult, stepResults, toolPayload, status, error, startedAt, completedAt, executionKind, parentToolId, draftId, }: {
         toolId: string;
         toolConfig: Tool;
         toolResult?: unknown;
@@ -131,6 +145,9 @@ export declare class SuperglueClient {
         error?: string;
         startedAt: Date;
         completedAt: Date;
+        executionKind?: RunExecutionKind;
+        parentToolId?: string;
+        draftId?: string;
     }): Promise<{
         runId: string;
         toolId: string;
@@ -151,6 +168,7 @@ export declare class SuperglueClient {
         startedAfter?: string | Date;
         status?: "running" | "success" | "failed" | "aborted";
         requestSources?: RequestSource[];
+        executionKinds?: RunExecutionKind[];
         userId?: string;
         systemId?: string;
         signal?: AbortSignal;
@@ -187,18 +205,19 @@ export declare class SuperglueClient {
         name: string;
         url: string;
         credentials?: Record<string, any>;
+        authentication?: SystemAuthentication;
         specificInstructions?: string;
         icon?: string;
         templateName?: string;
         documentationFiles?: Record<string, string[]>;
         metadata?: Record<string, any>;
-        multiTenancyMode?: string;
+        credentialOwnership?: "organization" | "user";
         tunnel?: {
             tunnelId: string;
         };
         environment?: "dev" | "prod";
     }): Promise<System>;
-    updateSystem(id: string, input: Partial<System>, options?: {
+    updateSystem(id: string, input: PatchSystemBody, options?: {
         environment?: "dev" | "prod";
     }): Promise<System>;
     deleteSystem(id: string, options?: {
@@ -244,11 +263,14 @@ export declare class SuperglueClient {
     triggerSystemDocumentationScrapeJob(systemId: string, options?: {
         url?: string;
         keywords?: string[];
+        link?: boolean;
     }): Promise<{
         fileReferenceId: string;
         status: string;
     }>;
-    fetchOpenApiSpec(systemId: string, url: string): Promise<{
+    fetchOpenApiSpec(systemId: string, url: string, options?: {
+        link?: boolean;
+    }): Promise<{
         fileReferenceId: string;
         title?: string;
         version?: string;
@@ -257,7 +279,9 @@ export declare class SuperglueClient {
         fileName: string;
         contentType?: string;
         contentLength?: number;
-    }>): Promise<Array<{
+    }>, options?: {
+        link?: boolean;
+    }): Promise<Array<{
         id: string;
         originalFileName: string;
         uploadUrl: string;
@@ -265,12 +289,18 @@ export declare class SuperglueClient {
     }>>;
     uploadSystemFileReferences(systemId: string, files: Array<{
         fileName: string;
-        content: string | Uint8Array;
+        content: string | Uint8Array | Blob;
         contentType?: string;
         contentLength?: number;
-    }>): Promise<Array<{
+    }>, options?: {
+        link?: boolean;
+        settle?: boolean;
+    }): Promise<Array<{
         id: string;
         fileName: string;
+        contentLength?: number;
+        status: "uploaded" | "failed";
+        error?: string;
     }>>;
     processFileReference(fileId: string): Promise<{
         success: boolean;
@@ -289,12 +319,12 @@ export declare class SuperglueClient {
             contentLength?: number;
         }>;
     }>;
+    listFileReferences(fileIds: string[]): Promise<{
+        files: FileReference[];
+        total: number;
+    }>;
     deleteSystemFileReference(systemId: string, fileId: string): Promise<void>;
     getFileReferenceContent(fileId: string): Promise<string | null>;
-    /**
-     * Generate a portal link for end-user authentication.
-     * Returns a URL that can be shared with end users to authenticate with systems.
-     */
     getTenantInfo(): Promise<{
         email: string | null;
         emailEntrySkipped: boolean;
@@ -306,9 +336,16 @@ export declare class SuperglueClient {
         email: string | null;
         emailEntrySkipped: boolean;
     }>;
-    generatePortalLink(): Promise<{
+    /**
+     * Generate a credentials login link for the current API key user.
+     * The returned URL opens the login flow and then redirects to Credentials.
+     */
+    generateCredentialsLink(input?: {
+        systemId?: string;
+        environment?: "dev" | "prod";
+    }): Promise<{
         success: boolean;
-        portalUrl?: string;
+        credentialsUrl?: string;
         error?: string;
     }>;
 }
