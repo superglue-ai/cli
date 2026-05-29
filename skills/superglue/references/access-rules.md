@@ -1,147 +1,77 @@
 # Access Rules (RBAC)
 
-On superglue, roles define tool-level and system-level allowlists. Users can have multiple roles. Roles and access rules are only available on enterprise organizations. Non-enterprise orgs do not have RBAC — all users have admin access on personal organizations.
+On superglue, roles define binary tool-level and system-level allowlists. Users can have multiple roles. Roles and access rules are only available on enterprise organizations.
 
 ## Data Model
-
-### Role
 
 ```typescript
 interface Role {
   id: string;
   name: string;
   description?: string;
-  tools: "ALL" | string[]; // tool allowlist
-  systems: "ALL" | Record<string, SystemPermission>; // system allowlist
-  isBaseRole?: boolean; // true for admin, member, enduser
+  tools: "ALL" | string[];
+  systems: "ALL" | string[];
+  isBaseRole?: boolean;
 }
 ```
 
-### SystemPermission
-
-Each system entry is either a predefined access level or a custom rule:
-
-```typescript
-type SystemPermission = SystemAccessLevel | { rules: CustomRule[] };
-```
-
-| Type               | Meaning                                          |
-| ------------------ | ------------------------------------------------ |
-| `"read-write"`     | All HTTP methods allowed                         |
-| `"read-only"`      | Only GET and HEAD; POST/PUT/PATCH/DELETE blocked |
-| `{ rules: [...] }` | Custom JS expressions that gate access           |
-
-Systems not listed in the role's `systems` map are DENIED, unless the system access is set to `"ALL"`.
-
-### CustomRule
-
-```typescript
-interface CustomRule {
-  id: string;
-  name: string;
-  expression?: string; // JS expression, receives stepConfig
-  isActive: boolean;
-}
-```
-
-Custom rules are inline in the systems map. A system either has a standard access level OR a custom rule, never both. Custom rules must return truthy to **allow** the request. If it returns falsy, throws, or has no expression, the request is blocked (fail-closed).
+Only `"ALL"` means open access. Empty arrays, missing fields, or `null` mean no direct access from that role.
 
 ## Tool Permissions
 
 - `tools: "ALL"` — every tool is allowed, including tools created in the future
-- `tools: ["tool-id-1", "tool-id-2"]` — only these specific tools are allowed; new tools are NOT auto-included (but see Auto-Append below)
+- `tools: ["tool-id-1", "tool-id-2"]` — only these specific tools are allowed
+- Effective tool visibility also requires access to every system referenced by that tool's request steps
 
 ## System Permissions
 
-- `systems: "ALL"` — every system allowed at READ_WRITE level, including future systems. Custom rules are not possible in this mode.
-- `systems: { "gmail": "read-write", "stripe": "read-only" }` — SPECIFIC mode: per-system access levels; unlisted systems are denied.
-- `systems: { "gmail": { rules: [{ name: "block-deletes", expression: "stepConfig.method !== 'DELETE'", isActive: true }] } }` — custom rule on a specific system
+- `systems: "ALL"` — every current and future system is allowed
+- `systems: ["gmail", "stripe"]` — only these specific systems are allowed
+- System access is binary by system ID: listed means allowed, omitted means denied.
 
-## Mutation Detection by Protocol
+## Tool/System Entanglement
 
-Read-only mode blocks mutating requests. How "mutating" is determined per protocol:
+A saved tool is effectively visible and runnable only when both are true:
 
-- **HTTP** — POST, PUT, PATCH, DELETE are mutating; GET and HEAD are read-only
-- **Postgres** — SQL statements starting with or containing INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, etc. are mutating; everything else (SELECT) is read-only
-- **FTP / SMB** — operations other than `list`, `get`, `exists`, `stat` are mutating
-- **Redis** — commands not in the read-only set (GET, MGET, EXISTS, KEYS, SCAN, TTL, TYPE, HGET, HGETALL, LRANGE, SMEMBERS, SCARD, etc.) are mutating
-- **Transform** — never mutating (pure data transformation, no external system)
+1. The user has tool access through at least one role.
+2. The user has access to every `systemId` referenced by the tool's request steps.
 
-On parse failure, all protocols default to **mutating** (fail-closed).
-
-## Custom Rule Expressions
-
-Custom rules only apply in SPECIFIC mode. If systems is `"ALL"`, no custom rules exist.
-
-Expressions receive a **resolved** `stepConfig` object — all template variables (`<<variable>>` and `<<(sourceData) => ...>>` expressions) are substituted with their actual runtime values before the rule evaluates. This means rules see the real URL, headers, body, and query params, not raw templates.
-
-```typescript
-interface StepConfig {
-  url: string;
-  method: string;
-  headers: Record<string, string>;
-  queryParams: Record<string, string>;
-  body: unknown;
-  systemId: string;
-}
-```
-
-Example expressions:
-
-```javascript
-// Block all POST requests to a specific endpoint
-stepConfig.method !== "POST" || !stepConfig.url.includes("/admin");
-
-// Only allow GET requests to /api/v1/read endpoints
-stepConfig.method === "GET" && stepConfig.url.includes("/api/v1/read");
-
-// Block requests with certain headers
-!stepConfig.headers["x-dangerous-header"];
-
-// Block a specific datasource ID in the resolved body
-!(typeof stepConfig.body === "object" && stepConfig.body?.datasource?.id === "blocked-id");
-```
+When granting a tool, inspect the tool's request-step `systemId` values and grant required systems when the user should be able to see or run the tool.
 
 ## Multi-Role Semantics
 
-Users can have multiple roles. Resolution is **union (most permissive wins) everywhere**:
+Users can have multiple roles. Resolution is union:
 
-| Layer        | Semantics                      | Example                                                                     |
-| ------------ | ------------------------------ | --------------------------------------------------------------------------- |
-| Tools        | Union (most permissive wins)   | If role A allows tool X and role B doesn't, tool X is allowed               |
-| Systems      | Union (most permissive wins)   | If role A gives READ_ONLY and role B gives READ_WRITE, result is READ_WRITE |
-| Custom rules | Per-role union (any role wins) | If any role's complete rule set allows the request, it goes through         |
+| Layer   | Semantics                                             |
+| ------- | ----------------------------------------------------- |
+| Tools   | If any role allows a tool, the tool ID is allowed     |
+| Systems | If any role allows a system, the system ID is allowed |
 
-Custom rule detail:
-
-- **Within a single role**, all custom rules for that system must pass (AND logic)
-- **Across roles**, evaluation is per-role: if any role fully allows the request (all its rules pass, or it has no custom rule for that system), the request is allowed (OR logic)
+Assigned roles can add access but cannot remove access granted by another role.
 
 ## Base Roles
 
-Every user has exactly **one** base role. There are three:
+Every user has exactly one base role:
 
-- **`admin`** — Full access to everything. Bypasses all RBAC checks. The admin role is **immutable** — it cannot be edited at all, nor can it be re-assigned.
-- **`member`** — Default for org team members. Starts with `tools: "ALL"`, `systems: "ALL"`. Tool and system allowlists can be narrowed to restrict access. Name and description cannot be changed. Cannot be deleted.
-- **`enduser`** — Default for end users with Credentials-only access. Starts with `tools: []`, `systems: {}` (no access). Tool and system allowlists must be explicitly populated to grant access. Name and description cannot be changed. Cannot be deleted.
+- **`admin`** — full access to everything. The admin role is immutable.
+- **`member`** — default for org team members. Starts with `tools: "ALL"`, `systems: "ALL"`. Tool and system allowlists can be narrowed. Name and description cannot be changed. Cannot be deleted.
 
-Base roles define the starting permissions that custom roles can extend or build on top of. Users can also have additional **custom roles** on top of their base role. Custom roles are fully editable (name, description, tools, systems) and can be created and deleted.
+Users can also have additional custom roles on top of their base role. Custom roles are fully editable and can be created/deleted.
 
 ## Personal Roles
 
-Admins can create a **personal role** for a specific user. A personal role is a per-user override that scopes which tools and systems that individual can access — independent of their base role and shared custom roles.
+Admins can create a personal role for a specific user. A personal role is a per-user override that grants individual tool and system access independent of shared roles.
 
-- Each user can have at most one personal role
-- Personal roles follow the same structure as custom roles (tools allowlist, systems map, custom rules)
-- Resolution: personal role permissions are unioned with the user's other roles (most permissive wins)
-- Use case: giving a single team member access to a sensitive system without creating a shared role
-- Managed via the **Personal Roles** tab in Access Rules (web app) or the REST API (`POST /v1/users/:userId/personal-role`)
+- Each user can have at most one personal role.
+- Personal roles use the same `tools` and `systems` allowlist structure.
+- Personal role allowlists are unioned with the user's other roles.
+- Managed via the Personal Roles tab in Access Rules or the REST API (`POST /v1/users/:userId/personal-role`).
 
-### Auto-append on resource creation
+## Auto-Append On Resource Creation
 
-When a user creates a new tool or system, the backend automatically adds it to the **creator's personal role**:
+When a user creates a new tool or system, the backend automatically adds it to the creator's personal role:
 
-- New tool created → appended to the creator's personal role's `tools` list
-- New system created → appended to the creator's personal role's `systems` map with `read-write` access
+- New tool created -> appended to the creator's personal role `tools` list
+- New system created -> appended to the creator's personal role `systems` list
 
-This only affects the creator's personal role, not base roles or additional custom roles. It ensures that a user on a restricted allowlist automatically gets access to resources they create without granting those resources to everyone with the same base role.
+This only affects the creator's personal role, not base roles or additional custom roles.

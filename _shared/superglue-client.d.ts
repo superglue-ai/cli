@@ -102,14 +102,13 @@ export declare class SuperglueClient {
     /**
      * Execute a final transform. Playground tests can opt into run persistence.
      */
-    executeTransformOnly({ outputTransform, outputSchema, inputSchema, payload, files, stepResults, responseFilters, options, runId, createRun, parentToolId, stepId, }: {
+    executeTransformOnly({ outputTransform, outputSchema, inputSchema, payload, files, stepResults, options, runId, createRun, parentToolId, stepId, }: {
         outputTransform: string;
         outputSchema?: any;
         inputSchema?: any;
         payload?: Record<string, any>;
         files?: Record<string, ExecutionFileEnvelope>;
         stepResults?: Record<string, any>;
-        responseFilters?: any[];
         options?: {
             timeout?: number;
         };

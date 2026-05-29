@@ -46,6 +46,20 @@ export type ResolvedCredentialEntry = {
 export declare const OAUTH_CONFIG_CREDENTIAL_KEYS: readonly ["auth_url", "authUrl", "token_url", "tokenUrl", "token_uri", "scopes", "scope", "grant_type", "grantType", "client_id", "clientId", "client_secret", "clientSecret", "tokenAuthMethod", "tokenContentType", "usePKCE", "extraHeaders", "extraBodyParams"];
 export declare function hasMeaningfulValue(value: unknown): boolean;
 export declare function stringValue(value: unknown): string | undefined;
+export type OAuthExecutableGrantType = "authorization_code" | "client_credentials";
+export type OAuthConnectionValidationInput = Record<string, unknown> & {
+    hasServerSideClientSecret?: boolean;
+};
+export type OAuthConnectionValidationResult = {
+    grantType: OAuthExecutableGrantType;
+    hasAccessToken: boolean;
+    hasCertificateCredentials: boolean;
+    isReadyToConnect: boolean;
+    missingFields: string[];
+    usePKCE: boolean;
+};
+export declare function validateOAuthConnection(input: OAuthConnectionValidationInput | undefined): OAuthConnectionValidationResult;
+export declare function formatOAuthConnectionDisabledReason(status: Pick<OAuthConnectionValidationResult, "isReadyToConnect" | "missingFields"> | null): string | null;
 export declare function objectValue(value: unknown): Record<string, unknown> | undefined;
 export declare function parseScopes(value: unknown): string[] | undefined;
 export declare function normalizeGrantType(value: unknown): Extract<SystemAuthentication, {
