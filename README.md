@@ -46,7 +46,12 @@ sg system list                 # verify connection
 sg tool build --config '...'   # build a tool
 sg tool run --draft <id>       # test it
 sg tool save --draft <id>      # save it
+sg mcp create --name my-mcp --tool <toolId>  # expose saved tools through MCP
 ```
+
+The CLI needs an API key and the target superglue API endpoint. Use `sg init`, set
+`SUPERGLUE_API_KEY` / `SUPERGLUE_API_ENDPOINT`, or pass `--api-key` / `--endpoint` per command.
+For self-hosted instances, use that instance's API endpoint instead of the Cloud default.
 
 ## Commands
 
@@ -73,6 +78,13 @@ sg tool save --draft <id>      # save it
 
 - `sg run list` — List execution runs
 - `sg run get` — Get run details
+
+### MCP Servers
+
+- `sg mcp list` — List named MCP servers
+- `sg mcp find` — Search MCP servers
+- `sg mcp create` — Create a named MCP server for selected tools
+- `sg mcp edit` — Edit a named MCP server and its exposed tools
 
 ### Other
 

@@ -1,5 +1,5 @@
 import type { StagedDocumentationUpload, SystemChangeItem, SystemFrontendDraft } from "./types.js";
-export declare const SYSTEM_PLAYGROUND_DRAFT_ID = "playground-draft";
+export declare const SYSTEM_PLAYGROUND_DRAFT_ID = "@playground-draft";
 export declare const KNOWLEDGE_BASE_CHANGE_LABEL = "Knowledge base";
 export type SystemEnvironmentTarget = "dev" | "prod";
 export declare function buildCreateSystemEnvironmentPrompts({ systemId, systemName, targetEnv, }: {

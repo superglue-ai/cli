@@ -9,7 +9,6 @@ export interface PlaygroundContextData {
         status?: string;
     }>;
     hasOutputTransform: boolean;
-    hasResponseFilters: boolean;
     inputSchemaFields: string[];
     outputSchemaFieldCount: number;
     transformStatus: string;
@@ -52,6 +51,7 @@ export declare function getToolBuilderPrompts({ systemIds, systems, }: {
 export declare function getInvestigationPrompts(run: Run, storedResults?: StoredRunResults | null): {
     hiddenStarterMessage: string;
     userPrompt: string;
+    hideUserMessage: boolean;
 };
 export type OnboardingIntentId = "build-integrations-faster" | "explore-apis-and-systems" | "migrate-data-between-systems" | "get-connectors-for-agents" | "check-out-the-tool";
 export interface OnboardingRouting {

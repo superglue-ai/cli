@@ -4,6 +4,7 @@ import { createClient } from "./client.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerToolCommands } from "./commands/tool/index.js";
 import { registerSystemCommands } from "./commands/system/index.js";
+import { registerMcpCommands } from "./commands/mcp/index.js";
 import { registerRunCommands } from "./commands/run/index.js";
 import { registerUpdateCommand } from "./commands/update.js";
 import { registerSkillCommand } from "./commands/skill.js";
@@ -50,7 +51,7 @@ const program = new Command();
 
 program
   .name("sg")
-  .description("superglue CLI — build, run, and manage integration tools")
+  .description("superglue CLI — build, run, and manage integration tools and MCP servers")
   .version(CLI_VERSION)
   .option("--api-key <key>", "superglue API key")
   .option("--endpoint <url>", "superglue API endpoint")
@@ -78,6 +79,8 @@ IMPORTANT FOR AI AGENTS:
 
   The main skill reference covers: tool building, system setup, OAuth flows,
   credential handling, variable syntax, data selectors, and common pitfalls.
+  The CLI must know the target superglue API endpoint and an org-scoped API key:
+  use sg init, SUPERGLUE_API_KEY/SUPERGLUE_API_ENDPOINT, or --api-key/--endpoint.
   DO NOT attempt to use sg commands without reading the skill reference first.
 
 All Commands:
@@ -107,6 +110,12 @@ All Commands:
   sg system search-docs --system-id <id> -k <kw> Search system documentation
   sg system oauth --system-id <id> [--scopes <s>] Authenticate a system via OAuth
 
+  sg mcp list                                   List named MCP servers
+  sg mcp find [query]                           Search named MCP servers
+  sg mcp find --id <id>                         Get full MCP server config + client setup
+  sg mcp create --name <n> --tool <id>          Create a named MCP server
+  sg mcp edit --id <id> --add-tool <id>         Edit a named MCP server
+
   sg run list [toolId]                           List runs, optionally filtered by tool
   sg run get <runId>                             Get details of a specific run
 
@@ -122,7 +131,7 @@ Global Flags:
 
 Presets (set via sg init --preset or SUPERGLUE_CLI_PRESET):
   runner     Run saved tools by ID only (agent-safe, read-only)
-  builder    Runner + build/edit tools, call systems (no system CRUD)
+  builder    Runner + build/edit tools, call systems, manage MCP servers (no system CRUD)
   admin      Full access (default)
 `,
   );
@@ -145,12 +154,13 @@ registerUpdateCommand(program);
 registerSkillCommand(program);
 registerToolCommands(program, getContext, preset);
 registerSystemCommands(program, getContext, preset);
+registerMcpCommands(program, getContext, preset);
 registerRunCommands(program, getContext, preset);
 
 // Check version compatibility before running commands that hit the server
 // Note: We manually extract --api-key and --endpoint from argv since program.opts()
 // returns empty values before parse() is called
-const commandsRequiringServer = ["tool", "system", "run"];
+const commandsRequiringServer = ["tool", "system", "mcp", "run"];
 
 const subcommand = findSubcommand(process.argv);
 

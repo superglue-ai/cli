@@ -77,7 +77,7 @@ export interface OrgMember {
     id: string;
     email: string | null;
     name: string | null;
-    userType: "member" | "end_user";
+    userType: "member";
     roleIds: string[];
     createdAt?: string;
 }
@@ -193,31 +193,6 @@ export declare enum RunExecutionKind {
     SINGLE_STEP = "single-step"
 }
 export type ClientRequestSource = RequestSource.FRONTEND | RequestSource.AGENT | RequestSource.MCP | RequestSource.CLI;
-export declare enum FilterTarget {
-    KEYS = "KEYS",
-    VALUES = "VALUES",
-    BOTH = "BOTH"
-}
-export declare enum FilterAction {
-    REMOVE = "REMOVE",
-    MASK = "MASK",
-    FAIL = "FAIL"
-}
-export declare enum RemoveScope {
-    FIELD = "FIELD",// Just this field - remove only the matched key-value
-    ITEM = "ITEM",// This item - remove the containing object
-    ENTRY = "ENTRY"
-}
-export interface ResponseFilter {
-    id: string;
-    name?: string;
-    enabled: boolean;
-    target: FilterTarget;
-    pattern: string;
-    action: FilterAction;
-    maskValue?: string;
-    scope?: RemoveScope;
-}
 export interface BaseConfig {
     id: string;
     version?: string;
@@ -280,7 +255,6 @@ export interface Tool extends BaseConfig {
     instruction?: string;
     folder?: string;
     archived?: boolean;
-    responseFilters?: ResponseFilter[];
 }
 export interface ExecutionFileEnvelope {
     kind: "execution_file";
@@ -686,7 +660,7 @@ export type AccessRulesContext = Record<string, any> & {
         id: string;
         name: string;
         tools: "ALL" | string[];
-        systems: "ALL" | Record<string, any>;
+        systems: "ALL" | string[];
         description?: string;
         isBaseRole?: boolean;
     };
@@ -848,26 +822,12 @@ export interface OrgSettings {
 export type CredentialOwnership = "organization" | "user";
 export type OrgStatus = "free" | "team" | "enterprise";
 export type SystemEnvironment = "dev" | "prod";
-export declare enum SystemAccessLevel {
-    NONE = "none",
-    READ_ONLY = "read-only",
-    READ_WRITE = "read-write"
-}
-export interface CustomRule {
-    id: string;
-    name: string;
-    expression?: string;
-    isActive: boolean;
-}
-export interface CustomRulePermission {
-    rules: CustomRule[];
-}
-export type SystemPermission = SystemAccessLevel | CustomRulePermission;
+export type SystemAllowlist = "ALL" | string[];
 export interface Role extends BaseConfig {
     name: string;
     description?: string;
     tools: "ALL" | string[];
-    systems: "ALL" | Record<string, SystemPermission>;
+    systems: SystemAllowlist;
     isBaseRole?: boolean;
     isPersonalRole?: boolean;
     userId?: string;
@@ -879,7 +839,7 @@ export interface RoleInput {
     name: string;
     description?: string;
     tools?: "ALL" | string[];
-    systems?: "ALL" | Record<string, SystemPermission>;
+    systems?: SystemAllowlist;
 }
 export interface UserRoleAssignment {
     userId: string;

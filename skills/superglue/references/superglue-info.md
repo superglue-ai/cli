@@ -54,7 +54,7 @@ The persistent left sidebar contains these top-level items:
 - **Landscape** (`/landscape`) — graph overview of tools, systems, and their connections.
 - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
 - **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
-- **My Credentials** (`/credentials`) — credential management. The **My Credentials** section is for personal user-owned system credentials; the **superglue API keys** section is for API keys. Admins and members open it inside the normal app shell from the sidebar; end users only see this standalone credentials surface.
+- **My Credentials** (`/credentials`) — credential management. The **My Credentials** section is for personal user-owned system credentials; the **superglue API keys** section is for API keys. Admins and members open it inside the normal app shell from the sidebar.
 - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs. Runs is a top-level sidebar item, not a Control Panel sub-item.
 - **Control Panel** (`/admin`) — expandable group for organization and account administration:
   - **Overview** (`/admin`) — dashboard summary, including failed-run and schedule summaries.
@@ -81,7 +81,6 @@ Below the navigation, the sidebar shows the organization switcher and Sign Out. 
    e. Wrap result: `{ currentItem, data, success }`
    f. On failure: abort if `failureBehavior !== "continue"`
 3. **Output transform** (if present): run JS function, validate against outputSchema
-4. **Response filters** (if present): remove/mask/fail on pattern matches
 
 ### Strategy Routing
 
