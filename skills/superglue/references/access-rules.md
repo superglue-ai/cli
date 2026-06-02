@@ -21,7 +21,7 @@ Only `"ALL"` means open access. Empty arrays, missing fields, or `null` mean no 
 
 - `tools: "ALL"` — every tool is allowed, including tools created in the future
 - `tools: ["tool-id-1", "tool-id-2"]` — only these specific tools are allowed
-- Effective tool visibility also requires access to every system referenced by that tool's request steps
+- Tool visibility is based on the tool allowlist only
 
 ## System Permissions
 
@@ -29,14 +29,14 @@ Only `"ALL"` means open access. Empty arrays, missing fields, or `null` mean no 
 - `systems: ["gmail", "stripe"]` — only these specific systems are allowed
 - System access is binary by system ID: listed means allowed, omitted means denied.
 
-## Tool/System Entanglement
+## Visibility and Execution Surfaces
 
-A saved tool is effectively visible and runnable only when both are true:
-
-1. The user has tool access through at least one role.
-2. The user has access to every `systemId` referenced by the tool's request steps.
-
-When granting a tool, inspect the tool's request-step `systemId` values and grant required systems when the user should be able to see or run the tool.
+- **Tools** — list/detail, agent views, VFS, REST detail, and tool history use tool allowlist only
+- **Systems** — list/detail, agent views, VFS, docs, credentials, and `call_system` use system allowlist only
+- **Execution** — running a tool requires tool access plus access to every system referenced by the executed tool config
+- **Runs** — visible only when the user has tool access and access to every system captured on that run
+- **Schedules** — visibility and editing are tool-only; system access can still block execution later
+- **MCP** — config shows configured tools; runtime registration uses tool allowlist, and execution still checks referenced systems
 
 ## Multi-Role Semantics
 

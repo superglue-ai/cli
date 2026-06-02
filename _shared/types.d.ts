@@ -403,6 +403,7 @@ export interface Run {
     runId: string;
     toolId: string;
     tool?: Tool;
+    systemIds?: string[];
     status: RunStatus;
     toolPayload?: Record<string, any>;
     data?: any;

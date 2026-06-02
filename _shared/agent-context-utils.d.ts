@@ -33,7 +33,7 @@ export declare function buildToolPlaygroundInitializationMessage({ config, manua
     manualPayload: string;
     mergedPayload: Record<string, any>;
 }): string;
-export declare function buildSystemPlaygroundInitializationMessage(systemConfig: SystemFrontendDraft): string;
+export declare function buildSystemPlaygroundInitializationMessage(_systemConfig: SystemFrontendDraft): string;
 export declare function getDiscoveryContext(systemIds: string[]): string;
 export declare function getDiscoveryPrompts(systemIds: string[]): {
     hiddenStarterMessage: string;
