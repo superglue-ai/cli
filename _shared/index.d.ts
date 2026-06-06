@@ -6,7 +6,6 @@ export * from "./json-schema.js";
 export * from "./oauth-config.js";
 export * from "./rbac-utils.js";
 export * from "./request-sources.js";
-export * from "./seed-config.js";
 export * from "./system-playground-utils.js";
 export * from "./templates.js";
 export * from "./type-utils.js";
