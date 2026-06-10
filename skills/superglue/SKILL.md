@@ -233,6 +233,7 @@ sg tool save --draft <draftId>
 sg tool list
 sg tool find "shopify orders"       # keyword search (compact results)
 sg tool find --id my-tool           # exact lookup (full config)
+sg tool find --id my-tool --fields instruction,inputSchema  # only selected top-level fields (token-efficient)
 ```
 
 **System commands:**
