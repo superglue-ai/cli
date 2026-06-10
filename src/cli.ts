@@ -97,6 +97,7 @@ All Commands:
   sg tool list                                   List all saved tools
   sg tool find [query]                           Search tools by keyword
   sg tool find --id <id>                         Get full config of a tool
+  sg tool find --id <id> --fields <f1,f2>        Get only selected top-level fields
 
   sg system create --config <file>               Create a system from JSON config
   sg system create --name <name> --url <url>     Create a system from flags

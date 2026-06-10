@@ -43,14 +43,41 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
     .command("find [query]")
     .description("Find tools by query or exact ID")
     .option("--id <exactId>", "Exact tool ID lookup")
+    .option(
+      "--fields <fields>",
+      "Comma-separated top-level fields to return (requires --id), e.g. instruction,inputSchema",
+    )
     .action(async (query: string | undefined, opts) => {
       const { client } = getContext();
       try {
+        if (opts.fields && !opts.id) {
+          error("--fields requires --id (field selection only applies to exact-ID lookups)");
+          process.exit(1);
+        }
         if (opts.id) {
           const tool = await client.getWorkflow(opts.id);
           if (!tool) {
             error(`Tool not found: ${opts.id}`);
             process.exit(1);
+          }
+          if (opts.fields) {
+            const requested = opts.fields
+              .split(",")
+              .map((f: string) => f.trim())
+              .filter(Boolean);
+            const available = Object.keys(tool);
+            const unknown = requested.filter((f: string) => !available.includes(f));
+            const picked = Object.fromEntries(
+              requested
+                .filter((f: string) => available.includes(f))
+                .map((f: string) => [f, (tool as any)[f]]),
+            );
+            output({
+              success: true,
+              tool: picked,
+              ...(unknown.length ? { unknownFields: unknown, availableFields: available } : {}),
+            });
+            return;
           }
           output({ success: true, tool });
           return;

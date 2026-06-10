@@ -25,7 +25,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 | `sg skill redis`          | Redis command syntax, connection URLs, key type handling                                             |
 | `sg skill sftp-smb`       | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                         |
 | `sg skill file-handling`  | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
-| `sg skill access-rules`   | RBAC roles and binary tool/system allowlists (enterprise only)                                       |
+| `sg skill access-rules`   | RBAC roles, resource grants, and tool/system permissions (enterprise only)                           |
 
 ## CRITICAL RULES — READ FIRST
 
@@ -233,6 +233,7 @@ sg tool save --draft <draftId>
 sg tool list
 sg tool find "shopify orders"       # keyword search (compact results)
 sg tool find --id my-tool           # exact lookup (full config)
+sg tool find --id my-tool --fields instruction,inputSchema  # only selected top-level fields (token-efficient)
 ```
 
 **System commands:**
@@ -393,6 +394,19 @@ sourceData = {
   my_api_api_key: "..."
 }
 ```
+
+### Naming Rules — Avoiding Key Collisions
+
+Everything in `sourceData` shares ONE flat namespace, and the runtime does not detect collisions — when two sources use the same key, one silently wins and the tool misbehaves with no error. Prevent collisions at design time:
+
+Never use these as payload input keys or step ids:
+
+- `__files__`, `currentItem`, `sg_auth_email` — overwritten by the runtime
+- `page`, `offset`, `cursor`, `limit`, `pageSize` — a payload key with one of these names shadows the live pagination counters; paginated steps silently stop advancing past the first page
+- the tool's own step ids — the step result overwrites a same-named payload key for all subsequent steps
+- credential keys available to a step (`<systemId>_<credKey>`, `<systemId>_url`, and any runtime-supplied credential names) — the credential value silently replaces the payload value
+
+Safe naming: payload inputs get specific, domain-flavored names (`customerId`, `reportMonth`, `maxResults` — never `page`, `limit`, `cursor`, `data`); step ids are verb-prefixed camelCase (`fetchUsers`) and distinct from every payload key. If the user asks for an input named like a reserved key, use a safe alternative and explain why.
 
 ### Step Result Envelopes
 
@@ -588,6 +602,7 @@ curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API
 - **POST for read-only ops** — GraphQL queries via POST should have `modify: false`. Don't rely on HTTP method alone
 - **Saving without approval** — always present `sg tool run` results and ask before `sg tool save`
 - **`sg_auth_email` in scheduled runs** — not available in scheduler-triggered executions. Tools using `<<sg_auth_email>>` will fail
+- **Reserved key collisions** — payload inputs or step ids named after reserved/injected keys (see Naming Rules) fail silently with wrong values, never with an error
 
 ---
 
@@ -627,6 +642,7 @@ For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, GraphQL, SFT
 2. Re-run with `--include-step-results` to see the exact envelope shape
 3. Paginated steps merge into a single `.data` field — do not `.map()` over them
 4. Verify `sourceData.currentItem` is only referenced inside looping steps (set by the step's own `dataSelector`, not upstream)
+5. If a step silently received the wrong value (no error thrown) or pagination stopped after one page, check for a key collision between payload inputs, step ids, credential keys, and reserved runtime keys — see Naming Rules. Fix by renaming the input, not by working around it
 
 ### Persistent failures
 
