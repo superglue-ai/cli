@@ -403,6 +403,7 @@ export interface Run {
     runId: string;
     toolId: string;
     tool?: Tool;
+    systemIds?: string[];
     status: RunStatus;
     toolPayload?: Record<string, any>;
     data?: any;
@@ -482,31 +483,6 @@ export type ToolSchedule = {
     createdAt: Date;
     updatedAt: Date;
 };
-export declare enum DiscoveryRunStatus {
-    PENDING = "PENDING",
-    PROCESSING = "PROCESSING",
-    COMPLETED = "COMPLETED",
-    FAILED = "FAILED",
-    ABORTED = "ABORTED"
-}
-export type DiscoverySourceType = "file" | "url" | "system";
-export interface DiscoverySource {
-    id: string;
-    type: DiscoverySourceType;
-}
-export interface DiscoveryRunData {
-    title?: string;
-    description?: string;
-    systems?: ExtendedSystem[];
-    error?: string;
-}
-export interface DiscoveryRun {
-    id: string;
-    sources: DiscoverySource[];
-    data?: DiscoveryRunData;
-    status: DiscoveryRunStatus;
-    createdAt: Date;
-}
 export declare enum FileStatus {
     PENDING = "PENDING",
     UPLOADING = "UPLOADING",
@@ -542,24 +518,6 @@ export interface BatchFileUploadResponse {
         expiresIn: number;
     }>;
 }
-export interface ExtendedSystem extends Omit<System, "icon"> {
-    icon?: {
-        name: string;
-        source: "simpleicons" | "lucide";
-    };
-    sources: string[];
-    capabilities: string[];
-    confidence: "high" | "medium" | "low";
-    evidence: string;
-    systemDetails?: string;
-    matchedSystemId?: string;
-    potentialConnections?: string[];
-}
-export interface DiscoveryResult {
-    title: string;
-    description: string;
-    systems: ExtendedSystem[];
-}
 export declare enum AgentType {
     MAIN = "main",
     PLAYGROUND = "playground",
@@ -567,14 +525,14 @@ export declare enum AgentType {
     ACCESS_RULES = "access_rules"
 }
 export declare const PLAYGROUND_TOOL_DRAFT_ID = "@playground-draft";
-export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool"];
+export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool", "share_resource"];
 export declare const AGENT_TOOLS: Record<AgentType, string[]>;
 export declare const DYNAMIC_AGENT_TOOLS: readonly ["web_search"];
-export declare const SKILL_BODY_NAMES: readonly ["tool-building", "tool-editing", "system-setup", "access-rule-setup", "tool-deployment", "demos"];
+export declare const SKILL_BODY_NAMES: readonly ["tool-building", "tool-editing", "system-setup", "access-rule-setup", "tool-deployment", "discovery", "migration", "demos"];
 export type SkillBody = (typeof SKILL_BODY_NAMES)[number];
 export declare const SKILL_REFERENCE_NAMES: readonly ["superglue-info", "http", "graphql", "postgres", "mssql", "odbc", "redis", "sftp-smb", "file-handling", "systems-handling"];
 export type SkillReference = (typeof SKILL_REFERENCE_NAMES)[number];
-export declare const LOADABLE_MARKDOWN_NAMES: readonly ["tool-building", "tool-editing", "system-setup", "access-rule-setup", "tool-deployment", "demos", "superglue-info", "http", "graphql", "postgres", "mssql", "odbc", "redis", "sftp-smb", "file-handling", "systems-handling"];
+export declare const LOADABLE_MARKDOWN_NAMES: readonly ["tool-building", "tool-editing", "system-setup", "access-rule-setup", "tool-deployment", "discovery", "migration", "demos", "superglue-info", "http", "graphql", "postgres", "mssql", "odbc", "redis", "sftp-smb", "file-handling", "systems-handling"];
 export type LoadableMarkdown = SkillBody | SkillReference;
 export declare const SKILL_GATED_TOOLS: Partial<Record<LoadableMarkdown, string[]>>;
 export declare enum ConfirmationAction {
@@ -659,8 +617,7 @@ export type AccessRulesContext = Record<string, any> & {
     role: {
         id: string;
         name: string;
-        tools: "ALL" | string[];
-        systems: "ALL" | string[];
+        resourceGrants: ResourceGrant[];
         description?: string;
         isBaseRole?: boolean;
     };
@@ -822,12 +779,137 @@ export interface OrgSettings {
 export type CredentialOwnership = "organization" | "user";
 export type OrgStatus = "free" | "team" | "enterprise";
 export type SystemEnvironment = "dev" | "prod";
-export type SystemAllowlist = "ALL" | string[];
+export type ResourcePermission = "viewer" | "editor";
+export type ResourceGrantSource = "access_rule" | "ownership" | "share";
+export type ResourceKind = "tool" | "system";
+export interface ResourceGrant extends BaseConfig {
+    orgId?: string;
+    roleId: string;
+    resourceRef: string;
+    permissions: ResourcePermission[];
+    source: ResourceGrantSource;
+    grantedByUserId?: string;
+    updatedByUserId?: string;
+    revokedAt?: Date;
+    revokedByUserId?: string;
+}
+export interface ResourceGrantInput {
+    resourceRef: string;
+    permissions?: ResourcePermission[];
+    source?: ResourceGrantSource;
+    grantedByUserId?: string;
+    updatedByUserId?: string;
+}
+export interface RoleResourceGrantInput {
+    resourceRef: string;
+    permissions?: ResourcePermission[];
+}
+export interface ResourceShareTargetInput {
+    userId: string;
+    permission: ResourcePermission;
+}
+export interface ShareResourceRequest {
+    resource: {
+        kind: ResourceKind;
+        id: string;
+    };
+    targets: ResourceShareTargetInput[];
+}
+export interface RevokeResourceShareTargetInput {
+    userId: string;
+}
+export interface UpdateResourceSharesRequest {
+    resource: {
+        kind: ResourceKind;
+        id: string;
+    };
+    set?: ResourceShareTargetInput[];
+    revoke?: RevokeResourceShareTargetInput[];
+}
+export type ShareResourceToolPermission = ResourcePermission | "none";
+export interface ShareResourceToolTargetInput {
+    userId: string;
+    permission: ShareResourceToolPermission;
+}
+export interface ShareResourceToolInput {
+    kind: ResourceKind;
+    id: string;
+    targets: ShareResourceToolTargetInput[];
+}
+export interface ResourceShareUserAccess {
+    userId: string;
+    name: string | null;
+    email: string | null;
+    isCurrentUser: boolean;
+    isAdmin?: boolean;
+    isOwner: boolean;
+    permissions: ResourcePermission[];
+    sources: ResourceGrantSource[];
+    sharePermission?: ResourcePermission;
+    availablePermissions: ResourcePermission[];
+    disabledReason?: string;
+}
+export interface ResourceShareRoleAccess {
+    roleId: string;
+    name: string;
+    isBaseRole?: boolean;
+    permission: ResourcePermission;
+}
+export interface ResourceShareRequiredSystem {
+    id: string;
+    name: string | null;
+    actorCanShareViewer: boolean;
+}
+export interface ResourceShareTargetResult {
+    userId: string;
+    name: string | null;
+    email: string | null;
+    permission: ResourcePermission;
+}
+export interface ResourceShareGrantResult {
+    userId: string;
+    name: string | null;
+    email: string | null;
+    resource: {
+        kind: ResourceKind;
+        id: string;
+        name: string | null;
+    };
+    permission: ResourcePermission | "none";
+}
+export interface ResourceShareInfo {
+    resource: {
+        kind: ResourceKind;
+        id: string;
+        name: string | null;
+        ownerUserId?: string;
+    };
+    actor: {
+        userId?: string;
+        maxPermission?: ResourcePermission;
+        availablePermissions: ResourcePermission[];
+    };
+    users: ResourceShareUserAccess[];
+    rolesWithAccess?: ResourceShareRoleAccess[];
+    requiredSystems?: ResourceShareRequiredSystem[];
+}
+export interface ShareResourceResponse {
+    success: boolean;
+    resource: {
+        kind: ResourceKind;
+        id: string;
+    };
+    grants: ResourceGrant[];
+    sharedUserIds: string[];
+    revokedUserIds?: string[];
+    sharedTargets?: ResourceShareTargetResult[];
+    grantResults?: ResourceShareGrantResult[];
+    requiredSystemIds?: string[];
+}
 export interface Role extends BaseConfig {
     name: string;
     description?: string;
-    tools: "ALL" | string[];
-    systems: SystemAllowlist;
+    resourceGrants?: ResourceGrant[];
     isBaseRole?: boolean;
     isPersonalRole?: boolean;
     userId?: string;
@@ -838,8 +920,7 @@ export interface Role extends BaseConfig {
 export interface RoleInput {
     name: string;
     description?: string;
-    tools?: "ALL" | string[];
-    systems?: SystemAllowlist;
+    resourceGrants?: RoleResourceGrantInput[];
 }
 export interface UserRoleAssignment {
     userId: string;

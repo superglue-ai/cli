@@ -1,51 +1,73 @@
 # Access Rules (RBAC)
 
-On superglue, roles define binary tool-level and system-level allowlists. Users can have multiple roles. Roles and access rules are only available on enterprise organizations.
+On superglue, roles define active resource grants for tools and systems. Users can have multiple roles. Roles and access rules are only available on enterprise organizations.
 
 ## Data Model
 
 ```typescript
+interface ResourceGrant {
+  roleId: string;
+  resourceRef: "tool:<encodedId>" | "system:<encodedId>" | "tool:*" | "system:*";
+  permissions: Array<"viewer" | "editor">;
+  source: "access_rule" | "ownership" | "share";
+  grantedByUserId?: string;
+  revokedAt?: Date;
+  revokedByUserId?: string;
+}
+
 interface Role {
   id: string;
   name: string;
   description?: string;
-  tools: "ALL" | string[];
-  systems: "ALL" | string[];
+  resourceGrants: ResourceGrant[];
   isBaseRole?: boolean;
 }
 ```
 
-Only `"ALL"` means open access. Empty arrays, missing fields, or `null` mean no direct access from that role.
+Only active grants where `revokedAt` is empty contribute to access. `editor` implies `viewer`.
 
-## Tool Permissions
+## Resource Refs
 
-- `tools: "ALL"` — every tool is allowed, including tools created in the future
-- `tools: ["tool-id-1", "tool-id-2"]` — only these specific tools are allowed
-- Effective tool visibility also requires access to every system referenced by that tool's request steps
+- `tool:<encodedToolId>` — one specific tool.
+- `system:<encodedSystemId>` — one specific system.
+- `tool:*` — every current and future tool.
+- `system:*` — every current and future system.
 
-## System Permissions
+Resource ids are URL-encoded inside `resourceRef`; use shared helpers rather than hand-building refs.
 
-- `systems: "ALL"` — every current and future system is allowed
-- `systems: ["gmail", "stripe"]` — only these specific systems are allowed
-- System access is binary by system ID: listed means allowed, omitted means denied.
+## Permissions
 
-## Tool/System Entanglement
+- `viewer` — can see and execute/use the resource.
+- `editor` — can mutate/delete/share the resource and includes `viewer`.
 
-A saved tool is effectively visible and runnable only when both are true:
+Current configured role access and ownership grants are generally stored as `editor`.
 
-1. The user has tool access through at least one role.
-2. The user has access to every `systemId` referenced by the tool's request steps.
+## Grant Sources
 
-When granting a tool, inspect the tool's request-step `systemId` values and grant required systems when the user should be able to see or run the tool.
+- `access_rule` — explicit admin/Access Rules edit.
+- `ownership` — authorization projection from the resource creator.
+- `share` — explicit user-to-user sharing through the app/agent sharing flow.
+
+Ownership source of truth remains the tool/system row. Ownership grants are a permission projection and should be preserved by ordinary role edits.
+
+## Visibility and Execution Surfaces
+
+- **Tools** — list/detail, agent views, VFS, REST detail, and tool history use tool `viewer`.
+- **Systems** — list/detail, agent views, VFS, docs, credentials, and `sg system call` use system `viewer`.
+- **Execution** — running a tool requires tool `viewer` plus system `viewer` for every referenced system.
+- **Editing** — updating tools/systems requires `editor`.
+- **Runs** — visible only when the user has tool `viewer` and system `viewer` for every captured system.
+- **Schedules** — visibility follows current tool behavior; editing requires tool `editor`.
+- **MCP** — config shows configured tools; runtime registration uses tool `viewer`, and execution still checks referenced systems.
 
 ## Multi-Role Semantics
 
 Users can have multiple roles. Resolution is union:
 
-| Layer   | Semantics                                             |
-| ------- | ----------------------------------------------------- |
-| Tools   | If any role allows a tool, the tool ID is allowed     |
-| Systems | If any role allows a system, the system ID is allowed |
+| Layer   | Semantics                                                                  |
+| ------- | -------------------------------------------------------------------------- |
+| Tools   | If any active grant targets a tool, that grant's permission is effective   |
+| Systems | If any active grant targets a system, that grant's permission is effective |
 
 Assigned roles can add access but cannot remove access granted by another role.
 
@@ -53,25 +75,37 @@ Assigned roles can add access but cannot remove access granted by another role.
 
 Every user has exactly one base role:
 
-- **`admin`** — full access to everything. The admin role is immutable.
-- **`member`** — default for org team members. Starts with `tools: "ALL"`, `systems: "ALL"`. Tool and system allowlists can be narrowed. Name and description cannot be changed. Cannot be deleted.
+- **`admin`** — full access to everything. The admin role is immutable and has wildcard `editor` grants.
+- **`member`** — default for org team members. New organizations seed it with wildcard `editor` grants for tools and systems. Access-rule grants can be narrowed. Name and description cannot be changed. Cannot be deleted.
 
 Users can also have additional custom roles on top of their base role. Custom roles are fully editable and can be created/deleted.
 
 ## Personal Roles
 
-Admins can create a personal role for a specific user. A personal role is a per-user override that grants individual tool and system access independent of shared roles.
+Personal roles are per-user containers for ownership, share, and explicit access-rule grants.
 
 - Each user can have at most one personal role.
-- Personal roles use the same `tools` and `systems` allowlist structure.
-- Personal role allowlists are unioned with the user's other roles.
-- Managed via the Personal Roles tab in Access Rules or the REST API (`POST /v1/users/:userId/personal-role`).
+- Ownership grants are added automatically when a user creates a tool or system.
+- Personal role grants are unioned with the user's other roles.
+- Managed via the Personal Roles tab in Access Rules and backend role APIs.
 
-## Auto-Append On Resource Creation
+## Sharing Semantics
 
-When a user creates a new tool or system, the backend automatically adds it to the creator's personal role:
+V1 sharing targets organization users only. It does not share directly to base roles or custom roles.
 
-- New tool created -> appended to the creator's personal role `tools` list
-- New system created -> appended to the creator's personal role `systems` list
+- Sharing writes `source: "share"` grants into the target user's personal role.
+- A user can grant only permissions up to their own effective access: viewer can grant viewer, editor can grant viewer or editor.
+- If the target already has the requested permission or stronger from any active grant, sharing is redundant and should be blocked.
+- If the target has viewer access and the acting user can grant editor, sharing can promote the user to editor through the personal `source: "share"` grant.
+- Sharing a tool also grants viewer access to required systems when the recipient lacks system access.
+- Tool sharing is atomic. If any selected user or required system grant cannot be applied, nothing is shared.
+- Normal users cannot unshare in V1. Admin cleanup should use Access Rules/admin grant management.
+
+## Auto-Grant On Resource Creation
+
+When a user creates a new tool or system, the backend automatically grants ownership access to the creator's personal role:
+
+- New tool created -> `ownership` grant on `tool:<toolId>` with `editor`.
+- New system created -> `ownership` grant on `system:<systemId>` with `editor`.
 
 This only affects the creator's personal role, not base roles or additional custom roles.
