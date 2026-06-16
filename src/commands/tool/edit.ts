@@ -4,7 +4,7 @@ import type { SuperglueClient } from "@superglue/shared";
 import { normalizeToolSchemas } from "@superglue/shared";
 import * as jsonpatch from "fast-json-patch";
 import type { Operation } from "fast-json-patch";
-import { readDraft, writeDraft } from "../../drafts.js";
+import { getDraftPath, readDraft, writeDraft } from "../../drafts.js";
 import {
   output,
   error,
@@ -31,14 +31,12 @@ Patches use JSON Patch (RFC 6902) format:
   [{"op":"replace","path":"/steps/0/config/url","value":"https://..."}]
 
 Provide --draft or --tool. Editing a saved tool creates a new draft.
-Returns: { success, draftId, diffs }
+Returns: { success, draftId, draftPath, diffs }
 
 Run 'sg skill' for common patch patterns and the build→run→edit→save workflow.
 `,
     )
     .action(async (opts) => {
-      const { client } = getContext();
-
       if (!opts.draft && !opts.tool) {
         error("Provide --draft or --tool");
         process.exit(1);
@@ -65,6 +63,7 @@ Run 'sg skill' for common patch patterns and the build→run→edit→save workf
 
       if (opts.tool) {
         try {
+          const { client } = getContext();
           const saved = await client.getWorkflow(opts.tool);
           if (!saved) {
             error(`Tool not found: ${opts.tool}`);
@@ -122,12 +121,14 @@ Run 'sg skill' for common patch patterns and the build→run→edit→save workf
       };
 
       writeDraft(draft);
+      const draftPath = getDraftPath(workingDraftId);
 
       if (isTableMode()) {
         success(`Draft updated: ${c.bold}${workingDraftId}${c.reset}`);
+        console.log(`  ${c.dim}draft file:${c.reset} ${draftPath}`);
         console.log("");
       } else {
-        output({ success: true, draftId: workingDraftId, diffs });
+        output({ success: true, draftId: workingDraftId, draftPath, diffs });
       }
     });
 }

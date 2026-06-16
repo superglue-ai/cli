@@ -18,7 +18,7 @@ function encodeDraftId(draftId: string): string {
   return Buffer.from(draftId, "utf-8").toString("base64url");
 }
 
-function getDraftPath(draftId: string): string {
+export function getDraftPath(draftId: string): string {
   return path.join(getDraftsDir(), `${encodeDraftId(draftId)}.json`);
 }
 

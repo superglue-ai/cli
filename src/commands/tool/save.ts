@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { readDraft, deleteDraft } from "../../drafts.js";
+import { getDraftPath, readDraft, deleteDraft } from "../../drafts.js";
 import { output, error, success, spinner, colors as c, isTableMode } from "../../output.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
@@ -22,6 +22,7 @@ export function registerSaveCommand(parent: Command, getContext: ContextFn): voi
       }
 
       const toolId = opts.id || draft.config.id;
+      const draftPath = getDraftPath(opts.draft);
       const spin = spinner(`Saving tool ${c.bold}${toolId}${c.reset}...`);
       try {
         const saved = await client.upsertWorkflow(toolId, {
@@ -35,12 +36,13 @@ export function registerSaveCommand(parent: Command, getContext: ContextFn): voi
         if (isTableMode()) {
           success(`Tool saved: ${c.bold}${saved.id}${c.reset}`);
           console.log(`  ${c.dim}webhook:${c.reset} ${apiEndpoint}/v1/hooks/${saved.id}`);
-          console.log(`  ${c.dim}draft ${opts.draft} deleted${c.reset}`);
+          console.log(`  ${c.dim}draft ${opts.draft} deleted:${c.reset} ${draftPath}`);
           console.log("");
         } else {
           output({
             success: true,
             toolId: saved.id,
+            deletedDraftPath: draftPath,
             webhookUrl: `${apiEndpoint}/v1/hooks/${saved.id}?token=YOUR_API_KEY`,
           });
         }

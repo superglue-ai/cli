@@ -196,11 +196,14 @@ pagination: {
 | cursorBased | `<<cursor>>`                 | null      | extracted via cursorPath |
 | all         | `<<limit>>` / `<<pageSize>>` | pageSize  | —                        |
 
-**Stop conditions** — JS expression evaluated in sandbox. Receives `(response, pageInfo)`:
+**Stop conditions** — JS expression evaluated in sandbox. Receives `(response, pageInfo, sourceData)`:
 
 - `response.data` = parsed API response body
 - `response.headers` = response headers
-- `pageInfo = { page, offset, cursor, totalFetched }`
+- `pageInfo = { page, offset, cursor, totalFetched, mergedResult }`
+- `pageInfo.totalFetched` counts the merged paginated result including the current page
+- `pageInfo.mergedResult` is the accumulated paginated result including the current page
+- `sourceData` contains the current step input data, with payload fields at the root plus previous step results
 - Return `true` to STOP
 
 ```javascript
@@ -208,6 +211,7 @@ pagination: {
 "response.data.items.length === 0";
 "response.data.hasMore === false";
 "pageInfo.totalFetched >= 1000";
+"pageInfo.totalFetched >= sourceData.maxResults";
 ```
 
 **Cursor extraction:** `cursorPath` is a simple dot-separated property path (e.g. `meta.next_cursor`, `data.0.id`) resolved against the parsed response body. It is not a JSONPath expression — wildcards, filters, and `$.` prefixes are not supported. For property names containing `@` (e.g. OData `@odata.nextLink`), use the name directly as the path. Null/undefined cursor stops pagination.

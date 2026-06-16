@@ -1,7 +1,6 @@
 import type { AgentCompactionPayload, ConnectionProtocol, ExecutionFileEnvelope, Message, PatchSystemBody, System, Tool, ToolCall } from "./types.js";
 export * from "./utils/cron.js";
 export * from "./utils/model-context-length.js";
-export * from "./utils/token-count.js";
 export declare function inferProtocolFromUrl(url: string): ConnectionProtocol;
 export declare function isReadOnlyCallSystem(input: {
     protocol?: ConnectionProtocol;

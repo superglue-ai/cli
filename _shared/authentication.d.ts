@@ -23,7 +23,6 @@ export type SystemAuthentication = {
     protocol?: "postgres" | "redis" | "sftp" | "smb" | "sqlserver" | "odbc" | "custom";
     config?: Record<string, unknown>;
 };
-export type AuthenticationSecureInputField = "clientId" | "clientSecret";
 export type AuthenticationEditorField = {
     path: string;
     label: string;
@@ -44,6 +43,10 @@ export type ResolvedCredentialEntry = {
     isKeyLocked?: boolean;
 };
 export declare const OAUTH_CONFIG_CREDENTIAL_KEYS: readonly ["auth_url", "authUrl", "token_url", "tokenUrl", "token_uri", "scopes", "scope", "grant_type", "grantType", "client_id", "clientId", "client_secret", "clientSecret", "tokenAuthMethod", "tokenContentType", "usePKCE", "extraHeaders", "extraBodyParams"];
+export declare const RESERVED_AUTH_INPUT_KEYS: {
+    readonly oauth_client_id: "clientId";
+    readonly oauth_client_secret: "clientSecret";
+};
 export declare function hasMeaningfulValue(value: unknown): boolean;
 export declare function stringValue(value: unknown): string | undefined;
 export type OAuthExecutableGrantType = "authorization_code" | "client_credentials";
@@ -66,6 +69,11 @@ export declare function normalizeGrantType(value: unknown): Extract<SystemAuthen
     type: "oauth2";
 }>["grantType"];
 export declare function normalizeSystemAuthentication(authentication: SystemAuthentication | undefined): SystemAuthentication | undefined;
+export declare function mapAgentAuthInput(auth: unknown): {
+    authentication?: SystemAuthentication;
+    error?: string;
+};
+export declare function mergeAgentAuthInput(existing: SystemAuthentication | undefined, patchInput: unknown): SystemAuthentication;
 export declare function getAuthenticationConfigCredentialKeys(authentication: SystemAuthentication | undefined): string[];
 export declare function buildAuthenticationEditorModel({ authentication, }: {
     authentication: SystemAuthentication | undefined;
@@ -76,20 +84,6 @@ export declare function updateAuthenticationEditorField({ authentication, path, 
     path: string;
     value: unknown;
 }): SystemAuthentication;
-export declare function getAuthenticationSecureInputFieldLabel(field: AuthenticationSecureInputField): string;
-export declare function getAuthenticationSecureInputValue({ field, values, }: {
-    field: AuthenticationSecureInputField;
-    values?: Record<string, unknown> | null;
-}): string | undefined;
-export declare function getBlankAuthenticationSecureInputFields(authentication: unknown): AuthenticationSecureInputField[];
-export declare function getMissingAuthenticationSecureInputFields({ authentication, userProvidedAuthentication, }: {
-    authentication: unknown;
-    userProvidedAuthentication?: Record<string, unknown> | null;
-}): AuthenticationSecureInputField[];
-export declare function applyAuthenticationSecureInputValues({ authentication, userProvidedAuthentication, }: {
-    authentication: unknown;
-    userProvidedAuthentication?: Record<string, unknown> | null;
-}): unknown;
 export declare function validateOAuthAuthenticationConfigPlacement({ authentication, credentials, }: {
     authentication: unknown;
     credentials: unknown;
@@ -130,13 +124,42 @@ export declare function normalizeSystemCredentialOwnershipInput({ credentialOwne
 export declare function hasRuntimeCredentialValues(credentials: unknown): boolean;
 export declare function validateCredentialObjectKeys(credentials: unknown): string | null;
 export declare function validateCredentialKeyList(keys: string[]): string | null;
-export declare function applyConfirmedSystemAuthenticationInput({ authentication, credentials, userProvidedAuthentication, requireSecureInputs, }: {
-    authentication: unknown;
+export declare function normalizeAskForUserInputs(value: unknown): string[];
+export declare function validateSystemInputCollection({ credentials, askForUserInputs, authType, }: {
     credentials: unknown;
-    userProvidedAuthentication?: Record<string, unknown> | null;
-    requireSecureInputs?: boolean;
+    askForUserInputs?: unknown;
+    authType?: AuthenticationType;
+}): string | null;
+export declare function routeUserProvidedInputs(inputs: Record<string, string> | undefined, options?: {
+    authType?: AuthenticationType;
 }): {
-    authentication: unknown;
-    error?: string;
+    credentialValues: Record<string, string>;
+    authenticationPatch: {
+        clientId?: string;
+        clientSecret?: string;
+    };
 };
+export declare function getUserInputFieldLabel(key: string, options?: {
+    authType?: AuthenticationType;
+}): string;
+export declare function getMissingUserProvidedInputKeys({ askForUserInputs, userProvidedInputs, }: {
+    askForUserInputs: unknown;
+    userProvidedInputs?: Record<string, unknown>;
+}): string[];
+export declare function applyUserProvidedAuthenticationPatch({ authentication, authenticationPatch, }: {
+    authentication: SystemAuthentication | undefined;
+    authenticationPatch?: {
+        clientId?: string;
+        clientSecret?: string;
+    };
+}): SystemAuthentication | undefined;
+export declare function mapOAuthMissingFieldsForAgent(missingFields: string[]): string[];
+export declare function validateConfirmedUserInputs({ askForUserInputs, userProvidedInputs, }: {
+    askForUserInputs: unknown;
+    userProvidedInputs?: Record<string, unknown>;
+}): string | null;
+export declare function validateOAuthAuthenticationAndCredentialInputs({ authentication, credentials, }: {
+    authentication: SystemAuthentication | undefined;
+    credentials: unknown;
+}): string | null;
 //# sourceMappingURL=authentication.d.ts.map

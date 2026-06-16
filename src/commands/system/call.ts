@@ -11,6 +11,7 @@ function isStepResponseEnvelope(value: unknown): value is {
   data: unknown;
   success: boolean;
   error?: unknown;
+  stepFileKeys?: string[];
 } {
   return (
     value !== null &&
@@ -152,14 +153,17 @@ ${c.bold}Supported Protocols:${c.reset}
       try {
         const mode = opts.env === "dev" || opts.env === "prod" ? opts.env : undefined;
         const result = await client.executeStep({ step, payload: {}, mode });
-        const responseData = result.data;
-        const responseEnvelope = isStepResponseEnvelope(responseData) ? responseData : undefined;
+        const rawStepData = result.data;
+        const responseEnvelope = isStepResponseEnvelope(rawStepData) ? rawStepData : undefined;
+        const responseData = responseEnvelope ? responseEnvelope.data : rawStepData;
+        const stepFileKeys = result.stepFileKeys ?? responseEnvelope?.stepFileKeys;
         const nestedFailure = responseEnvelope?.success === false;
         const commandSuccess = result.success && (opts.continueOnError || !nestedFailure);
         output({
           success: commandSuccess,
           protocol: inferProtocolFromUrl(opts.url),
           data: responseData,
+          ...(stepFileKeys && stepFileKeys.length > 0 ? { stepFileKeys } : {}),
           ...(result.error || responseEnvelope?.error
             ? { error: result.error || responseEnvelope?.error }
             : {}),

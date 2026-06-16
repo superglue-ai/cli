@@ -1,18 +1,15 @@
 import { spawn } from "node:child_process";
-import crypto from "node:crypto";
 import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import {
   findTemplateForSystem,
-  encryptCliApiKey,
-  buildClientCredentialsExchangeRequest,
   getOAuthTokenExchangeConfig,
   parseJsonRecord,
   resolveOAuthConfigFromAuthentication,
 } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { output, error, success, spinner, colors as c } from "../../output.js";
-import { getMySystemCredentials, setMySystemCredentials } from "./user-credentials-api.js";
+import { error, success, spinner, colors as c } from "../../output.js";
+import { getMySystemCredentials } from "./user-credentials-api.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -108,64 +105,8 @@ function resolveCliOAuthConfig(system: any, opts: any) {
   };
 }
 
-async function resolveClientSecret(params: {
-  client: SuperglueClient;
-  clientId?: string;
-  clientSecret?: string;
-  templateMatch?: ReturnType<typeof findTemplateForSystem>;
-}): Promise<{ clientSecret?: string; source?: "system" | "template" }> {
-  if (params.clientSecret) return { clientSecret: params.clientSecret, source: "system" };
-  if (!params.templateMatch || !params.clientId) return {};
-
-  const templateCreds = await params.client
-    .getTemplateOAuthCredentials(params.templateMatch.key)
-    .catch(() => null);
-  if (!templateCreds || templateCreds.client_id !== params.clientId) return {};
-  return { clientSecret: templateCreds.client_secret, source: "template" };
-}
-
-function normalizeOAuthTokens(tokens: Record<string, any>): Record<string, unknown> {
-  return {
-    access_token: tokens.access_token,
-    ...(tokens.refresh_token ? { refresh_token: tokens.refresh_token } : {}),
-    token_type: tokens.token_type || "Bearer",
-    ...(tokens.expires_at ? { expires_at: tokens.expires_at } : {}),
-    ...(tokens.expires_in
-      ? { expires_at: new Date(Date.now() + Number(tokens.expires_in) * 1000).toISOString() }
-      : {}),
-    ...(tokens.expires_in ? { expires_in: tokens.expires_in } : {}),
-  };
-}
-
-async function saveOAuthTokens(params: {
-  config: CLIConfig;
-  client: SuperglueClient;
-  system: any;
-  systemId: string;
-  envOption: { environment?: "dev" | "prod" };
-  tokens: Record<string, unknown>;
-}) {
-  if (params.system.credentialOwnership === "user") {
-    const existing = await getMySystemCredentials(params.config, params.systemId, params.envOption);
-    await setMySystemCredentials(
-      params.config,
-      params.systemId,
-      { ...(existing.credentials || {}), ...params.tokens },
-      params.envOption,
-    );
-    return;
-  }
-
-  await params.client.updateSystem(
-    params.systemId,
-    {
-      credentials: {
-        ...(params.system.credentials || {}),
-        ...params.tokens,
-      },
-    },
-    params.envOption,
-  );
+function getTokenDestination(system: any): "system" | "user_credentials" {
+  return system.credentialOwnership === "user" ? "user_credentials" : "system";
 }
 
 export function registerOAuthCommand(parent: Command, getContext: ContextFn): void {
@@ -224,50 +165,35 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
         const spin = spinner("Exchanging client credentials...");
 
         try {
-          const resolvedSecret = await resolveClientSecret({
-            client,
-            clientId,
-            clientSecret,
-            templateMatch,
-          });
-          const req = buildClientCredentialsExchangeRequest({
+          const exchange = await client.createOAuthExchange({
+            systemId: opts.systemId,
+            environment: envOption.environment,
+            grantType: "client_credentials",
+            redirectUri: `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`,
             tokenUrl,
             clientId,
-            clientSecret: resolvedSecret.clientSecret,
+            clientSecret,
+            templateId: clientSecret ? undefined : templateMatch?.key,
             scopes,
-            config: tokenConfig,
+            tokenAuthMethod: tokenConfig.tokenAuthMethod,
+            tokenContentType: tokenConfig.tokenContentType,
+            extraHeaders: tokenConfig.extraHeaders,
+            extraBodyParams: tokenConfig.extraBodyParams,
+            tokenDestination: getTokenDestination(system),
+            returnTokens: false,
           });
-          const step = {
-            id: `oauth_cc_${Date.now()}`,
-            failureBehavior: "fail" as const,
-            config: {
-              url: req.url,
-              method: "POST",
-              headers: req.headers,
-              body: req.body,
-            },
-          };
-          const result = await client.executeStep({ step, payload: {} });
-          if (result.success && result.data) {
-            const tokens = result.data.data || result.data;
-            if (tokens.access_token) {
-              await saveOAuthTokens({
-                client,
-                config,
-                system,
-                systemId: opts.systemId,
-                envOption,
-                tokens: normalizeOAuthTokens(tokens),
-              });
-              spin.stop();
-              success(
-                `OAuth client_credentials flow completed for ${c.bold}${opts.systemId}${c.reset}`,
-              );
-              return;
-            }
+          const result = await client.completeOAuthExchange(exchange.oauthExchangeId, {
+            state: exchange.state,
+          });
+          if (result.type === "oauth-success" && result.saved) {
+            spin.stop();
+            success(
+              `OAuth client_credentials flow completed for ${c.bold}${opts.systemId}${c.reset}`,
+            );
+            return;
           }
           spin.stop();
-          error(result.error || "Token exchange failed");
+          error(result.message || "Token exchange failed");
           process.exit(1);
         } catch (err: any) {
           spin.stop();
@@ -283,7 +209,7 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
         process.exit(1);
       }
 
-      // Authorization code flow: embed encrypted API key in state, open browser, poll for token change
+      // Authorization code flow: create backend exchange, open browser, poll for token change.
       const userOwned = system.credentialOwnership === "user";
       const originalToken = userOwned
         ? await getMySystemCredentials(config, opts.systemId, envOption)
@@ -291,83 +217,34 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
             .catch(() => undefined)
         : stringValue(system.credentials?.access_token);
 
-      // Fetch the encryption secret and orgId from the server
-      let encryptionSecret: string;
-      let orgId: string;
+      const redirectUri = `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`;
+      let exchange: Awaited<ReturnType<SuperglueClient["createOAuthExchange"]>>;
       try {
-        const secretData = await client.getCliOAuthSecret();
-        encryptionSecret = secretData.secret;
-        orgId = secretData.orgId;
+        exchange = await client.createOAuthExchange({
+          systemId: opts.systemId,
+          environment: envOption.environment,
+          grantType: "authorization_code",
+          redirectUri,
+          authUrl,
+          tokenUrl,
+          clientId,
+          clientSecret,
+          templateId: clientSecret ? undefined : templateMatch?.key,
+          scopes,
+          tokenAuthMethod: tokenConfig.tokenAuthMethod,
+          tokenContentType: tokenConfig.tokenContentType,
+          extraHeaders: tokenConfig.extraHeaders,
+          extraBodyParams: tokenConfig.extraBodyParams,
+          tokenDestination: getTokenDestination(system),
+          returnTokens: false,
+        });
       } catch (err: any) {
-        error(`Failed to get OAuth encryption secret: ${err.message}`);
+        error(`Failed to initialize OAuth exchange: ${err.message}`);
         process.exit(1);
       }
 
-      const encryptedApiKey = encryptCliApiKey(config.apiKey, opts.systemId, encryptionSecret);
-
-      // Cache client credentials on the backend (same as UI flow) so the callback
-      // can retrieve client_secret without it being in the URL state.
-      // Always cache when the system has its own client_secret — even if a template
-      // matched by URL, the template may not have preconfigured server-side credentials.
-      let clientCredentialsUid: string | undefined;
-      const resolvedSecret = await resolveClientSecret({
-        client,
-        clientId,
-        clientSecret,
-        templateMatch,
-      });
-      if (resolvedSecret.clientSecret && resolvedSecret.source !== "template" && clientId) {
-        clientCredentialsUid = crypto.randomUUID();
-        try {
-          await client.cacheOauthClientCredentials({
-            clientCredentialsUid,
-            clientId,
-            clientSecret: resolvedSecret.clientSecret,
-          });
-        } catch (err: any) {
-          error(`Failed to cache OAuth credentials: ${err.message}`);
-          process.exit(1);
-        }
-      }
-
-      const redirectUri = `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`;
-
-      const state = {
-        systemId: opts.systemId,
-        orgId,
-        timestamp: Date.now(),
-        redirectUri,
-        token_url: tokenUrl,
-        clientId,
-        ...(templateMatch ? { templateId: templateMatch.key } : {}),
-        ...(clientCredentialsUid ? { client_credentials_uid: clientCredentialsUid } : {}),
-        ...(envOption.environment ? { environment: envOption.environment } : {}),
-        scopes,
-        cliApiKey: encryptedApiKey,
-        persistenceMode: userOwned ? "save_user_credentials" : "save_system",
-        ...(tokenConfig.tokenAuthMethod && { tokenAuthMethod: tokenConfig.tokenAuthMethod }),
-        ...(tokenConfig.tokenContentType && { tokenContentType: tokenConfig.tokenContentType }),
-        ...(tokenConfig.extraHeaders && { extraHeaders: tokenConfig.extraHeaders }),
-        ...(tokenConfig.extraBodyParams && { extraBodyParams: tokenConfig.extraBodyParams }),
-      };
-
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: "code",
-        state: Buffer.from(JSON.stringify(state)).toString("base64"),
-        scope: scopes || "",
-      });
-
-      if (authUrl.includes("google.com")) {
-        params.append("access_type", "offline");
-        params.append("prompt", "consent");
-      }
-
-      const fullAuthUrl = `${authUrl}?${params.toString()}`;
-
       const spin = spinner("Waiting for browser authentication...");
-      openBrowser(fullAuthUrl);
+      openBrowser(exchange.authorizationUrl!);
 
       const authenticated = await pollForTokens(
         config,

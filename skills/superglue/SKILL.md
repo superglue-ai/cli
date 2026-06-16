@@ -272,7 +272,8 @@ sg mcp edit --id <serverId> --auth-mode creator_api_key
 
 ```bash
 sg run list --tool my-tool --status failed --limit 20
-sg run get <runId> --fetch-results
+sg run get <runId> --full
+sg run get <runId> --fetch-results  # alias for --full
 ```
 
 **File attachments:**
@@ -397,16 +398,14 @@ sourceData = {
 
 ### Naming Rules — Avoiding Key Collisions
 
-Everything in `sourceData` shares ONE flat namespace, and the runtime does not detect collisions — when two sources use the same key, one silently wins and the tool misbehaves with no error. Prevent collisions at design time:
+Everything in `sourceData` shares ONE flat namespace. Saving a tool rejects payload input keys and step ids that collide with it:
 
-Never use these as payload input keys or step ids:
+- `__files__`, `currentItem`, `sg_auth_email` — injected by the runtime
+- `page`, `offset`, `cursor`, `limit`, `pageSize` — rejected only when the tool has a paginated step, because they would shadow the live pagination counters; on non-paginated tools they are allowed but discouraged (a later edit that adds pagination will force a rename)
+- the tool's own step ids — the step result overwrites a same-named payload key
+- anything starting with `<systemId>_` for a system the tool uses — the entire prefix is reserved for namespaced credentials (`<systemId>_<credKey>`, `<systemId>_url`), even names that don't match an existing credential, because credentials added to the system later would silently shadow the input
 
-- `__files__`, `currentItem`, `sg_auth_email` — overwritten by the runtime
-- `page`, `offset`, `cursor`, `limit`, `pageSize` — a payload key with one of these names shadows the live pagination counters; paginated steps silently stop advancing past the first page
-- the tool's own step ids — the step result overwrites a same-named payload key for all subsequent steps
-- credential keys available to a step (`<systemId>_<credKey>`, `<systemId>_url`, and any runtime-supplied credential names) — the credential value silently replaces the payload value
-
-Safe naming: payload inputs get specific, domain-flavored names (`customerId`, `reportMonth`, `maxResults` — never `page`, `limit`, `cursor`, `data`); step ids are verb-prefixed camelCase (`fetchUsers`) and distinct from every payload key. If the user asks for an input named like a reserved key, use a safe alternative and explain why.
+Safe naming: payload inputs get specific, domain-flavored names (`customerId`, `reportMonth`, `maxResults` — prefer `maxResults` over `limit` even on non-paginated tools, and never prefix an input with a referenced system's id); step ids are verb-prefixed camelCase (`fetchUsers`) and distinct from every payload key. If the user asks for an input named like a reserved key, use a safe alternative and explain why.
 
 ### Step Result Envelopes
 
@@ -559,7 +558,7 @@ sg system create --name "My API" --url https://api.example.com \
 
 ### Draft Management
 
-Drafts live in `.superglue/drafts/<draftId>.json`. Created by `sg tool build`, updated by `sg tool edit`, deleted by `sg tool save`. Ephemeral — not persisted across sessions.
+Drafts live under the active CLI config directory: local `.superglue/drafts/` when a project config exists, otherwise `~/.superglue/drafts/`. Draft filenames are base64url-encoded draft IDs, so use the `draftPath` returned by `sg tool build` and `sg tool edit` when inspecting raw draft files. Created by `sg tool build`, updated by `sg tool edit`, deleted by `sg tool save`. Ephemeral — not persisted to the superglue API until saved.
 
 ### Deployment
 
@@ -602,7 +601,7 @@ curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API
 - **POST for read-only ops** — GraphQL queries via POST should have `modify: false`. Don't rely on HTTP method alone
 - **Saving without approval** — always present `sg tool run` results and ask before `sg tool save`
 - **`sg_auth_email` in scheduled runs** — not available in scheduler-triggered executions. Tools using `<<sg_auth_email>>` will fail
-- **Reserved key collisions** — payload inputs or step ids named after reserved/injected keys (see Naming Rules) fail silently with wrong values, never with an error
+- **Reserved key collisions** — payload inputs or step ids named after reserved/injected keys (see Naming Rules) are rejected at save time; pick a different name instead of retrying
 
 ---
 
@@ -612,7 +611,7 @@ For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, GraphQL, SFT
 
 ### Tool build fails validation
 
-`sg tool build` returns a validation error. Read the message, fix the config, and re-run. Common causes: missing `id`, empty `steps`, missing `url` on request steps, missing `transformCode` on transform steps, `systemId` on the step object instead of `step.config.systemId`.
+`sg tool build` returns a validation error. Read the message, fix the config, and re-run. Common causes: missing `id`, empty `steps`, missing `url` on request steps, missing `transformCode` on transform steps, `systemId` on the step object instead of `step.config.systemId`, or a key name collision (see Naming Rules) — rename the flagged input or step id.
 
 ### Tool runs but a step fails
 
@@ -642,7 +641,6 @@ For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, GraphQL, SFT
 2. Re-run with `--include-step-results` to see the exact envelope shape
 3. Paginated steps merge into a single `.data` field — do not `.map()` over them
 4. Verify `sourceData.currentItem` is only referenced inside looping steps (set by the step's own `dataSelector`, not upstream)
-5. If a step silently received the wrong value (no error thrown) or pagination stopped after one page, check for a key collision between payload inputs, step ids, credential keys, and reserved runtime keys — see Naming Rules. Fix by renaming the input, not by working around it
 
 ### Persistent failures
 
