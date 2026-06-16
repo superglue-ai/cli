@@ -21,7 +21,8 @@ export function registerGetCommand(parent: Command, getContext: ContextFn): void
   parent
     .command("get <runId>")
     .description("Get details of a specific run")
-    .action(async (runId: string) => {
+    .option("--fetch-results", "Include complete run data (alias for --full)")
+    .action(async (runId: string, opts: { fetchResults?: boolean }) => {
       const { client } = getContext();
       try {
         const run = await client.getRun(runId);
@@ -29,7 +30,7 @@ export function registerGetCommand(parent: Command, getContext: ContextFn): void
           error(`Run not found: ${runId}`);
           process.exit(1);
         }
-        const full = isFullMode();
+        const full = isFullMode() || opts.fetchResults === true;
         const fileArtifacts = run.fileArtifacts;
         output({
           success: true,

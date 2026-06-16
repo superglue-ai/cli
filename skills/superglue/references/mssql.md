@@ -1,5 +1,7 @@
 # MSSQL
 
+**This skill is for Microsoft SQL Server and Azure SQL only.** For SAP ASE (Sybase), use the `odbc` skill — SAP ASE requires the ODBC strategy with `odbc://` URLs, not `mssql://`.
+
 ## Step Configuration
 
 ```typescript
@@ -44,17 +46,29 @@ Azure SQL usernames often include `@servername` suffix (e.g., `myuser@myserver`)
 mssql://myuser%40myserver:mypassword@myserver.database.windows.net:1433/mydatabase
 ```
 
+**Named instances** (common for on-prem servers, e.g. ProLaw's `SERVER\PROLAW`) — use the `instanceName` query parameter. Backslash syntax (`SERVER\PROLAW`) in the host is rejected with an error; always translate it to the query parameter:
+
+```
+mssql://user:password@SERVER/database?instanceName=PROLAW
+```
+
+When an instance name is set, the port is ignored — the instance's port is resolved via the SQL Browser service (UDP 1434), which must be running and reachable. If SQL Browser is unavailable (or the server is reached through the Secure Gateway tunnel, which forwards a single TCP port and cannot carry UDP), have the DBA assign a static TCP port to the instance and connect with `host:port` without an instance name instead.
+
 **Connection parameters** can be appended as query strings:
 
 ```
 mssql://user:password@host:port/database?encrypt=true&trustServerCertificate=false
 ```
 
-| Parameter                | Default | Notes                                   |
-| ------------------------ | ------- | --------------------------------------- |
-| `encrypt`                | `true`  | Required for Azure SQL                  |
-| `trustServerCertificate` | `false` | Whether to trust the server certificate |
-| `database`               | —       | Can be in URL path or query parameter   |
+| Parameter                | Default | Notes                                               |
+| ------------------------ | ------- | --------------------------------------------------- |
+| `encrypt`                | `true`  | Required for Azure SQL                              |
+| `trustServerCertificate` | `false` | Whether to trust the server certificate             |
+| `database`               | —       | Can be in URL path or query parameter               |
+| `instanceName`           | —       | SQL Server named instance (case-sensitive spelling) |
+| `domain`                 | —       | Windows domain — switches to NTLM authentication    |
+
+Unknown connection parameters cause an error rather than being silently ignored.
 
 ### Body Format
 
@@ -77,6 +91,24 @@ Credentials are embedded directly in the connection URL using `<<systemId_creden
 mssql://<<my_db_user>>:<<my_db_password>>@<<my_db_host>>:<<my_db_port>>/<<my_db_database>>
 ```
 
+### Windows Authentication (NTLM)
+
+For on-prem SQL Servers that only accept Windows domain logins (no SQL auth), store these credential keys on the system:
+
+| Credential Key | Required | Notes                                                 |
+| -------------- | -------- | ----------------------------------------------------- |
+| `authType`     | yes      | `ntlm`                                                |
+| `domain`       | yes      | Windows domain (e.g. `CORP`)                          |
+| `user`         | yes      | Windows username (also accepts `username`, or in URL) |
+| `password`     | yes      | Windows password (or in URL)                          |
+
+```
+URL:  mssql://<<sys_user>>:<<sys_password>>@<<sys_host>>:<<sys_port>>/<<sys_database>>
+Credentials: { authType: "ntlm", domain, user, password, host, port, database }
+```
+
+Alternatively, pass the domain as a `?domain=CORP` query parameter on the URL — any URL with a `domain` set authenticates via NTLM. Kerberos-only environments are not supported; ask the DBA to permit NTLM or create a SQL login.
+
 ### Azure Active Directory Authentication
 
 For Azure AD auth, store the following credential keys on the system alongside the standard connection fields:
@@ -91,7 +123,7 @@ For Azure AD auth, store the following credential keys on the system alongside t
 | `user`         | yes      | Azure AD username (also accepts `username`, or in URL) |
 | `password`     | yes      | Azure AD password (or in URL)                          |
 
-`user` and `password` can be stored as credentials or embedded in the URL — credentials take precedence.
+`user` and `password` can be stored as credentials or embedded in the URL — values resolved into the URL take precedence; stored credentials only fill gaps the URL omits.
 
 ```
 URL:  mssql://<<sys_user>>:<<sys_password>>@myserver.database.windows.net:1433/mydb
@@ -160,11 +192,14 @@ With OUTPUT (MSSQL equivalent of RETURNING):
 
 ### Return Value
 
-Returns the recordset — array of row objects with column names as keys.
+The shape depends on what the query produces:
 
-- `SELECT`: array of matching rows
+- `SELECT` (single recordset): array of row objects with column names as keys
 - `INSERT/UPDATE/DELETE` with `OUTPUT`: array of returned rows
-- Mutations without `OUTPUT`: empty array
+- Mutations without `OUTPUT`: `{ "rowsAffected": [n] }` — one count per statement
+- Stored procedures / batches returning multiple recordsets: array of recordset arrays (e.g. `[[...rows], [...rows]]`)
+
+Check the shape before indexing: a multi-recordset result is an array of arrays, not a flat row list.
 
 ### Batch Operations
 
@@ -182,6 +217,15 @@ Use a data selector returning an array to execute a query per item:
 - Idle pools cleaned up automatically
 - SSL/TLS encryption enabled by default for Azure SQL
 
+### On-Prem SQL Server (e.g. ProLaw, legacy ERP)
+
+Defaults are tuned for Azure SQL; on-prem servers usually need adjustments:
+
+- **Self-signed certificates** — on-prem servers rarely have CA-signed certs, so the default `trustServerCertificate=false` fails the TLS handshake. Add `?trustServerCertificate=true` (keeps encryption, skips CA validation).
+- **Old SQL Server versions** — SQL Server 2008/2008 R2 without TLS 1.2 patches cannot complete a modern TLS handshake. Use `?encrypt=false` as a last resort, preferably only over the Secure Gateway tunnel.
+- **Named instances** — use the `?instanceName=` query parameter (see URL Format above); remember SQL Browser (UDP 1434) is required for instance resolution and does not work through the Secure Gateway tunnel.
+- **Firewalled servers** — on-prem databases are typically not internet-reachable; configure the system with a Secure Gateway tunnel.
+
 ### Retry Behavior
 
 Default retries from server config. On final failure, error includes query text and params.
@@ -189,9 +233,12 @@ Default retries from server config. On final failure, error includes query text 
 ## Common Pitfalls
 
 - Using `$1`, `$2` (PostgreSQL syntax) instead of `@param1`, `@param2` — MSSQL uses named `@param` parameters
-- Forgetting `OUTPUT INSERTED.*` on INSERT/UPDATE/DELETE when you need the result — without it the step returns an empty array
+- Forgetting `OUTPUT INSERTED.*` on INSERT/UPDATE/DELETE when you need the row data — without it the step returns `{ "rowsAffected": [n] }`, not rows
+- Treating a multi-recordset stored procedure result as a flat row array — it is an array of recordset arrays
 - Accessing step result directly instead of via `.data` — database results follow the same envelope as all steps: `sourceData.stepId.data`
 - Not URL-encoding `@` in Azure SQL usernames — `myuser@myserver` must be `myuser%40myserver` in the connection URL
+- Using a named instance through the Secure Gateway tunnel — instance resolution needs UDP 1434, which the tunnel does not forward; use a static TCP port instead
+- Forgetting `?trustServerCertificate=true` for on-prem servers with self-signed certificates
 
 ## Error Recovery
 
@@ -204,4 +251,8 @@ When an MSSQL step fails and the cause is not obvious:
    - Confirm the client IP is allowed in the Azure SQL firewall rules
    - Verify the username includes the `@servername` suffix if required, properly encoded as `%40`
    - Confirm `encrypt=true` is set (required for Azure SQL)
-5. **Verify parameter types** — MSSQL infers types from the values passed. Passing a string where a number is expected may cause implicit conversion errors. Ensure `params` values match expected column types.
+5. **Check on-prem connection issues** — if connecting to an on-prem server:
+   - TLS handshake errors (`self signed certificate`, `unable to verify`) → add `?trustServerCertificate=true`; for unpatched SQL Server 2008-era hosts, `?encrypt=false`
+   - `Failed to connect ... in 15000ms` with a named instance → SQL Browser (UDP 1434) is unreachable; use a static TCP port instead
+   - `Login failed` with Windows-auth-only servers → set `authType: "ntlm"` and `domain` in credentials, or ask the DBA for a SQL login
+6. **Verify parameter types** — MSSQL infers types from the values passed. Passing a string where a number is expected may cause implicit conversion errors. Ensure `params` values match expected column types.

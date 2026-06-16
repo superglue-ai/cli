@@ -1,6 +1,6 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { colors as c } from "./output.js";
+import { colors as c, isTableMode } from "./output.js";
 import pkg from "../package.json";
 
 const execAsync = promisify(exec);
@@ -86,11 +86,12 @@ export async function getLatestNpmVersion(): Promise<string | null> {
 let updateCheckPromise: Promise<string | null> | null = null;
 
 export function startBackgroundUpdateCheck(): void {
+  if (!isTableMode()) return;
   updateCheckPromise = getLatestNpmVersion();
 }
 
 export async function printUpdateNotification(): Promise<void> {
-  if (!updateCheckPromise) return;
+  if (!isTableMode() || !updateCheckPromise) return;
   try {
     const timeout = new Promise<null>((resolve) => {
       const timer = setTimeout(() => resolve(null), 2000);

@@ -51,18 +51,18 @@ Use this section as the source of truth for high-level web app navigation. Do no
 The persistent left sidebar contains these top-level items:
 
 - **Agent** (`/`) — primary AI chat assistant for building and debugging tools and systems.
-- **Landscape** (`/landscape`) — graph overview of tools, systems, and their connections.
 - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
 - **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
 - **My Credentials** (`/credentials`) — credential management. The **My Credentials** section is for personal user-owned system credentials; the **superglue API keys** section is for API keys. Admins and members open it inside the normal app shell from the sidebar.
 - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs. Runs is a top-level sidebar item, not a Control Panel sub-item.
 - **Control Panel** (`/admin`) — expandable group for organization and account administration:
   - **Overview** (`/admin`) — dashboard summary, including failed-run and schedule summaries.
+  - **Landscape** (`/landscape`) — graph overview of tools, systems, and their connections.
   - **Schedules** (`/admin?view=schedules`) — scheduled and recurring tool runs.
   - **Access Rules** (`/admin/access`) — role and access-rule configuration; visible to admins on paid tiers. Use the access-rules reference for RBAC behavior, base roles, and personal roles.
-  - **Organization** (`/admin?view=organization`) — organization members, invites, and org-level settings; visible on paid tiers. Member management actions are admin-gated.
+  - **Organization** (`/admin?view=organization`) — visible on paid tiers, tabbed page: **Members** (members, invites, role assignment; management actions admin-gated), **Settings** (`?tab=settings`, admin-only: organization name and logo, run preferences like draft/single-step run visibility, run result storage, member run visibility, and delete-all-runs), and **Notifications** (`?tab=notifications`, admin-only: failure-alert channels for Slack and email).
   - **MCP Servers** (`/admin?view=mcp-servers`) — manage and export named MCP server endpoints. Use the MCP documentation for behavior, permissions, and client setup.
-  - **Notifications** (`/admin?view=notifications`) — user notification preferences and failure-alert channels.
+  - **Notifications** (`/admin?view=notifications`) — failure-alert channels; shown as a Control Panel sub-item only on the free tier. On paid tiers this lives in the Organization page's Notifications tab instead.
 
 Below the navigation, the sidebar shows the organization switcher and Sign Out. Depending on the plan, it also shows **Upgrade Plan** or **Subscription**; Subscription opens the external Stripe billing portal. There is no standalone Settings, Profile, or in-app Billing page.
 

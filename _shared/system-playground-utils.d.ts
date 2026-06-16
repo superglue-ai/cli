@@ -23,25 +23,26 @@ type NormalizedSystemKnowledgeBaseInput = {
 };
 export declare function normalizeSystemKnowledgeBaseInput(input: any): NormalizedSystemKnowledgeBaseInput;
 export declare function normalizeSystemCredentialRemovalKeys(input: any): string[];
-export declare function applySystemCredentialChanges({ baseCredentials, credentialUpdates, removeCredentialKeys, userProvidedCredentials, }: {
+export declare function applySystemCredentialChanges({ baseCredentials, credentialUpdates, removeCredentialKeys, credentialValues, }: {
     baseCredentials: Record<string, any> | null | undefined;
     credentialUpdates: Record<string, any> | null | undefined;
     removeCredentialKeys?: string[];
-    userProvidedCredentials?: Record<string, string>;
+    credentialValues?: Record<string, string>;
 }): Record<string, any>;
 export declare function buildSystemPendingOutput(input: any): {
+    status: string;
+    pendingInputs: string[];
     systemConfig: any;
 };
 export declare function formatRuntimeCredentialSource(source: string | undefined): string;
 export declare function getSystemFieldDisplayLabel(fieldOrLabel: string): string;
 export declare function formatSystemChangePreview(value: unknown, fallback?: string): string;
 export declare function formatCredentialDisplayValue(key: string, value: unknown): string;
-export declare function buildMergedSystemPlaygroundConfig({ draft, input, mode, userProvidedCredentials, userProvidedAuthentication, }: {
+export declare function buildMergedSystemPlaygroundConfig({ draft, input, mode, userProvidedInputs, }: {
     draft: SystemFrontendDraft;
     input: any;
     mode: "create" | "edit";
-    userProvidedCredentials?: Record<string, string>;
-    userProvidedAuthentication?: Record<string, string>;
+    userProvidedInputs?: Record<string, string>;
 }): PlaygroundSystemConfig;
 export declare function summarizeSystemPlaygroundChanges({ previous, next, input, }: {
     previous: PlaygroundSystemConfig;
