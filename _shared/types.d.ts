@@ -544,6 +544,52 @@ export declare enum ConfirmationAction {
 export type OAuthFields = Record<string, string> & {
     grant_type: "authorization_code" | "client_credentials";
 };
+export type OAuthExchangeGrantType = "authorization_code" | "client_credentials";
+export type OAuthTokenDestination = "system" | "user_credentials" | "none";
+export interface OAuthExchangeRequest {
+    systemId: string;
+    environment?: "dev" | "prod";
+    grantType: OAuthExchangeGrantType;
+    redirectUri: string;
+    authUrl?: string;
+    tokenUrl: string;
+    clientId: string;
+    clientSecret?: string;
+    templateId?: string;
+    scopes?: string;
+    oauthCert?: string;
+    oauthKey?: string;
+    tokenAuthMethod?: "body" | "basic_auth";
+    tokenContentType?: "form" | "json";
+    usePKCE?: boolean;
+    extraHeaders?: Record<string, string>;
+    extraBodyParams?: Record<string, string>;
+    tokenDestination: OAuthTokenDestination;
+    returnTokens?: boolean;
+    suppressErrorUI?: boolean;
+    credentialUpdates?: Record<string, unknown>;
+}
+export interface OAuthExchangeStartResponse {
+    oauthExchangeId: string;
+    state: string;
+    authorizationUrl?: string;
+    expiresAt: string;
+}
+export interface OAuthExchangeCompleteRequest {
+    state: string;
+    code?: string;
+    providerError?: string;
+    providerErrorDescription?: string;
+}
+export interface OAuthExchangeCompleteResponse {
+    type: "oauth-success" | "oauth-error";
+    systemId: string;
+    message: string;
+    tokens?: Record<string, unknown>;
+    suppressErrorUI?: boolean;
+    tokenDestination?: OAuthTokenDestination;
+    saved?: boolean;
+}
 export interface SectionStatus {
     isComplete: boolean;
     hasErrors: boolean;
@@ -632,6 +678,22 @@ export interface FrontendDrafts {
     tool?: DraftLookup;
     system?: SystemFrontendDraft;
     role?: Record<string, unknown>;
+}
+export interface TokenUsageInputDetails {
+    noCacheTokens?: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
+}
+export interface TokenUsageOutputDetails {
+    textTokens?: number;
+    reasoningTokens?: number;
+}
+export interface TokenUsage {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    inputTokenDetails?: TokenUsageInputDetails;
+    outputTokenDetails?: TokenUsageOutputDetails;
 }
 export interface AgentContextUsage {
     inputTokens?: number;

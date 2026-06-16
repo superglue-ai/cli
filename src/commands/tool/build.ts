@@ -4,7 +4,7 @@ import type { Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import { toJsonSchema, convertRequiredToArray } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { writeDraft } from "../../drafts.js";
+import { getDraftPath, writeDraft } from "../../drafts.js";
 import { parseFileFlags, resolvePayloadWithFiles } from "../../files.js";
 import { output, error, success, colors as c, isTableMode } from "../../output.js";
 
@@ -36,12 +36,10 @@ export function registerBuildCommand(parent: Command, getContext: ContextFn): vo
 Run 'sg skill' for the full tool-building reference.
 
 Workflow: build → run --draft → edit --draft (if needed) → save --draft
-Returns: { success, draftId, toolId, config }
+Returns: { success, draftId, draftPath, toolId, config }
 `,
     )
     .action(async (opts) => {
-      const { client } = getContext();
-
       let toolConfig: any;
       if (opts.config) {
         const raw = opts.config.trim();
@@ -74,7 +72,8 @@ Returns: { success, draftId, toolId, config }
         process.exit(1);
       }
 
-      const filePayloads = await parseFileFlags(opts.file, client);
+      const hasFiles = Array.isArray(opts.file) && opts.file.length > 0;
+      const filePayloads = hasFiles ? await parseFileFlags(opts.file, getContext().client) : {};
       let payload = opts.payload ? JSON.parse(opts.payload) : undefined;
       if (payload) {
         const fileResult = resolvePayloadWithFiles(payload, filePayloads);
@@ -111,16 +110,18 @@ Returns: { success, draftId, toolId, config }
       };
 
       writeDraft(draft);
+      const draftPath = getDraftPath(draftId);
       if (isTableMode()) {
         success(`Draft created: ${c.bold}${draftId}${c.reset}`);
         console.log(`  ${c.dim}tool:${c.reset}   ${toolConfig.id}`);
         console.log(`  ${c.dim}steps:${c.reset}  ${toolConfig.steps.length}`);
+        console.log(`  ${c.dim}draft file:${c.reset} ${draftPath}`);
         console.log(
           `\n  ${c.dim}Next: ${c.reset}${c.cyan}sg tool run --draft ${draftId}${c.reset}`,
         );
         console.log("");
       } else {
-        output({ success: true, draftId, toolId: toolConfig.id, config: draft.config });
+        output({ success: true, draftId, draftPath, toolId: toolConfig.id, config: draft.config });
       }
     });
 }

@@ -1,4 +1,4 @@
-import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, RequestSource, RunExecutionKind, Run, System, Tool, ToolResult } from "./types.js";
+import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunExecutionKind, Run, System, Tool, ToolResult } from "./types.js";
 import type { SystemAuthentication } from "./authentication.js";
 import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
 export declare class SuperglueClient {
@@ -16,6 +16,8 @@ export declare class SuperglueClient {
     protected getApiKey(): Promise<string>;
     private isInfrastructureError;
     protected restRequest<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: any, extraHeaders?: Record<string, string>, requestInit?: RequestInit): Promise<T>;
+    private buildHttpError;
+    private streamRequest;
     subscribeToLogsSSE(options?: SSELogSubscriptionOptions): Promise<SSESubscription>;
     disconnect(): Promise<void>;
     /**
@@ -66,7 +68,7 @@ export declare class SuperglueClient {
     /**
      * Execute a single step. Individual playground tests can opt into run persistence.
      */
-    executeStep({ step, payload, files, previousResults, credentials, options, runId, mode, systemIds, createRun, parentToolId, stepIndex, stepId, signal, }: {
+    executeStep({ step, payload, files, previousResults, credentials, options, runId, mode, systemIds, createRun, parentToolId, stepIndex, stepId, signal, stream, }: {
         step: any;
         payload?: Record<string, any>;
         files?: Record<string, ExecutionFileEnvelope>;
@@ -83,6 +85,7 @@ export declare class SuperglueClient {
         stepIndex?: number;
         stepId?: string;
         signal?: AbortSignal;
+        stream?: boolean;
     }): Promise<{
         stepId: string;
         success: boolean;
@@ -102,7 +105,7 @@ export declare class SuperglueClient {
     /**
      * Execute a final transform. Playground tests can opt into run persistence.
      */
-    executeTransformOnly({ outputTransform, outputSchema, inputSchema, payload, files, stepResults, options, runId, createRun, parentToolId, stepId, }: {
+    executeTransformOnly({ outputTransform, outputSchema, inputSchema, payload, files, stepResults, options, runId, createRun, parentToolId, stepId, signal, stream, }: {
         outputTransform: string;
         outputSchema?: any;
         inputSchema?: any;
@@ -116,6 +119,8 @@ export declare class SuperglueClient {
         createRun?: boolean;
         parentToolId?: string;
         stepId?: string;
+        signal?: AbortSignal;
+        stream?: boolean;
     }): Promise<{
         success: boolean;
         data?: any;
@@ -223,42 +228,13 @@ export declare class SuperglueClient {
         environment?: "dev" | "prod";
     }): Promise<boolean>;
     switchSystemEnvironment(id: string, targetEnv: "dev" | "prod"): Promise<System>;
-    cacheOAuthSecret(args: {
-        uid: string;
-        clientId: string;
-        clientSecret: string;
-    }): Promise<boolean>;
-    getOAuthSecret(uid: string): Promise<{
-        client_id: string;
-        client_secret: string;
-    }>;
     getTemplateOAuthCredentials(templateId: string): Promise<{
         client_id: string;
         client_secret: string;
     }>;
+    createOAuthExchange(params: OAuthExchangeRequest): Promise<OAuthExchangeStartResponse>;
+    completeOAuthExchange(oauthExchangeId: string, params: OAuthExchangeCompleteRequest): Promise<OAuthExchangeCompleteResponse>;
     searchSystemDocumentation(systemId: string, keywords: string): Promise<string>;
-    cacheOauthClientCredentials(params: {
-        clientCredentialsUid: string;
-        clientId: string;
-        clientSecret: string;
-    }): Promise<{
-        success: boolean;
-    }>;
-    getOAuthClientCredentials(params: {
-        templateId?: string;
-        clientCredentialsUid?: string;
-    }): Promise<{
-        client_id: string;
-        client_secret: string;
-    }>;
-    /**
-     * Get the CLI OAuth encryption secret and orgId.
-     * Used by CLI to encrypt API keys in OAuth state parameters.
-     */
-    getCliOAuthSecret(): Promise<{
-        secret: string;
-        orgId: string;
-    }>;
     triggerSystemDocumentationScrapeJob(systemId: string, options?: {
         url?: string;
         keywords?: string[];
