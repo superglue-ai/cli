@@ -855,6 +855,19 @@ export interface ResourceGrant extends BaseConfig {
     revokedAt?: Date;
     revokedByUserId?: string;
 }
+/** Flattened, read-only view of a `share`-sourced ResourceGrant for org-wide
+ *  activity listing. Carries the actor + timestamp the resolved ResourceShareInfo omits. */
+export interface ResourceShareListItem {
+    id: string;
+    resourceRef: string;
+    resourceKind: ResourceKind;
+    resourceId: string;
+    roleId: string;
+    permissions: ResourcePermission[];
+    grantedByUserId?: string;
+    createdAt: string;
+    updatedAt?: string;
+}
 export interface ResourceGrantInput {
     resourceRef: string;
     permissions?: ResourcePermission[];
