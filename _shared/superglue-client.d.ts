@@ -51,6 +51,7 @@ export declare class SuperglueClient {
         options?: {
             timeout?: number;
             requestSource?: ClientRequestSource;
+            mode?: "dev" | "prod";
         };
         runId?: string;
         traceId?: string;
