@@ -46,6 +46,7 @@ sg system list                 # verify connection
 sg tool build --config '...'   # build a tool
 sg tool run --draft <id>       # test it
 sg tool save --draft <id>      # save it
+sg schedule create --tool <toolId> --cron "0 9 * * *" --timezone UTC
 sg mcp create --name my-mcp --tool <toolId>  # expose saved tools through MCP
 ```
 
@@ -78,6 +79,12 @@ For self-hosted instances, use that instance's API endpoint instead of the Cloud
 
 - `sg run list` — List execution runs
 - `sg run get` — Get run details
+
+### Schedules
+
+- `sg schedule list` — List saved tool schedules
+- `sg schedule create` — Create a cron schedule for a saved tool
+- `sg schedule edit` — Edit, enable, or disable a schedule
 
 ### MCP Servers
 

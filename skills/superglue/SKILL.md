@@ -5,7 +5,7 @@ description: "Build, test, deploy and integrate superglue tools via the sg CLI a
 
 # superglue CLI (`sg`) — Agent Reference
 
-This file is the entry point for operating superglue via the `sg` CLI. It covers setup, tool building, tool editing, system management, running tools, and deployment via SDK/REST/webhooks.
+This file is the entry point for operating superglue via the `sg` CLI. It covers setup, tool building, tool editing, system management, running tools, schedules, and deployment via SDK/REST/webhooks.
 
 For protocol-specific details (HTTP, databases, Redis, file servers, GraphQL), file handling, access rules, SDK integration, and general superglue information, run `sg skill <topic>` (linked throughout and listed at the bottom).
 
@@ -103,11 +103,11 @@ Verify with `sg system list` — should return a list (possibly empty) without e
 
 Set during `sg init` or via `SUPERGLUE_CLI_PRESET` env var. Stored in `config.json` as `"preset"`.
 
-| Preset    | Description                                                                      |
-| --------- | -------------------------------------------------------------------------------- |
-| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing               |
-| `builder` | Runner + build/edit/save tools, call systems, manage MCP servers. No system CRUD |
-| `admin`   | Full access (default)                                                            |
+| Preset    | Description                                                                                    |
+| --------- | ---------------------------------------------------------------------------------------------- |
+| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing                             |
+| `builder` | Runner + build/edit/save tools, call systems, manage MCP servers and schedules. No system CRUD |
+| `admin`   | Full access (default)                                                                          |
 
 Blocked commands print a clear error showing the current preset and how to change it.
 
@@ -185,6 +185,26 @@ Auth modes:
 
 If `sg mcp ...` returns "MCP server management is not available", the target instance or plan does not support named MCP server management. The default all-tools MCP endpoint may still be usable at `<api-endpoint>/mcp`.
 
+### Creating/Editing Tool Schedules
+
+Schedules run saved tools on cron expressions. Use 5-field cron syntax and an IANA timezone.
+
+```bash
+sg schedule list
+sg schedule list --tool <toolId>
+sg schedule create --tool daily_report --cron "0 9 * * 1-5" --timezone UTC
+sg schedule edit --tool daily_report --id <scheduleId> --disabled
+sg schedule edit --tool daily_report --id <scheduleId> --cron "0 8 * * *" --timezone UTC
+```
+
+Optional flags:
+
+- `--payload '{"key":"value"}'` or `--payload-file payload.json` sets the scheduled run payload.
+- `--webhook-url <url>` posts results to a webhook after success.
+- `--tool-chain <toolId>` runs another saved tool after success.
+- `--retries <n>` and `--timeout <ms>` set request options.
+- `--clear-webhook` removes the webhook/tool-chain success action during edit.
+
 ---
 
 ## Reference
@@ -193,27 +213,29 @@ If `sg mcp ...` returns "MCP server management is not available", the target ins
 
 Agents familiar with the web tool names can map them directly to CLI commands:
 
-| Web agent tool                                   | CLI command                                   | Notes                                                              |
-| ------------------------------------------------ | --------------------------------------------- | ------------------------------------------------------------------ |
-| `build_tool`                                     | `sg tool build --config '{...}'`              | CLI is not AI-powered — you provide the full JSON config           |
-| `edit_tool`                                      | `sg tool edit --tool <id> --patches '[...]'`  | JSON Patch (RFC 6902). Use `--draft <id>` for drafts               |
-| `run_tool`                                       | `sg tool run --tool <id>` / `--draft <id>`    | Add `--include-step-results` to inspect per-step data              |
-| `save_tool`                                      | `sg tool save --draft <draftId>`              | Persists a draft to the database                                   |
-| `run_command` with `vfs` for `/org/tools/`       | `sg tool find --id <id>` / `sg tool find <q>` | Full config with `--id`, compact search with a query string        |
-| `create_system`                                  | `sg system create --name "..." --url "..."`   | Use `--template <id>` when available                               |
-| `edit_system`                                    | `sg system edit --id <id> ...`                | Supports `--env dev\|prod`                                         |
-| `run_command` with `vfs` for `/org/systems/`     | `sg system find <query>` / `--id <id>`        | Returns `storedCredentials` and system URL                         |
-| Credentials VFS / user-owned credentials         | `sg system credentials get/set/clear`         | Manage current user's credentials for user-owned systems           |
-| `call_system`                                    | `sg system call --url "..." --system-id <id>` | Authenticated ad-hoc calls for testing / schema introspection      |
-| `run_command search`                             | `sg system search-docs --system-id <id> -k`   | Targeted keyword search over ingested system docs                  |
-| `authenticate_oauth`                             | `sg system oauth --system-id <id> [--scopes]` | Opens browser flow. Supports `--grant-type client_credentials` too |
-| `run_command` with `vfs` for `/org/runs/`        | `sg run list` / `sg run get <runId>`          | Filter `list` by `--tool`, `--status`, `--source`, `--limit`       |
-| `run_command` with `vfs` for `/org/mcp-servers/` | `sg mcp list` / `sg mcp find --id <id>`       | Returns endpoint, auth mode, selected tool IDs, and client config  |
-| `create_mcp_server`                              | `sg mcp create --name <n> --tool <id>`        | Creates a named MCP endpoint for selected saved tools              |
-| `edit_mcp_server`                                | `sg mcp edit --id <id> ...`                   | Edits name, auth mode, description, or selected tool IDs           |
-| (no direct equivalent)                           | `sg init`, `sg update`, `sg skill`            | CLI-specific setup, updater, and this reference system             |
+| Web agent tool                                   | CLI command                                    | Notes                                                              |
+| ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------ |
+| `build_tool`                                     | `sg tool build --config '{...}'`               | CLI is not AI-powered — you provide the full JSON config           |
+| `edit_tool`                                      | `sg tool edit --tool <id> --patches '[...]'`   | JSON Patch (RFC 6902). Use `--draft <id>` for drafts               |
+| `run_tool`                                       | `sg tool run --tool <id>` / `--draft <id>`     | Add `--include-step-results` to inspect per-step data              |
+| `save_tool`                                      | `sg tool save --draft <draftId>`               | Persists a draft to the database                                   |
+| `run_command` with `vfs` for `/org/tools/`       | `sg tool find --id <id>` / `sg tool find <q>`  | Full config with `--id`, compact search with a query string        |
+| `create_system`                                  | `sg system create --name "..." --url "..."`    | Use `--template <id>` when available                               |
+| `edit_system`                                    | `sg system edit --id <id> ...`                 | Supports `--env dev\|prod`                                         |
+| `run_command` with `vfs` for `/org/systems/`     | `sg system find <query>` / `--id <id>`         | Returns `storedCredentials` and system URL                         |
+| Credentials VFS / user-owned credentials         | `sg system credentials get/set/clear`          | Manage current user's credentials for user-owned systems           |
+| `call_system`                                    | `sg system call --url "..." --system-id <id>`  | Authenticated ad-hoc calls for testing / schema introspection      |
+| `run_command search`                             | `sg system search-docs --system-id <id> -k`    | Targeted keyword search over ingested system docs                  |
+| `authenticate_oauth`                             | `sg system oauth --system-id <id> [--scopes]`  | Opens browser flow. Supports `--grant-type client_credentials` too |
+| `run_command` with `vfs` for `/org/runs/`        | `sg run list` / `sg run get <runId>`           | Filter `list` by `--tool`, `--status`, `--source`, `--limit`       |
+| `run_command` with `vfs` for `/org/mcp-servers/` | `sg mcp list` / `sg mcp find --id <id>`        | Returns endpoint, auth mode, selected tool IDs, and client config  |
+| `create_mcp_server`                              | `sg mcp create --name <n> --tool <id>`         | Creates a named MCP endpoint for selected saved tools              |
+| `edit_mcp_server`                                | `sg mcp edit --id <id> ...`                    | Edits name, auth mode, description, or selected tool IDs           |
+| `create_schedule`                                | `sg schedule create --tool <id> --cron <expr>` | Creates a cron schedule for a saved tool                           |
+| `edit_schedule`                                  | `sg schedule edit --tool <id> --id <schedule>` | Updates, enables, or disables an existing schedule                 |
+| (no direct equivalent)                           | `sg init`, `sg update`, `sg skill`             | CLI-specific setup, updater, and this reference system             |
 
-Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `create_schedule`/`edit_schedule` (manage schedules via web app or REST API), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`).
+Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`).
 
 ### Command Reference
 
