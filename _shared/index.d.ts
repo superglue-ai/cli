@@ -4,6 +4,7 @@ export * from "./authentication.js";
 export * from "./config-diff-utils.js";
 export * from "./json-schema.js";
 export * from "./invitation-utils.js";
+export * from "./logo-utils.js";
 export * from "./oauth-config.js";
 export * from "./organization-utils.js";
 export * from "./rbac-utils.js";
