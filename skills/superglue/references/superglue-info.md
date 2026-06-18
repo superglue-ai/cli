@@ -22,7 +22,7 @@ API, SDK, CLI, and webhook usage require an **API key**. MCP clients can use OAu
 
 MCP authentication is separate from API/SDK/CLI setup. For MCP OAuth, dynamic client registration, Langdock setup, and named server permissions, use the MCP documentation.
 
-Users can generate and manage API keys in **My Credentials -> superglue API keys**. The API endpoint is displayed on the same page.
+Users can generate and manage API keys on the standalone **API Keys** page (`/api-keys`).
 
 ## Interfaces
 
@@ -36,13 +36,13 @@ Users can generate and manage API keys in **My Credentials -> superglue API keys
 
 Tools can be triggered via webhook: `POST {apiEndpoint}/v1/hooks/{toolId}?token={apiKey}`
 
-On superglue Cloud, the API endpoint is `https://api.superglue.cloud`. Self-hosted and enterprise deployments use their own API endpoint — users can find theirs under My Credentials -> superglue API keys.
+On superglue Cloud, the API endpoint is `https://api.superglue.cloud`. Self-hosted and enterprise deployments use their own API endpoint from deployment configuration.
 
 ### OAuth Callback URL
 
 OAuth flows require a callback URL: `{appEndpoint}/api/auth/callback`
 
-On superglue Cloud, the app endpoint is `https://app.superglue.cloud`. Self-hosted and enterprise deployments use their own app URL. If a user doesn't know their endpoints, they can check the browser URL bar for the app endpoint, and My Credentials -> superglue API keys for the API endpoint.
+On superglue Cloud, the app endpoint is `https://app.superglue.cloud`. Self-hosted and enterprise deployments use their own app URL. If a user doesn't know their endpoints, they can check the browser URL bar for the app endpoint and deployment configuration for the API endpoint.
 
 ## Web App UI Layout
 
@@ -53,18 +53,25 @@ The persistent left sidebar contains these top-level items:
 - **Agent** (`/`) — primary AI chat assistant for building and debugging tools and systems.
 - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
 - **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
-- **My Credentials** (`/credentials`) — credential management. The **My Credentials** section is for personal user-owned system credentials; the **superglue API keys** section is for API keys. Admins and members open it inside the normal app shell from the sidebar.
+- **My Credentials** (`/credentials`) — personal credential management for systems configured to use user-owned credentials. Admins and members open it inside the normal app shell from the sidebar. API keys are not managed here.
 - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs. Runs is a top-level sidebar item, not a Control Panel sub-item.
 - **Control Panel** (`/admin`) — expandable group for organization and account administration:
   - **Overview** (`/admin`) — dashboard summary, including failed-run and schedule summaries.
   - **Landscape** (`/landscape`) — graph overview of tools, systems, and their connections.
   - **Schedules** (`/admin?view=schedules`) — scheduled and recurring tool runs.
   - **Access Rules** (`/admin/access`) — role and access-rule configuration; visible to admins on paid tiers. Use the access-rules reference for RBAC behavior, base roles, and personal roles.
-  - **Organization** (`/admin?view=organization`) — visible on paid tiers, tabbed page: **Members** (members, invites, role assignment; management actions admin-gated), **Settings** (`?tab=settings`, admin-only: organization name and logo, run preferences like draft/single-step run visibility, run result storage, member run visibility, and delete-all-runs), and **Notifications** (`?tab=notifications`, admin-only: failure-alert channels for Slack and email).
+  - **Organization** (`/organization`) — visible on paid tiers as a standalone page without tabs. It shows members, invitations, role assignment, and member-management actions; management actions are admin-gated.
   - **MCP Servers** (`/admin?view=mcp-servers`) — manage and export named MCP server endpoints. Use the MCP documentation for behavior, permissions, and client setup.
-  - **Notifications** (`/admin?view=notifications`) — failure-alert channels; shown as a Control Panel sub-item only on the free tier. On paid tiers this lives in the Organization page's Notifications tab instead.
 
-Below the navigation, the sidebar shows the organization switcher and Sign Out. Depending on the plan, it also shows **Upgrade Plan** or **Subscription**; Subscription opens the external Stripe billing portal. There is no standalone Settings, Profile, or in-app Billing page.
+Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user email and menu items for **API Keys** (`/api-keys`), **Settings** (`/settings`, admin-only), **Switch organization**, and **Sign Out**. Depending on the plan, the sidebar also shows **Upgrade Plan** or **Subscription**; Subscription opens the external Stripe billing portal. There is no separate in-app Billing page.
+
+**API Keys** (`/api-keys`) is a standalone page with a simple own-key editor for superglue API keys used by API, SDK, CLI, webhook, and non-OAuth MCP clients. Org users can create, copy, and delete their own keys.
+
+**Settings** (`/settings`) is an admin-only standalone page with distinct sections:
+
+- **Organization** — organization name and organization logo settings.
+- **Run Settings** — run preferences: draft/single-step run visibility, run result storage, member run visibility, and delete-all-runs.
+- **Notifications** — failure-alert channels for Slack and email. Slack setup opens `/settings/notifications/slack`; email setup opens `/settings/notifications/email`.
 
 ## Internals
 

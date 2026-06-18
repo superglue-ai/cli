@@ -19,15 +19,15 @@ All fields support `<<variable>>` and `<<(sourceData) => ...>>` expressions.
 
 ### Fields
 
-| Field         | Required | Notes                                                   |
-| ------------- | -------- | ------------------------------------------------------- |
-| `url`         | yes      | Prefer `<<systemId_url>>/path` over hardcoded base URLs |
-| `method`      | yes      | `GET`, `POST`, `PUT`, `DELETE`, `PATCH`                 |
-| `headers`     | no       | Auth headers, content type, custom headers              |
-| `queryParams` | no       | Key-value pairs appended to URL                         |
-| `body`        | no       | Stripped for GET/HEAD/DELETE/OPTIONS                    |
-| `pagination`  | no       | See Pagination section                                  |
-| `systemId`    | no       | Links system credentials and URL. Omit for public APIs  |
+| Field         | Required | Notes                                                                                                        |
+| ------------- | -------- | ------------------------------------------------------------------------------------------------------------ |
+| `url`         | yes      | Use `<<systemId_url>>` for the base; join with exactly one `/` (the system's `url` may or may not end in `/` |
+| `method`      | yes      | `GET`, `POST`, `PUT`, `DELETE`, `PATCH`                                                                      |
+| `headers`     | no       | Auth headers, content type, custom headers                                                                   |
+| `queryParams` | no       | Key-value pairs appended to URL                                                                              |
+| `body`        | no       | Stripped for GET/HEAD/DELETE/OPTIONS                                                                         |
+| `pagination`  | no       | See Pagination section                                                                                       |
+| `systemId`    | no       | Links system credentials and URL. Omit for public APIs                                                       |
 
 For APIs that require the same query key multiple times, use an array value:
 `{ metadataHeaders: ["From", "Subject"] }` -> `?metadataHeaders=From&metadataHeaders=Subject`.
@@ -237,7 +237,8 @@ When an HTTP step downloads a file (PDF, CSV, binary response), set `outputFile:
 
 ## Common Pitfalls
 
-- Hardcoding base URLs that match the system's base URL instead of using `<<systemId_url>>`. Check with `sg system call` what format the URL is and if it contains e.g. a trailing slash.
+- Hardcoding base URLs instead of using `<<systemId_url>>`.
+- Wrong slash at the `<<systemId_url>>` join. The placeholder resolves to the system's `url` exactly as stored, which may or may not end in `/`. Read the `url` shown by `sg system find` and write the path so there is exactly one `/` between base and path: against a base with no trailing slash, `<<systemId_url>>crm/v3/...` becomes a broken host (`https://api.hubapi.comcrm/...`) that silently hits the wrong server; against a base ending in `/`, a leading `/` produces `//`.
 - Forgetting auth headers entirely — nothing is injected automatically, including for OAuth systems (only token refresh is automatic)
 - Forgetting `outputFile: true` on steps that download files the user wants
 - Putting pagination variables in the config but not setting a `pagination` block, or vice versa
