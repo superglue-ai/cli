@@ -94,7 +94,7 @@ export function registerInitCommand(program: Command): void {
 
         heading("Authentication");
         console.log(
-          `  ${c.dim}Get your API key at${c.reset} ${link("https://app.superglue.cloud/admin?view=api-keys")}`,
+          `  ${c.dim}Get your API key at${c.reset} ${link("https://app.superglue.cloud/api-keys")}`,
         );
         console.log("");
         apiKey = await promptHidden("  API Key");

@@ -1,4 +1,4 @@
-import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunExecutionKind, Run, System, Tool, ToolResult } from "./types.js";
+import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunExecutionKind, Run, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult } from "./types.js";
 import type { SystemAuthentication } from "./authentication.js";
 import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
 export declare class SuperglueClient {
@@ -51,6 +51,7 @@ export declare class SuperglueClient {
         options?: {
             timeout?: number;
             requestSource?: ClientRequestSource;
+            mode?: "dev" | "prod";
         };
         runId?: string;
         traceId?: string;
@@ -162,6 +163,7 @@ export declare class SuperglueClient {
         file?: ExecutionFileEnvelope;
     }>;
     private mapOpenAPIRunToRun;
+    private mapOpenAPIScheduleToToolSchedule;
     listRuns(options?: {
         limit?: number;
         page?: number;
@@ -195,6 +197,33 @@ export declare class SuperglueClient {
     upsertWorkflow(id: string, input: Partial<Tool>): Promise<Tool>;
     deleteWorkflow(id: string): Promise<boolean>;
     renameWorkflow(oldId: string, newId: string): Promise<Tool>;
+    listToolSchedules(toolId?: string): Promise<ToolSchedule[]>;
+    listToolSchedules(options: {
+        toolId?: string;
+        limit?: number;
+        page?: number;
+    }): Promise<{
+        items: ToolSchedule[];
+        total: number;
+        page: number;
+        limit: number;
+        hasMore: boolean;
+    }>;
+    listToolSchedulesPage(options?: {
+        toolId?: string;
+        limit?: number;
+        page?: number;
+    }): Promise<{
+        items: ToolSchedule[];
+        total: number;
+        page: number;
+        limit: number;
+        hasMore: boolean;
+    }>;
+    getToolSchedule(toolId: string, scheduleId: string): Promise<ToolSchedule | null>;
+    createToolSchedule(toolId: string, schedule: Pick<ToolScheduleInput, "cronExpression" | "timezone"> & Pick<ToolScheduleInput, "enabled" | "payload" | "options">): Promise<ToolSchedule>;
+    updateToolSchedule(toolId: string, scheduleId: string, updates: Pick<ToolScheduleInput, "cronExpression" | "timezone" | "enabled" | "payload" | "options">): Promise<ToolSchedule>;
+    deleteToolSchedule(toolId: string, scheduleId: string): Promise<boolean>;
     listSystems(limit?: number, page?: number, options?: {
         mode?: "dev" | "prod" | "all";
     }): Promise<{

@@ -6,6 +6,7 @@ import { registerToolCommands } from "./commands/tool/index.js";
 import { registerSystemCommands } from "./commands/system/index.js";
 import { registerMcpCommands } from "./commands/mcp/index.js";
 import { registerRunCommands } from "./commands/run/index.js";
+import { registerScheduleCommands } from "./commands/schedule/index.js";
 import { registerUpdateCommand } from "./commands/update.js";
 import { registerSkillCommand } from "./commands/skill.js";
 import {
@@ -117,6 +118,11 @@ All Commands:
   sg mcp create --name <n> --tool <id>          Create a named MCP server
   sg mcp edit --id <id> --add-tool <id>         Edit a named MCP server
 
+  sg schedule list                              List schedules
+  sg schedule list --tool <id>                  List schedules for a saved tool
+  sg schedule create --tool <id> --cron <expr>  Create a cron schedule
+  sg schedule edit --tool <id> --id <schedule>  Edit, enable, or disable a schedule
+
   sg run list [toolId]                           List runs, optionally filtered by tool
   sg run get <runId>                             Get details of a specific run
 
@@ -156,12 +162,13 @@ registerSkillCommand(program);
 registerToolCommands(program, getContext, preset);
 registerSystemCommands(program, getContext, preset);
 registerMcpCommands(program, getContext, preset);
+registerScheduleCommands(program, getContext, preset);
 registerRunCommands(program, getContext, preset);
 
 // Check version compatibility before running commands that hit the server
 // Note: We manually extract --api-key and --endpoint from argv since program.opts()
 // returns empty values before parse() is called
-const commandsRequiringServer = ["tool", "system", "mcp", "run"];
+const commandsRequiringServer = ["tool", "system", "mcp", "schedule", "run"];
 
 const subcommand = findSubcommand(process.argv);
 
