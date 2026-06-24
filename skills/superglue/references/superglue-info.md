@@ -53,7 +53,7 @@ The persistent left sidebar contains these top-level items:
 - **Agent** (`/`) — primary AI chat assistant for building and debugging tools and systems.
 - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
 - **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
-- **My Credentials** (`/credentials`) — personal credential management for systems configured to use user-owned credentials. Admins and members open it inside the normal app shell from the sidebar. API keys are not managed here.
+- **Credentials** (`/credentials`) — manage the credentials you own for each system, and the credentials shared with you. Admins and members open it inside the normal app shell from the sidebar. API keys are not managed here.
 - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs. Runs is a top-level sidebar item, not a Control Panel sub-item.
 - **Control Panel** (`/admin`) — expandable group for organization and account administration:
   - **Overview** (`/admin`) — dashboard summary, including failed-run and schedule summaries.
