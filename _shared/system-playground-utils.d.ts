@@ -34,7 +34,6 @@ export declare function buildSystemPendingOutput(input: any): {
     pendingInputs: string[];
     systemConfig: any;
 };
-export declare function formatRuntimeCredentialSource(source: string | undefined): string;
 export declare function getSystemFieldDisplayLabel(fieldOrLabel: string): string;
 export declare function formatSystemChangePreview(value: unknown, fallback?: string): string;
 export declare function formatCredentialDisplayValue(key: string, value: unknown): string;

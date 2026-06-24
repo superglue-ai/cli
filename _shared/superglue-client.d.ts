@@ -244,7 +244,7 @@ export declare class SuperglueClient {
         templateName?: string;
         documentationFiles?: Record<string, string[]>;
         metadata?: Record<string, any>;
-        credentialOwnership?: "organization" | "user";
+        requiredCredentialKeys?: string[];
         tunnel?: {
             tunnelId: string;
         };
