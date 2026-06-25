@@ -22,6 +22,18 @@ export declare function getRoleResourceGrants(roles: readonly Pick<Role, "resour
 export declare function getAllowedResourceIds(grants: readonly Pick<ResourceGrant, "resourceRef" | "permissions" | "revokedAt">[], kind: ResourceKind, required: ResourcePermission): string[] | undefined;
 export declare function getAllowedToolIds(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): string[] | undefined;
 export declare function getAllowedSystemIds(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): string[] | undefined;
+/**
+ * Picks the resource the user has held longest: earliest matching grant
+ * createdAt, tie-broken by the resource's own createdAt. Collapses to the single
+ * item in the one-item case so a newly added/shared resource never steals the
+ * default (credential-decoupling §3).
+ */
+export declare function pickLongestHeldResource<T extends {
+    id: string;
+    createdAt?: Date;
+}>(items: readonly T[], grants: readonly Pick<ResourceGrant, "resourceRef" | "revokedAt" | "createdAt">[], kind: ResourceKind): T | undefined;
+export declare function getAllowedCredentialsIds(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): string[] | undefined;
+export declare function getEffectiveCredentialsPermissions(roles: readonly Pick<Role, "resourceGrants">[], credentialsId: string): ResourcePermission[];
 export declare function getEffectiveToolPermissions(roles: readonly Pick<Role, "resourceGrants">[], toolId: string): ResourcePermission[];
 export declare function getEffectiveSystemPermissions(roles: readonly Pick<Role, "resourceGrants">[], systemId: string): ResourcePermission[];
 export declare function checkResourcePermission(roles: readonly Pick<Role, "resourceGrants">[], kind: ResourceKind, resourceId: string, permission: ResourcePermission): CheckResult;
@@ -29,9 +41,9 @@ export declare function isToolAllowed(roles: readonly Pick<Role, "resourceGrants
 export declare function isSystemVisible(roles: readonly Pick<Role, "resourceGrants">[], systemId: string, permission?: ResourcePermission): CheckResult;
 export declare function hasAllSystems(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): boolean;
 export declare function hasAllTools(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): boolean;
-export declare function memberBaseRoleHasFullResourceEditorAccess(roles: readonly Pick<Role, "id" | "isBaseRole" | "resourceGrants">[]): boolean;
 export declare function getResourceGrantSources(grants: readonly ResourceGrant[], resourceRef: string, requiredPermission?: ResourcePermission): ResourceGrantSource[];
 export declare function getSharePermissionForResource(grants: readonly ResourceGrant[], resourceRef: string): ResourcePermission | undefined;
+export declare function getAccessRulePermissionForResource(grants: readonly ResourceGrant[], resourceRef: string): ResourcePermission | undefined;
 export declare function hasAdminBaseRole(roles: readonly Pick<Role, "id" | "isBaseRole">[]): boolean;
 export declare function resolveResourceAccessForRoles({ roles, resource, userId, }: {
     roles: readonly Pick<Role, "resourceGrants">[];
@@ -45,6 +57,7 @@ export declare function resolveResourceAccessForRoles({ roles, resource, userId,
     permissions: ResourcePermission[];
     sources: ResourceGrantSource[];
     sharePermission?: ResourcePermission;
+    accessRulePermission?: ResourcePermission;
     maxPermission?: ResourcePermission;
 };
 export declare function normalizeResourceGrantInput(grant: ResourceGrantInput): ResourceGrantInput;

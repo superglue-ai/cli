@@ -63,7 +63,7 @@ function formatCredentialResponse(
 export function registerCredentialsCommand(parent: Command, getContext: ContextFn): void {
   const credentials = parent
     .command("credentials")
-    .description("Manage current user's credentials for user-owned systems")
+    .description("Manage the current user's credentials for a system")
     .addHelpText(
       "after",
       `
@@ -72,13 +72,13 @@ Examples:
   sg system credentials set --system-id stripe --credentials '{"api_key":"sk-..."}'
   sg system credentials clear --system-id stripe
 
-These commands only apply to systems with credentialOwnership: "user".
+These commands manage the executing user's credentials for a system.
 `,
     );
 
   credentials
     .command("get")
-    .description("Get current user's credentials for a user-owned system")
+    .description("Get the current user's credentials for a system")
     .requiredOption("--system-id <id>", "System ID")
     .addOption(
       new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
@@ -97,7 +97,7 @@ These commands only apply to systems with credentialOwnership: "user".
 
   credentials
     .command("set")
-    .description("Set current user's credentials for a user-owned system")
+    .description("Set the current user's credentials for a system")
     .requiredOption("--system-id <id>", "System ID")
     .requiredOption("--credentials <json>", "Credentials JSON object")
     .addOption(
@@ -139,7 +139,7 @@ These commands only apply to systems with credentialOwnership: "user".
 
   credentials
     .command("clear")
-    .description("Delete current user's credentials for a user-owned system")
+    .description("Delete the current user's credentials for a system")
     .requiredOption("--system-id <id>", "System ID")
     .addOption(
       new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
