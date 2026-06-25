@@ -7,12 +7,6 @@ const execAsync = promisify(exec);
 
 export const CLI_VERSION: string = pkg.version;
 
-interface HealthResponse {
-  status: string;
-  version?: string;
-  minCliVersion?: string;
-}
-
 function parseVersionPart(part: string): { numeric: number; prerelease: string | null } {
   // Handle parts like "0", "1", "0-beta", "1-rc.1"
   const match = part.match(/^(\d+)(?:-(.+))?$/);
@@ -46,28 +40,6 @@ export function compareVersions(a: string, b: string): number {
     }
   }
   return 0;
-}
-
-export async function checkVersionCompatibility(endpoint: string): Promise<void> {
-  try {
-    const healthUrl = `${endpoint.replace(/\/$/, "")}/v1/health`;
-    const response = await fetch(healthUrl, { signal: AbortSignal.timeout(3000) });
-    if (!response.ok) return;
-
-    const health = (await response.json()) as HealthResponse;
-    if (!health.minCliVersion) return;
-
-    if (compareVersions(CLI_VERSION, health.minCliVersion) < 0) {
-      console.error("");
-      console.error(`${c.yellow}${c.bold}⚠ CLI version ${CLI_VERSION} is outdated.${c.reset}`);
-      console.error(
-        `${c.yellow}  Server requires at least v${health.minCliVersion}. Run: ${c.bold}sg update${c.reset}`,
-      );
-      console.error("");
-    }
-  } catch {
-    // Silently ignore version check failures
-  }
 }
 
 export async function getLatestNpmVersion(): Promise<string | null> {

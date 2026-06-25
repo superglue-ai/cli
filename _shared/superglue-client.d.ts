@@ -1,4 +1,4 @@
-import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunExecutionKind, Run, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult } from "./types.js";
+import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunExecutionKind, Run, RunLimitCheckResponse, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult } from "./types.js";
 import type { SystemAuthentication } from "./authentication.js";
 import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
 export declare class SuperglueClient {
@@ -158,6 +158,7 @@ export declare class SuperglueClient {
         toolId: string;
         status: string;
     }>;
+    checkRunLimit(): Promise<RunLimitCheckResponse>;
     extract<T = any>({ file, envelope, }: ExtractArgs): Promise<ExtractResult & {
         data?: T;
         file?: ExecutionFileEnvelope;
@@ -244,7 +245,7 @@ export declare class SuperglueClient {
         templateName?: string;
         documentationFiles?: Record<string, string[]>;
         metadata?: Record<string, any>;
-        credentialOwnership?: "organization" | "user";
+        requiredCredentialKeys?: string[];
         tunnel?: {
             tunnelId: string;
         };
