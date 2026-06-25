@@ -18,12 +18,6 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
     .option("--scrape-url <url>", "Documentation URL to scrape")
     .option("--scrape-keywords <keywords>", "Space-separated scrape keywords")
     .addOption(
-      new Option("--credential-ownership <ownership>", "Credential ownership").choices([
-        "organization",
-        "user",
-      ]),
-    )
-    .addOption(
       new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
     )
     .action(async (opts) => {
@@ -33,7 +27,6 @@ export function registerEditCommand(parent: Command, getContext: ContextFn): voi
       if (opts.name) patchPayload.name = opts.name;
       if (opts.url) patchPayload.url = opts.url;
       if (opts.instructions) patchPayload.specificInstructions = opts.instructions;
-      if (opts.credentialOwnership) patchPayload.credentialOwnership = opts.credentialOwnership;
       if (opts.credentials) {
         try {
           patchPayload.credentials = JSON.parse(opts.credentials);

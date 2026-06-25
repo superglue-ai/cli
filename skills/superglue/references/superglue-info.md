@@ -16,6 +16,14 @@ If the user is asking general questions (not building):
 - Product/features → https://docs.superglue.cloud/getting-started/introduction
 - Open-source/code → https://github.com/superglue-ai/superglue
 
+## Cloud Usage Tiers
+
+- Cloud tiers are **Trial**, **Pro**, **Team**, and **Enterprise**; billing-enabled apps expose upgrades through the in-app **Upgrade Plan** button, not a separate Billing page.
+- **Trial** includes 1M input tokens and 100 runs lifetime; **Pro** is €59/$69 per month with 3M input tokens/user/month and 3,000 runs/user/month.
+- **Team** is €99/$119 per seat/month with 5M input tokens/user/month and 5,000 runs/user/month; Team includes organization management, activity tracking, and custom MCP servers.
+- **Enterprise** is custom-priced with unlimited usage limits by default, enterprise access controls, and self-hosting/on-prem options.
+- These cloud tier details do not apply to self-hosted or enterprise deployment setups.
+
 ## Authentication
 
 API, SDK, CLI, and webhook usage require an **API key**. MCP clients can use OAuth when supported, or API keys for non-interactive setup. Self-hosted deployments also need the API/MCP endpoint URL. There are no workspace IDs, project IDs, or other identifiers.
@@ -53,7 +61,7 @@ The persistent left sidebar contains these top-level items:
 - **Agent** (`/`) — primary AI chat assistant for building and debugging tools and systems.
 - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
 - **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
-- **My Credentials** (`/credentials`) — personal credential management for systems configured to use user-owned credentials. Admins and members open it inside the normal app shell from the sidebar. API keys are not managed here.
+- **Credentials** (`/credentials`) — manage the credentials you own for each system, and the credentials shared with you. Admins and members open it inside the normal app shell from the sidebar. API keys are not managed here.
 - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs. Runs is a top-level sidebar item, not a Control Panel sub-item.
 - **Control Panel** (`/admin`) — expandable group for organization and account administration:
   - **Overview** (`/admin`) — dashboard summary, including failed-run and schedule summaries.
@@ -63,7 +71,7 @@ The persistent left sidebar contains these top-level items:
   - **Organization** (`/organization`) — visible on paid tiers as a standalone page without tabs. It shows members, invitations, role assignment, and member-management actions; management actions are admin-gated.
   - **MCP Servers** (`/admin?view=mcp-servers`) — manage and export named MCP server endpoints. Use the MCP documentation for behavior, permissions, and client setup.
 
-Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user email and menu items for **API Keys** (`/api-keys`), **Settings** (`/settings`, admin-only), **Switch organization**, and **Sign Out**. Depending on the plan, the sidebar also shows **Upgrade Plan** or **Subscription**; Subscription opens the external Stripe billing portal. There is no separate in-app Billing page.
+Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user email and menu items for **API Keys** (`/api-keys`), **Settings** (`/settings`, admin-only), **Switch organization**, and **Sign Out**. When billing is enabled, the sidebar also shows **Upgrade Plan** for non-enterprise organizations; it opens the in-app upgrade flow. There is no separate in-app Billing page.
 
 **API Keys** (`/api-keys`) is a standalone page with a simple own-key editor for superglue API keys used by API, SDK, CLI, webhook, and non-OAuth MCP clients. Org users can create, copy, and delete their own keys.
 

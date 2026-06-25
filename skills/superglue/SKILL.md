@@ -148,7 +148,7 @@ Blocked commands print a clear error showing the current preset and how to chang
 1. Search for an existing system first: `sg system find <query>`
 2. If creating: `sg system create --name "..." --url "..." --credentials '{...}'`. Prefer `--template <id>` when one exists — it auto-fills URL and OAuth config
 3. For OAuth: `sg system oauth --system-id <id> [--scopes "..."]` opens a browser flow. User approves → tokens saved automatically
-4. For user-owned non-OAuth credentials: `sg system credentials set --system-id <id> --credentials '{...}'`
+4. For non-OAuth credentials: `sg system credentials set --system-id <id> --credentials '{...}'`
 5. Verify connectivity with `sg system call`
 6. For updates: `sg system edit --id <id>` with the fields to change
 
@@ -223,7 +223,7 @@ Agents familiar with the web tool names can map them directly to CLI commands:
 | `create_system`                                  | `sg system create --name "..." --url "..."`    | Use `--template <id>` when available                               |
 | `edit_system`                                    | `sg system edit --id <id> ...`                 | Supports `--env dev\|prod`                                         |
 | `run_command` with `vfs` for `/org/systems/`     | `sg system find <query>` / `--id <id>`         | Returns `storedCredentials` and system URL                         |
-| Credentials VFS / user-owned credentials         | `sg system credentials get/set/clear`          | Manage current user's credentials for user-owned systems           |
+| Credentials VFS / saved credentials              | `sg system credentials get/set/clear`          | Manage the current user's credentials for a system                 |
 | `call_system`                                    | `sg system call --url "..." --system-id <id>`  | Authenticated ad-hoc calls for testing / schema introspection      |
 | `run_command search`                             | `sg system search-docs --system-id <id> -k`    | Targeted keyword search over ingested system docs                  |
 | `authenticate_oauth`                             | `sg system oauth --system-id <id> [--scopes]`  | Opens browser flow. Supports `--grant-type client_credentials` too |
@@ -517,7 +517,7 @@ Basic auth auto-encodes: if the value after `Basic ` isn't already base64, the e
 **Credential lifecycle:**
 
 - Pass ALL credentials (including secrets) via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
-- For user-owned systems, use `sg system credentials set --system-id <id> --credentials '{...}'` to save credentials for the current API-key user
+- Use `sg system credentials set --system-id <id> --credentials '{...}'` to save credentials for the current API-key user
 - Use `sg system credentials get --system-id <id>` to inspect current-user credential keys; values are masked unless `--reveal` is passed
 - OAuth tokens (`access_token`, `refresh_token`) auto-refresh before each step execution
 - Non-sensitive fields (`client_id`, `auth_url`, `token_url`) are stored alongside secrets in the same `--credentials` JSON

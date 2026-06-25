@@ -1,4 +1,4 @@
-import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunExecutionKind, Run, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult } from "./types.js";
+import { ActivityDailyCount, ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunClientInfo, RunExecutionKind, Run, RunLimitCheckResponse, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult } from "./types.js";
 import type { SystemAuthentication } from "./authentication.js";
 import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
 export declare class SuperglueClient {
@@ -34,6 +34,7 @@ export declare class SuperglueClient {
             webhookUrl?: string;
             async?: boolean;
             requestSource?: ClientRequestSource;
+            clientInfo?: RunClientInfo;
         };
         runId?: string;
         includeStepResultData?: boolean;
@@ -158,6 +159,7 @@ export declare class SuperglueClient {
         toolId: string;
         status: string;
     }>;
+    checkRunLimit(): Promise<RunLimitCheckResponse>;
     extract<T = any>({ file, envelope, }: ExtractArgs): Promise<ExtractResult & {
         data?: T;
         file?: ExecutionFileEnvelope;
@@ -185,6 +187,11 @@ export declare class SuperglueClient {
         limit: number;
         hasMore: boolean;
     }>;
+    getActivityCounts(options?: {
+        from?: string | Date;
+        to?: string | Date;
+        signal?: AbortSignal;
+    }): Promise<ActivityDailyCount[]>;
     getRun(id: string): Promise<Run | null>;
     getWorkflow(id: string): Promise<Tool | null>;
     archiveWorkflow(id: string, archived?: boolean): Promise<Tool>;
@@ -244,7 +251,7 @@ export declare class SuperglueClient {
         templateName?: string;
         documentationFiles?: Record<string, string[]>;
         metadata?: Record<string, any>;
-        credentialOwnership?: "organization" | "user";
+        requiredCredentialKeys?: string[];
         tunnel?: {
             tunnelId: string;
         };
@@ -329,17 +336,6 @@ export declare class SuperglueClient {
     }>;
     deleteSystemFileReference(systemId: string, fileId: string): Promise<void>;
     getFileReferenceContent(fileId: string): Promise<string | null>;
-    getTenantInfo(): Promise<{
-        email: string | null;
-        emailEntrySkipped: boolean;
-    }>;
-    setTenantInfo(input: {
-        email?: string;
-        emailEntrySkipped?: boolean;
-    }): Promise<{
-        email: string | null;
-        emailEntrySkipped: boolean;
-    }>;
     /**
      * Generate a credentials login link for the current API key user.
      * The returned URL opens the login flow and then redirects to Credentials.
