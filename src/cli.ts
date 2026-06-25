@@ -9,12 +9,7 @@ import { registerRunCommands } from "./commands/run/index.js";
 import { registerScheduleCommands } from "./commands/schedule/index.js";
 import { registerUpdateCommand } from "./commands/update.js";
 import { registerSkillCommand } from "./commands/skill.js";
-import {
-  CLI_VERSION,
-  checkVersionCompatibility,
-  startBackgroundUpdateCheck,
-  printUpdateNotification,
-} from "./version.js";
+import { CLI_VERSION, startBackgroundUpdateCheck, printUpdateNotification } from "./version.js";
 
 function findSubcommand(argv: string[]): string | undefined {
   const globalFlagsWithValues = ["--api-key", "--endpoint"];
@@ -165,11 +160,6 @@ registerMcpCommands(program, getContext, preset);
 registerScheduleCommands(program, getContext, preset);
 registerRunCommands(program, getContext, preset);
 
-// Check version compatibility before running commands that hit the server
-// Note: We manually extract --api-key and --endpoint from argv since program.opts()
-// returns empty values before parse() is called
-const commandsRequiringServer = ["tool", "system", "mcp", "schedule", "run"];
-
 const subcommand = findSubcommand(process.argv);
 
 startBackgroundUpdateCheck();
@@ -181,12 +171,4 @@ const runAndNotify = async (parsePromise: Promise<any>) => {
   }
 };
 
-if (subcommand && commandsRequiringServer.includes(subcommand)) {
-  if (earlyConfig.apiKey) {
-    runAndNotify(checkVersionCompatibility(earlyConfig.endpoint).then(() => program.parseAsync()));
-  } else {
-    runAndNotify(program.parseAsync());
-  }
-} else {
-  runAndNotify(program.parseAsync());
-}
+runAndNotify(program.parseAsync());
