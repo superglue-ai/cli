@@ -26,8 +26,8 @@ import {
 
 export function registerInitCommand(program: Command): void {
   program
-    .command("init")
-    .description("Set up superglue CLI configuration")
+    .command("init", { hidden: true })
+    .description("Legacy API-key setup for headless environments")
     .option("--web-endpoint <url>", "Web endpoint for OAuth callbacks")
     .addOption(
       new Option("--output-mode <mode>", "Output mode: stdout or stdout+file")
@@ -89,8 +89,10 @@ export function registerInitCommand(program: Command): void {
       } else {
         // Interactive mode: prompt for everything
         banner();
-        console.log(`  ${c.bold}Welcome to the superglue CLI setup!${c.reset}`);
-        console.log(`  ${c.dim}Let's get you connected in a few steps.${c.reset}\n`);
+        console.log(`  ${c.bold}Legacy superglue API-key setup${c.reset}`);
+        console.log(
+          `  ${c.dim}For normal interactive setup, use ${c.reset}${c.cyan}sg login${c.reset}${c.dim}.${c.reset}\n`,
+        );
 
         heading("Authentication");
         console.log(

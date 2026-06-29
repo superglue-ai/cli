@@ -73,12 +73,13 @@ export interface UserInfo {
     email: string | null;
     name: string | null;
 }
+export type OrgBaseRole = "admin" | "member";
 export interface OrgMember {
     id: string;
     email: string | null;
     name: string | null;
     userType: "member";
-    roleIds: string[];
+    baseRole: OrgBaseRole;
     createdAt?: string;
 }
 export interface OrgInvitation {
@@ -193,6 +194,12 @@ export declare enum RunExecutionKind {
     SINGLE_STEP = "single-step"
 }
 export type ClientRequestSource = RequestSource.FRONTEND | RequestSource.AGENT | RequestSource.MCP | RequestSource.CLI;
+export type ActivityCountKind = "run" | "tool" | "system" | "share";
+export interface ActivityDailyCount {
+    day: string;
+    kind: ActivityCountKind;
+    count: number;
+}
 export interface BaseConfig {
     id: string;
     version?: string;
@@ -333,8 +340,7 @@ export interface System extends BaseConfig {
     metadata?: Record<string, any>;
     templateName?: string;
     documentationFiles?: DocumentationFiles;
-    credentialOwnership?: CredentialOwnership;
-    suggestedCredentialKeys?: string[];
+    requiredCredentialKeys?: string[];
     tunnel?: TunnelConfig;
     environment?: "dev" | "prod";
     createdByUserName?: string;
@@ -354,6 +360,7 @@ export interface SystemInput {
     authentication?: SystemAuthentication;
     metadata?: Record<string, any>;
     templateName?: string;
+    requiredCredentialKeys?: string[];
     environment?: "dev" | "prod";
 }
 export interface SuggestedTool {
@@ -391,13 +398,20 @@ export type RequestOptions = {
     retries?: number;
     retryDelay?: number;
     webhookUrl?: string;
+    credentialsList?: Record<string, string>;
 };
+export interface RunClientInfo {
+    name?: string;
+    version?: string;
+    userAgent?: string;
+}
 export interface RunMetadata {
     startedAt: string;
     completedAt?: string;
     durationMs?: number;
     executionKind?: RunExecutionKind;
     parentToolId?: string;
+    clientInfo?: RunClientInfo;
 }
 export interface Run {
     runId: string;
@@ -545,7 +559,7 @@ export type OAuthFields = Record<string, string> & {
     grant_type: "authorization_code" | "client_credentials";
 };
 export type OAuthExchangeGrantType = "authorization_code" | "client_credentials";
-export type OAuthTokenDestination = "system" | "user_credentials" | "none";
+export type OAuthTokenDestination = "user_credentials" | "none";
 export interface OAuthExchangeRequest {
     systemId: string;
     environment?: "dev" | "prod";
@@ -568,6 +582,7 @@ export interface OAuthExchangeRequest {
     returnTokens?: boolean;
     suppressErrorUI?: boolean;
     credentialUpdates?: Record<string, unknown>;
+    credentialsId?: string;
 }
 export interface OAuthExchangeStartResponse {
     oauthExchangeId: string;
@@ -625,7 +640,6 @@ export type SystemFrontendDraft = {
         specificInstructions: string;
         credentials: Record<string, any>;
         authentication?: SystemAuthentication;
-        credentialOwnership: CredentialOwnership;
     };
     authType: AuthenticationType;
     sectionStatuses: Record<"configuration" | "authentication" | "context", FrontendDraftSectionStatus>;
@@ -730,7 +744,6 @@ export interface AgentRequest {
     loadedSkills?: string[];
     frontendDrafts?: FrontendDrafts;
     accessRulesContext?: AccessRulesContext;
-    isFreeTier?: boolean;
     contextUsage?: AgentContextUsage;
 }
 export interface AgentStreamChunk {
@@ -760,6 +773,7 @@ export interface CallSystemArgs {
     headers?: Record<string, string>;
     body?: string;
     askToConfirm?: boolean;
+    credentialsId?: string;
 }
 export interface CallSystemResult {
     success: boolean;
@@ -831,19 +845,127 @@ export interface NotificationSettings {
     channels?: NotificationChannels;
     rateLimit?: NotificationRateLimit;
 }
+export interface RuntimeTimeouts {
+    transform: number;
+    step: number;
+    http: number;
+    postgres: number;
+    mssql: number;
+    redis: number;
+    ftp: number;
+    smb: number;
+    odbc: number;
+    postgresConnection: number;
+    mssqlConnection: number;
+    redisConnection: number;
+}
+export type ProtocolTimeouts = Partial<RuntimeTimeouts>;
+export interface OrgPreferences {
+    storeRunResults?: boolean;
+    showDraftRuns?: boolean;
+    showSingleStepRuns?: boolean;
+    membersSeeOnlyOwnRuns?: boolean;
+    protocolTimeouts?: ProtocolTimeouts;
+    [key: string]: unknown;
+}
 export interface OrgSettings {
     orgId: string;
     notifications?: NotificationSettings;
-    preferences: Record<string, any>;
+    preferences: OrgPreferences;
     createdAt?: Date;
     updatedAt?: Date;
 }
-export type CredentialOwnership = "organization" | "user";
-export type OrgStatus = "free" | "team" | "enterprise";
+export interface Credentials {
+    id: string;
+    name: string;
+    userId: string;
+    systemId: string;
+    credentials?: Record<string, any>;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export interface CredentialsInput {
+    id?: string;
+    name?: string;
+    systemId: string;
+    environment?: SystemEnvironment;
+    credentials?: Record<string, any>;
+}
+export interface AccessibleCredentials extends Credentials {
+    permission: ResourcePermission;
+    isOwner: boolean;
+    isDefault: boolean;
+    grantSource?: ResourceGrantSource;
+}
+export interface UserDefaultCredential {
+    userId: string;
+    systemId: string;
+    environment: SystemEnvironment;
+    credentialsId: string;
+}
+export type OrgTier = "trial" | "pro" | "team" | "enterprise";
+export type PaidOrgTier = Extract<OrgTier, "pro" | "team" | "enterprise">;
+export type SelfServeBillingTier = Extract<OrgTier, "pro" | "team">;
+export type BillingCurrency = "eur" | "usd";
+export type OrgFeature = "activity_tracking" | "custom_mcp_servers" | "access_control" | "organization_management" | "custom_timeouts";
+export type OrgFeatureFlags = Record<OrgFeature, boolean>;
+export type OrgLimitPeriod = "lifetime" | "calendar_month";
+export interface OrganizationTierConfigInput {
+    tokenLimitPerUser: number | null;
+    tokenLimitPeriod: OrgLimitPeriod;
+    runLimitPerUser: number | null;
+    runLimitPeriod: OrgLimitPeriod;
+    maximumConcurrentRuns: number | null;
+    features: OrgFeatureFlags;
+}
+export interface OrganizationTierConfig extends OrganizationTierConfigInput {
+    orgId: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export interface ResolvedOrganizationTierConfig extends OrganizationTierConfigInput {
+    orgId: string;
+    tier: OrgTier;
+    createdAt?: string;
+    updatedAt?: string;
+}
+export interface BillingStatusResponse {
+    tier: OrgTier;
+    canManageBilling: boolean;
+    billingCurrency: BillingCurrency | null;
+}
+export interface BillingPlanResponse {
+    tier: PaidOrgTier;
+    priceLabels: Record<BillingCurrency, string | null>;
+    tokenLimitPerUser: number | null;
+    runLimitPerUser: number | null;
+}
+export interface CreateBillingCheckoutRequest {
+    tier: SelfServeBillingTier;
+    currency?: BillingCurrency;
+    successUrl?: string;
+    cancelUrl?: string;
+}
+export interface BillingSessionResponse {
+    url: string;
+}
+export type RunLimitCheckResponse = {
+    allowed: true;
+} | {
+    allowed: false;
+    code: "ORG_RUN_LIMIT_EXHAUSTED";
+    error: string;
+    tier: OrgTier;
+    orgName?: string;
+    userEmail?: string;
+    limit: number;
+    used: number;
+    resetAt: string | null;
+};
 export type SystemEnvironment = "dev" | "prod";
 export type ResourcePermission = "viewer" | "editor";
 export type ResourceGrantSource = "access_rule" | "ownership" | "share";
-export type ResourceKind = "tool" | "system";
+export type ResourceKind = "tool" | "system" | "credential";
 export interface ResourceGrant extends BaseConfig {
     orgId?: string;
     roleId: string;
@@ -880,7 +1002,8 @@ export interface RoleResourceGrantInput {
     permissions?: ResourcePermission[];
 }
 export interface ResourceShareTargetInput {
-    userId: string;
+    userId?: string;
+    roleId?: string;
     permission: ResourcePermission;
 }
 export interface ShareResourceRequest {
@@ -891,7 +1014,8 @@ export interface ShareResourceRequest {
     targets: ResourceShareTargetInput[];
 }
 export interface RevokeResourceShareTargetInput {
-    userId: string;
+    userId?: string;
+    roleId?: string;
 }
 export interface UpdateResourceSharesRequest {
     resource: {
@@ -903,7 +1027,8 @@ export interface UpdateResourceSharesRequest {
 }
 export type ShareResourceToolPermission = ResourcePermission | "none";
 export interface ShareResourceToolTargetInput {
-    userId: string;
+    userId?: string;
+    roleId?: string;
     permission: ShareResourceToolPermission;
 }
 export interface ShareResourceToolInput {
@@ -918,8 +1043,6 @@ export interface ResourceShareUserAccess {
     isCurrentUser: boolean;
     isAdmin?: boolean;
     isOwner: boolean;
-    permissions: ResourcePermission[];
-    sources: ResourceGrantSource[];
     sharePermission?: ResourcePermission;
     availablePermissions: ResourcePermission[];
     disabledReason?: string;
@@ -928,12 +1051,32 @@ export interface ResourceShareRoleAccess {
     roleId: string;
     name: string;
     isBaseRole?: boolean;
-    permission: ResourcePermission;
+    permission?: ResourcePermission;
+    sharePermission?: ResourcePermission;
+    accessRulePermission?: ResourcePermission;
+    sources?: ResourceGrantSource[];
+    availablePermissions?: ResourcePermission[];
+    disabledReason?: string;
 }
 export interface ResourceShareRequiredSystem {
     id: string;
     name: string | null;
     actorCanShareViewer: boolean;
+}
+/** A credential set the sharing actor owns and may opt to share alongside a
+ *  tool/system share (use-only viewer grant via the credential:<id> path). */
+export interface ResourceShareCredentialSet {
+    id: string;
+    name: string | null;
+    isDefault: boolean;
+    keys: string[];
+}
+/** Per-system grouping of the actor's own shareable credential sets, surfaced so
+ *  the share dialog can offer "also share my credentials for this system". */
+export interface ResourceShareCredentialSystem {
+    systemId: string;
+    systemName: string | null;
+    sets: ResourceShareCredentialSet[];
 }
 export interface ResourceShareTargetResult {
     userId: string;
@@ -941,7 +1084,8 @@ export interface ResourceShareTargetResult {
     email: string | null;
     permission: ResourcePermission;
 }
-export interface ResourceShareGrantResult {
+export type ResourceShareGrantResult = {
+    target: "user";
     userId: string;
     name: string | null;
     email: string | null;
@@ -951,7 +1095,17 @@ export interface ResourceShareGrantResult {
         name: string | null;
     };
     permission: ResourcePermission | "none";
-}
+} | {
+    target: "role";
+    roleId: string;
+    name: string | null;
+    resource: {
+        kind: ResourceKind;
+        id: string;
+        name: string | null;
+    };
+    permission: ResourcePermission | "none";
+};
 export interface ResourceShareInfo {
     resource: {
         kind: ResourceKind;
@@ -962,11 +1116,17 @@ export interface ResourceShareInfo {
     actor: {
         userId?: string;
         maxPermission?: ResourcePermission;
+        canShare: boolean;
         availablePermissions: ResourcePermission[];
     };
     users: ResourceShareUserAccess[];
     rolesWithAccess?: ResourceShareRoleAccess[];
+    shareableRoles?: ResourceShareRoleAccess[];
     requiredSystems?: ResourceShareRequiredSystem[];
+    /** Systems (the tool's required systems, or the system being shared) for which
+     *  the actor owns credential sets they can optionally share. Empty/omitted when
+     *  the actor owns none. */
+    shareableCredentialSystems?: ResourceShareCredentialSystem[];
 }
 export interface ShareResourceResponse {
     success: boolean;
@@ -1010,7 +1170,7 @@ export interface PatchSystemBody {
     authentication?: SystemAuthentication;
     metadata?: Record<string, any>;
     templateName?: string;
-    credentialOwnership?: CredentialOwnership;
+    requiredCredentialKeys?: string[];
     documentationFiles?: DocumentationFiles;
     tunnel?: TunnelConfig | null;
     environment?: "dev" | "prod";
