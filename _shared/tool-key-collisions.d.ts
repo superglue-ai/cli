@@ -39,7 +39,7 @@ export declare function toolHasActivePagination(tool: Pick<Tool, "steps">): bool
  * Validate a tool's declared input keys and step ids against the reserved
  * runtime key space. The credential check is a prefix rule: any key starting
  * with `<systemId>_` for a system the tool references is rejected, whether
- * or not that credential exists today — credential sets change after tools
+ * or not that credential exists today — credentials change after tools
  * are saved, so reserving the whole namespace is the only check that stays
  * correct without re-validating every tool on every credential change.
  * The rule is fully static: referenced system ids come from the tool's own

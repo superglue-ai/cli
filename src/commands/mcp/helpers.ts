@@ -98,14 +98,14 @@ export function formatMcpError(error: unknown): string {
   if (message.includes("Authentication failed") || message.includes("No token provided")) {
     return [
       "Authentication failed.",
-      "Run `sg init`, set SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT, or pass --api-key and --endpoint.",
+      "Run `sg login`. For headless/API-key auth, set SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT, or pass --api-key and --endpoint.",
     ].join(" ");
   }
   if (message.toLowerCase().includes("fetch failed")) {
     return [
       "Could not reach the configured superglue API endpoint.",
       "For custom/self-hosted instances, set SUPERGLUE_API_ENDPOINT or pass --endpoint.",
-      "Then provide an org-scoped API key with SUPERGLUE_API_KEY or --api-key.",
+      "Then run `sg login`, or provide an org-scoped API key with SUPERGLUE_API_KEY or --api-key for headless auth.",
     ].join(" ");
   }
   return message;

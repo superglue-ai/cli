@@ -41,7 +41,7 @@ claude --plugin-dir $(npm root -g)/@superglue/cli
 ## Quick Start
 
 ```bash
-sg init                        # guided setup
+sg login                       # browser setup
 sg system list                 # verify connection
 sg tool build --config '...'   # build a tool
 sg tool run --draft <id>       # test it
@@ -50,9 +50,12 @@ sg schedule create --tool <toolId> --cron "0 9 * * *" --timezone UTC
 sg mcp create --name my-mcp --tool <toolId>  # expose saved tools through MCP
 ```
 
-The CLI needs an API key and the target superglue API endpoint. Use `sg init`, set
-`SUPERGLUE_API_KEY` / `SUPERGLUE_API_ENDPOINT`, or pass `--api-key` / `--endpoint` per command.
-For self-hosted instances, use that instance's API endpoint instead of the Cloud default.
+The CLI needs authentication and the target superglue API endpoint. Use `sg login` for browser
+OAuth setup. For headless/API-key auth, use `SUPERGLUE_API_KEY` /
+`SUPERGLUE_API_ENDPOINT`, `--api-key` / `--endpoint`, or an existing `config.json`.
+For self-hosted instances, use that instance's API endpoint and pass `--web-endpoint` to `sg login`
+when the web app URL differs from the API URL. Add `--save-config` to persist those non-secret
+endpoint settings in `config.json`.
 
 ## Commands
 
@@ -95,7 +98,9 @@ For self-hosted instances, use that instance's API endpoint instead of the Cloud
 
 ### Other
 
-- `sg init` — Interactive setup (API key, endpoint, output mode)
+- `sg login` — Browser OAuth setup
+- `sg logout` — Remove the stored OAuth session
+- `sg whoami` — Show the authenticated user and organization
 - `sg update` — Update CLI to latest version
 
 ## Documentation

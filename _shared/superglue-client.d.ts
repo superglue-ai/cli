@@ -1,4 +1,4 @@
-import { ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunExecutionKind, Run, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult } from "./types.js";
+import { ActivityDailyCount, ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunClientInfo, RunExecutionKind, Run, RunLimitCheckResponse, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult } from "./types.js";
 import type { SystemAuthentication } from "./authentication.js";
 import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
 export declare class SuperglueClient {
@@ -20,6 +20,13 @@ export declare class SuperglueClient {
     private streamRequest;
     subscribeToLogsSSE(options?: SSELogSubscriptionOptions): Promise<SSESubscription>;
     disconnect(): Promise<void>;
+    getMe(): Promise<{
+        userId?: string;
+        orgId: string;
+        orgName?: string;
+        roleIds: string[];
+        roles: any[];
+    }>;
     /**
      * Execute a saved tool by ID (creates run record)
      */
@@ -34,6 +41,7 @@ export declare class SuperglueClient {
             webhookUrl?: string;
             async?: boolean;
             requestSource?: ClientRequestSource;
+            clientInfo?: RunClientInfo;
         };
         runId?: string;
         includeStepResultData?: boolean;
@@ -158,6 +166,7 @@ export declare class SuperglueClient {
         toolId: string;
         status: string;
     }>;
+    checkRunLimit(): Promise<RunLimitCheckResponse>;
     extract<T = any>({ file, envelope, }: ExtractArgs): Promise<ExtractResult & {
         data?: T;
         file?: ExecutionFileEnvelope;
@@ -185,17 +194,58 @@ export declare class SuperglueClient {
         limit: number;
         hasMore: boolean;
     }>;
+    getActivityCounts(options?: {
+        from?: string | Date;
+        to?: string | Date;
+        signal?: AbortSignal;
+    }): Promise<ActivityDailyCount[]>;
     getRun(id: string): Promise<Run | null>;
+    getTool(id: string): Promise<Tool | null>;
+    archiveTool(id: string, archived?: boolean): Promise<Tool>;
+    listTools(limit?: number, offset?: number, includeArchived?: boolean): Promise<{
+        items: Tool[];
+        total: number;
+    }>;
+    createTool(id: string, input: Partial<Tool>): Promise<Tool>;
+    updateTool(id: string, input: Partial<Tool>): Promise<Tool>;
+    deleteTool(id: string): Promise<boolean>;
+    renameTool(oldId: string, newId: string): Promise<Tool>;
+    /**
+     * @deprecated Use getTool instead.
+     */
     getWorkflow(id: string): Promise<Tool | null>;
+    /**
+     * @deprecated Use archiveTool instead.
+     */
     archiveWorkflow(id: string, archived?: boolean): Promise<Tool>;
+    /**
+     * @deprecated Use listTools instead.
+     */
     listWorkflows(limit?: number, offset?: number, includeArchived?: boolean): Promise<{
         items: Tool[];
         total: number;
     }>;
+    /**
+     * @deprecated Use createTool instead.
+     */
     createWorkflow(id: string, input: Partial<Tool>): Promise<Tool>;
+    /**
+     * @deprecated Use updateTool instead.
+     */
     updateWorkflow(id: string, input: Partial<Tool>): Promise<Tool>;
+    /**
+     * @deprecated TODO: reevaluate removing this compatibility wrapper after explicit
+     * create/update tool adoption in this branch is complete. Prefer createTool
+     * or updateTool so caller intent is explicit.
+     */
     upsertWorkflow(id: string, input: Partial<Tool>): Promise<Tool>;
+    /**
+     * @deprecated Use deleteTool instead.
+     */
     deleteWorkflow(id: string): Promise<boolean>;
+    /**
+     * @deprecated Use renameTool instead.
+     */
     renameWorkflow(oldId: string, newId: string): Promise<Tool>;
     listToolSchedules(toolId?: string): Promise<ToolSchedule[]>;
     listToolSchedules(options: {
@@ -244,7 +294,7 @@ export declare class SuperglueClient {
         templateName?: string;
         documentationFiles?: Record<string, string[]>;
         metadata?: Record<string, any>;
-        credentialOwnership?: "organization" | "user";
+        requiredCredentialKeys?: string[];
         tunnel?: {
             tunnelId: string;
         };
@@ -329,17 +379,6 @@ export declare class SuperglueClient {
     }>;
     deleteSystemFileReference(systemId: string, fileId: string): Promise<void>;
     getFileReferenceContent(fileId: string): Promise<string | null>;
-    getTenantInfo(): Promise<{
-        email: string | null;
-        emailEntrySkipped: boolean;
-    }>;
-    setTenantInfo(input: {
-        email?: string;
-        emailEntrySkipped?: boolean;
-    }): Promise<{
-        email: string | null;
-        emailEntrySkipped: boolean;
-    }>;
     /**
      * Generate a credentials login link for the current API key user.
      * The returned URL opens the login flow and then redirects to Credentials.
