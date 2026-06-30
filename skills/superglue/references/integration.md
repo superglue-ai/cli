@@ -93,7 +93,7 @@ The JS SDK exports: `configure`, `listTools`, `getTool`, `runTool`, `getRun`, `c
 import { configure, runTool, getRun, listTools, getTool } from "@superglue/client";
 
 configure({
-  apiKey: process.env.SUPERGLUE_API_KEY!,
+  apiKey: "<superglue-api-key>",
   baseUrl: "https://api.superglue.cloud/v1",
 });
 ```

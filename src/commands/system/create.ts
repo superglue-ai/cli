@@ -25,12 +25,6 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
     .option("--docs-url <url>", "Documentation URL to scrape")
     .option("--openapi-url <url>", "OpenAPI spec URL")
     .addOption(
-      new Option("--credential-ownership <ownership>", "Credential ownership").choices([
-        "organization",
-        "user",
-      ]),
-    )
-    .addOption(
       new Option("--env <environment>", "Environment: dev or prod (default: prod)").choices([
         "dev",
         "prod",
@@ -84,7 +78,6 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
           specificInstructions: opts.instructions,
           credentials,
           authentication,
-          credentialOwnership: opts.credentialOwnership,
           environment: opts.env === "dev" || opts.env === "prod" ? opts.env : undefined,
         };
       }
