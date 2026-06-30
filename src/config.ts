@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { readProcessEnvironmentValue } from "@superglue/shared/environment";
 
 export type CLIPreset = "runner" | "builder" | "admin";
 
@@ -63,17 +64,18 @@ function loadConfigFile(): Partial<CLIConfig> {
 
 export function resolveConfig(flags: { apiKey?: string; endpoint?: string }): CLIConfig {
   const file = loadConfigFile();
-  const apiKey = flags.apiKey || process.env.SUPERGLUE_API_KEY || file.apiKey || "";
+  const apiKey =
+    flags.apiKey || readProcessEnvironmentValue("SUPERGLUE_API_KEY") || file.apiKey || "";
   const endpoint =
     flags.endpoint ||
-    process.env.SUPERGLUE_API_ENDPOINT ||
+    readProcessEnvironmentValue("SUPERGLUE_API_ENDPOINT") ||
     file.endpoint ||
     "https://api.superglue.cloud";
   const webEndpoint =
-    process.env.SUPERGLUE_WEB_ENDPOINT ||
+    readProcessEnvironmentValue("SUPERGLUE_WEB_ENDPOINT") ||
     file.webEndpoint ||
     endpoint.replace(/:3002\b/, ":3001").replace(/api\.superglue/, "app.superglue");
-  const envPreset = process.env.SUPERGLUE_CLI_PRESET;
+  const envPreset = readProcessEnvironmentValue("SUPERGLUE_CLI_PRESET");
   const preset: CLIPreset =
     envPreset && VALID_PRESETS.has(envPreset)
       ? (envPreset as CLIPreset)
