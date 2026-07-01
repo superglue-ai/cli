@@ -3,6 +3,7 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { type Command, Option } from "commander";
 import { SuperglueClient } from "@superglue/shared";
+import { readProcessEnvironmentValue } from "@superglue/shared/environment";
 import {
   type CLIConfig,
   type CLIPreset,
@@ -26,8 +27,8 @@ import {
 
 export function registerInitCommand(program: Command): void {
   program
-    .command("init")
-    .description("Set up superglue CLI configuration")
+    .command("init", { hidden: true })
+    .description("Legacy API-key setup for headless environments")
     .option("--web-endpoint <url>", "Web endpoint for OAuth callbacks")
     .addOption(
       new Option("--output-mode <mode>", "Output mode: stdout or stdout+file")
@@ -46,8 +47,9 @@ export function registerInitCommand(program: Command): void {
       // global flags on the parent program, so subcommand opts may be empty
       // even when the user passes --api-key / --endpoint.
       const parentOpts = this.parent?.opts() ?? {};
-      const resolvedApiKey = parentOpts.apiKey || process.env.SUPERGLUE_API_KEY;
-      const resolvedEndpoint = parentOpts.endpoint || process.env.SUPERGLUE_API_ENDPOINT;
+      const resolvedApiKey = parentOpts.apiKey || readProcessEnvironmentValue("SUPERGLUE_API_KEY");
+      const resolvedEndpoint =
+        parentOpts.endpoint || readProcessEnvironmentValue("SUPERGLUE_API_ENDPOINT");
 
       const isNonInteractive = resolvedApiKey || !process.stdin.isTTY;
 
@@ -89,8 +91,10 @@ export function registerInitCommand(program: Command): void {
       } else {
         // Interactive mode: prompt for everything
         banner();
-        console.log(`  ${c.bold}Welcome to the superglue CLI setup!${c.reset}`);
-        console.log(`  ${c.dim}Let's get you connected in a few steps.${c.reset}\n`);
+        console.log(`  ${c.bold}Legacy superglue API-key setup${c.reset}`);
+        console.log(
+          `  ${c.dim}For normal interactive setup, use ${c.reset}${c.cyan}sg login${c.reset}${c.dim}.${c.reset}\n`,
+        );
 
         heading("Authentication");
         console.log(

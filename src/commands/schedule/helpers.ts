@@ -151,7 +151,7 @@ export function formatScheduleError(error: unknown): string {
   if (message.toLowerCase().includes("fetch failed")) {
     return [
       "Could not reach the configured superglue API endpoint.",
-      "Set SUPERGLUE_API_ENDPOINT or pass --endpoint, and provide an org-scoped API key.",
+      "Set SUPERGLUE_API_ENDPOINT or pass --endpoint, then run `sg login` or provide an org-scoped API key for headless auth.",
     ].join(" ");
   }
   return message;

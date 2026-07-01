@@ -51,9 +51,10 @@ Quick Reference:
   sg mcp edit --id <id> --tools <ids>      Replace exposed tool IDs
 
 Setup:
-  The CLI needs both the superglue API endpoint and an org-scoped API key.
-  Use sg init, SUPERGLUE_API_KEY/SUPERGLUE_API_ENDPOINT, or --api-key/--endpoint.
-  For self-hosted instances, never assume the Cloud URL; pass the instance endpoint.
+  The CLI needs authentication and the superglue API endpoint. Use sg login.
+  For headless/API-key auth, set SUPERGLUE_API_KEY/SUPERGLUE_API_ENDPOINT
+  or pass --api-key/--endpoint. For self-hosted instances, never assume the
+  Cloud URL; pass the instance endpoint.
 
 Auth modes:
   oauth            MCP users authenticate through the OAuth-capable client flow.
