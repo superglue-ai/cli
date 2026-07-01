@@ -2,6 +2,7 @@ import { Command, Option } from "commander";
 import { resolveConfig, type CLIPreset } from "./config.js";
 import { createClient } from "./client.js";
 import { registerInitCommand } from "./commands/init.js";
+import { registerLoginCommands } from "./commands/login.js";
 import { registerToolCommands } from "./commands/tool/index.js";
 import { registerSystemCommands } from "./commands/system/index.js";
 import { registerMcpCommands } from "./commands/mcp/index.js";
@@ -9,12 +10,7 @@ import { registerRunCommands } from "./commands/run/index.js";
 import { registerScheduleCommands } from "./commands/schedule/index.js";
 import { registerUpdateCommand } from "./commands/update.js";
 import { registerSkillCommand } from "./commands/skill.js";
-import {
-  CLI_VERSION,
-  checkVersionCompatibility,
-  startBackgroundUpdateCheck,
-  printUpdateNotification,
-} from "./version.js";
+import { CLI_VERSION, startBackgroundUpdateCheck, printUpdateNotification } from "./version.js";
 
 function findSubcommand(argv: string[]): string | undefined {
   const globalFlagsWithValues = ["--api-key", "--endpoint"];
@@ -54,7 +50,7 @@ program
   .name("sg")
   .description("superglue CLI — build, run, and manage integration tools and MCP servers")
   .version(CLI_VERSION)
-  .option("--api-key <key>", "superglue API key")
+  .option("--api-key <key>", "superglue API key for headless auth")
   .option("--endpoint <url>", "superglue API endpoint")
   .option("--table", "human-readable table output (default: JSON)")
   .option("--full", "disable truncation of large fields")
@@ -80,12 +76,15 @@ IMPORTANT FOR AI AGENTS:
 
   The main skill reference covers: tool building, system setup, OAuth flows,
   credential handling, variable syntax, data selectors, and common pitfalls.
-  The CLI must know the target superglue API endpoint and an org-scoped API key:
-  use sg init, SUPERGLUE_API_KEY/SUPERGLUE_API_ENDPOINT, or --api-key/--endpoint.
+  The CLI must know the target superglue API endpoint and authentication:
+  use sg login. For headless/API-key auth, set SUPERGLUE_API_KEY/SUPERGLUE_API_ENDPOINT
+  or pass --api-key/--endpoint.
   DO NOT attempt to use sg commands without reading the skill reference first.
 
 All Commands:
-  sg init                                        Set up CLI configuration
+  sg login                                       Authenticate through the browser
+  sg logout                                      Remove the stored OAuth session
+  sg whoami                                      Show authenticated user and organization
 
   sg tool build --config <file>                  Build a tool from a JSON config
   sg tool build --id <id> --instruction <text>   Build a tool from flags (requires --steps)
@@ -131,12 +130,12 @@ All Commands:
   sg update --check                              Check for available updates
 
 Global Flags:
-  --api-key <key>    Override API key from config
+  --api-key <key>    Override API key from config for headless auth
   --endpoint <url>   Override API endpoint from config
   --table            Human-readable table output (default: JSON)
   --full             Disable truncation of large fields
 
-Presets (set via sg init --preset or SUPERGLUE_CLI_PRESET):
+Presets (set via SUPERGLUE_CLI_PRESET or legacy sg init --preset):
   runner     Run saved tools by ID only (agent-safe, read-only)
   builder    Runner + build/edit tools, call systems, manage MCP servers (no system CRUD)
   admin      Full access (default)
@@ -157,6 +156,7 @@ const getContext = () => {
 };
 
 registerInitCommand(program);
+registerLoginCommands(program);
 registerUpdateCommand(program);
 registerSkillCommand(program);
 registerToolCommands(program, getContext, preset);
@@ -164,11 +164,6 @@ registerSystemCommands(program, getContext, preset);
 registerMcpCommands(program, getContext, preset);
 registerScheduleCommands(program, getContext, preset);
 registerRunCommands(program, getContext, preset);
-
-// Check version compatibility before running commands that hit the server
-// Note: We manually extract --api-key and --endpoint from argv since program.opts()
-// returns empty values before parse() is called
-const commandsRequiringServer = ["tool", "system", "mcp", "schedule", "run"];
 
 const subcommand = findSubcommand(process.argv);
 
@@ -181,12 +176,4 @@ const runAndNotify = async (parsePromise: Promise<any>) => {
   }
 };
 
-if (subcommand && commandsRequiringServer.includes(subcommand)) {
-  if (earlyConfig.apiKey) {
-    runAndNotify(checkVersionCompatibility(earlyConfig.endpoint).then(() => program.parseAsync()));
-  } else {
-    runAndNotify(program.parseAsync());
-  }
-} else {
-  runAndNotify(program.parseAsync());
-}
+runAndNotify(program.parseAsync());
