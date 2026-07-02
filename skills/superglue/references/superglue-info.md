@@ -52,6 +52,10 @@ OAuth flows require a callback URL: `{appEndpoint}/api/auth/callback`
 
 On superglue Cloud, the app endpoint is `https://app.superglue.cloud`. Self-hosted and enterprise deployments use their own app URL. If a user doesn't know their endpoints, they can check the browser URL bar for the app endpoint and deployment configuration for the API endpoint.
 
+### Cloud Networking
+
+If a customer's system requires IP allowlisting for firewall rules, security groups, or vendor access controls, superglue Cloud outbound requests come from `34.234.12.178` and `18.198.191.215`. These IPs apply to superglue Cloud only; self-hosted and enterprise deployments use deployment-specific networking.
+
 ## Web App UI Layout
 
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
