@@ -67,8 +67,8 @@ Examples:
   sg mcp create --name sales-tools --tools get_customer,create_invoice --auth-mode oauth
   sg mcp create --config mcp-server.json
 
-The CLI uses the configured API endpoint and API key from sg init, env vars, or global flags.
-For self-hosted instances, set SUPERGLUE_API_ENDPOINT or pass --endpoint.
+The CLI uses the configured API endpoint and authentication from sg login, env vars, config.json,
+or global flags. For self-hosted instances, set SUPERGLUE_API_ENDPOINT or pass --endpoint.
 `,
     )
     .action(async (opts) => {

@@ -21,34 +21,35 @@ function getAuthType(system: any): string {
   return system.authentication?.type || "none";
 }
 
-function getCredentialSummary(system: any): string {
-  if (system.credentialOwnership === "user") {
-    return system.hasUserCredentials ? "user-owned: configured" : "user-owned: missing";
-  }
+function hasCredentialValues(credentials: unknown): credentials is Record<string, unknown> {
+  return Boolean(
+    credentials &&
+    typeof credentials === "object" &&
+    !Array.isArray(credentials) &&
+    Object.keys(credentials).length > 0,
+  );
+}
 
-  const credentialKeys = Object.keys(system.credentials || {});
-  return credentialKeys.map((k: string) => `<<${system.id}_${k}>>`).join(", ") || "(none)";
+function getCredentialSummary(system: any): string {
+  return system.hasUserCredentials ? "credentials: configured" : "credentials: missing";
 }
 
 function filterSystemFields(system: any, userCredentials?: Record<string, unknown>) {
-  const ownership = system.credentialOwnership || "organization";
-  const credentials = ownership === "user" ? userCredentials || {} : system.credentials || {};
-  const credentialPlaceholders = formatCredentialPlaceholders(system.id, credentials);
+  const credentialPlaceholders = hasCredentialValues(userCredentials)
+    ? formatCredentialPlaceholders(system.id, userCredentials)
+    : undefined;
   return {
     id: system.id,
     name: system.name,
     url: system.url,
     environment: system.environment,
-    credentialOwnership: ownership,
     authType: getAuthType(system),
-    ...(ownership === "user" ? { hasUserCredentials: Boolean(system.hasUserCredentials) } : {}),
-    ...(Array.isArray(system.suggestedCredentialKeys) && system.suggestedCredentialKeys.length > 0
-      ? { suggestedCredentialKeys: system.suggestedCredentialKeys }
+    hasUserCredentials: Boolean(system.hasUserCredentials),
+    ...(Array.isArray(system.requiredCredentialKeys) && system.requiredCredentialKeys.length > 0
+      ? { requiredCredentialKeys: system.requiredCredentialKeys }
       : {}),
     specificInstructions: system.specificInstructions,
-    ...(ownership === "user"
-      ? { userCredentials: credentialPlaceholders }
-      : { storedCredentials: credentialPlaceholders }),
+    credentials: credentialPlaceholders,
   };
 }
 
@@ -76,7 +77,6 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
             id: s.id,
             name: s.name || "",
             env: s.environment || "prod",
-            owner: s.credentialOwnership || "organization",
             auth: getAuthType(s),
             url: full ? s.url || "" : (s.url || "").slice(0, 40),
             credentials: getCredentialSummary(s),
@@ -84,7 +84,7 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
         });
 
         if (isTableMode()) {
-          table(rows, ["id", "name", "env", "owner", "auth", "url", "credentials"], { total });
+          table(rows, ["id", "name", "env", "auth", "url", "credentials"], { total });
         } else {
           output({
             success: true,
@@ -119,7 +119,7 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
           }
           const templateMatch = findTemplateForSystem(system);
           let userCredentials: Record<string, unknown> | undefined;
-          if (system.credentialOwnership === "user" && system.hasUserCredentials) {
+          if (system.hasUserCredentials) {
             userCredentials = (await getMySystemCredentials(config, system.id, envOption))
               .credentials;
           }
