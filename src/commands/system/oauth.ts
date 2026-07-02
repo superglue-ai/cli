@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import {
@@ -8,23 +7,17 @@ import {
   resolveOAuthConfigFromAuthentication,
 } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
-import { error, success, spinner, colors as c } from "../../output.js";
+import { error, isTableMode, success, spinner, colors as c } from "../../output.js";
 import { getMySystemCredentials } from "./user-credentials-api.js";
+import { openBrowser } from "../../browser.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
-function openBrowser(url: string): void {
-  const platform = process.platform;
-  const cmd = platform === "darwin" ? "open" : platform === "win32" ? "cmd" : "xdg-open";
-  const args = platform === "win32" ? ["/c", "start", "", url] : [url];
-  spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
-}
-
 async function pollForTokens(
   config: CLIConfig,
-  client: SuperglueClient,
+  _client: SuperglueClient,
   systemId: string,
-  options: { environment?: "dev" | "prod"; userOwned?: boolean },
+  options: { environment?: "dev" | "prod" },
   originalToken: string | undefined,
   timeoutMs: number = 300_000,
   intervalMs: number = 2000,
@@ -33,9 +26,9 @@ async function pollForTokens(
   while (Date.now() - start < timeoutMs) {
     await new Promise((r) => setTimeout(r, intervalMs));
     try {
-      const currentToken = options.userOwned
-        ? (await getMySystemCredentials(config, systemId, options)).credentials?.access_token
-        : (await client.getSystem(systemId, options)).credentials?.access_token;
+      // Tokens land in the executing user's credentials.
+      const currentToken = (await getMySystemCredentials(config, systemId, options)).credentials
+        ?.access_token;
       if (currentToken && currentToken !== originalToken) {
         return true;
       }
@@ -103,10 +96,6 @@ function resolveCliOAuthConfig(system: any, opts: any) {
       stringValue(opts.scopes) ?? stringValue(credentials.scopes) ?? stringValue(authConfig.scopes),
     tokenConfig: normalizeTokenConfig(system),
   };
-}
-
-function getTokenDestination(system: any): "system" | "user_credentials" {
-  return system.credentialOwnership === "user" ? "user_credentials" : "system";
 }
 
 export function registerOAuthCommand(parent: Command, getContext: ContextFn): void {
@@ -179,7 +168,7 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
             tokenContentType: tokenConfig.tokenContentType,
             extraHeaders: tokenConfig.extraHeaders,
             extraBodyParams: tokenConfig.extraBodyParams,
-            tokenDestination: getTokenDestination(system),
+            tokenDestination: "user_credentials",
             returnTokens: false,
           });
           const result = await client.completeOAuthExchange(exchange.oauthExchangeId, {
@@ -210,12 +199,10 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
       }
 
       // Authorization code flow: create backend exchange, open browser, poll for token change.
-      const userOwned = system.credentialOwnership === "user";
-      const originalToken = userOwned
-        ? await getMySystemCredentials(config, opts.systemId, envOption)
-            .then((data) => stringValue(data.credentials?.access_token))
-            .catch(() => undefined)
-        : stringValue(system.credentials?.access_token);
+      // Tokens live in the executing user's credentials.
+      const originalToken = await getMySystemCredentials(config, opts.systemId, envOption)
+        .then((data) => stringValue(data.credentials?.access_token))
+        .catch(() => undefined);
 
       const redirectUri = `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`;
       let exchange: Awaited<ReturnType<SuperglueClient["createOAuthExchange"]>>;
@@ -235,7 +222,7 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
           tokenContentType: tokenConfig.tokenContentType,
           extraHeaders: tokenConfig.extraHeaders,
           extraBodyParams: tokenConfig.extraBodyParams,
-          tokenDestination: getTokenDestination(system),
+          tokenDestination: "user_credentials",
           returnTokens: false,
         });
       } catch (err: any) {
@@ -243,14 +230,25 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
         process.exit(1);
       }
 
+      if (!exchange.authorizationUrl) {
+        error("OAuth exchange did not return an authorization URL");
+        process.exit(1);
+      }
+
+      openBrowser(exchange.authorizationUrl);
+      if (isTableMode()) {
+        console.log("");
+        console.log(`  ${c.dim}Authorization URL:${c.reset} ${exchange.authorizationUrl}`);
+        console.log("");
+      }
+
       const spin = spinner("Waiting for browser authentication...");
-      openBrowser(exchange.authorizationUrl!);
 
       const authenticated = await pollForTokens(
         config,
         client,
         opts.systemId,
-        { ...envOption, userOwned },
+        envOption,
         originalToken,
       );
       spin.stop();

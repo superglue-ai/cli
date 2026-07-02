@@ -1,4 +1,3 @@
-import type { CredentialOwnership } from "./types.js";
 export type AuthenticationType = "none" | "api_key" | "basic_auth" | "oauth2" | "connection_string";
 export type SystemAuthentication = {
     type: "none";
@@ -43,10 +42,6 @@ export type ResolvedCredentialEntry = {
     isKeyLocked?: boolean;
 };
 export declare const OAUTH_CONFIG_CREDENTIAL_KEYS: readonly ["auth_url", "authUrl", "token_url", "tokenUrl", "token_uri", "scopes", "scope", "grant_type", "grantType", "client_id", "clientId", "client_secret", "clientSecret", "tokenAuthMethod", "tokenContentType", "usePKCE", "extraHeaders", "extraBodyParams"];
-export declare const RESERVED_AUTH_INPUT_KEYS: {
-    readonly oauth_client_id: "clientId";
-    readonly oauth_client_secret: "clientSecret";
-};
 export declare function hasMeaningfulValue(value: unknown): boolean;
 export declare function stringValue(value: unknown): string | undefined;
 export type OAuthExecutableGrantType = "authorization_code" | "client_credentials";
@@ -69,6 +64,22 @@ export declare function normalizeGrantType(value: unknown): Extract<SystemAuthen
     type: "oauth2";
 }>["grantType"];
 export declare function normalizeSystemAuthentication(authentication: SystemAuthentication | undefined): SystemAuthentication | undefined;
+/**
+ * Flattens the persisted nested `SystemAuthentication` into the flat shape the
+ * create_system / edit_system `auth` input accepts: protocol/OAuth knobs stored
+ * under `config` are hoisted to the top level and the `config` key is dropped,
+ * and `scopes` is emitted as a space-separated string. This keeps the agent's
+ * READ surface (tool returns, VFS configs) identical to its WRITE surface, so it
+ * can round-trip auth without ever needing to send `auth.config`.
+ */
+export declare function flattenSystemAuthentication(authentication: SystemAuthentication | undefined): Record<string, unknown> | undefined;
+/**
+ * Flattens auth into the create_system/edit_system input shape (see
+ * {@link flattenSystemAuthentication}) and masks any sensitive values (e.g. the
+ * OAuth client secret), recursively so nested header/body bags are covered too.
+ * This is the single read-surface projection used by tool returns and the VFS.
+ */
+export declare function maskedFlatSystemAuthentication(authentication: SystemAuthentication | undefined): Record<string, unknown> | undefined;
 export declare function mapAgentAuthInput(auth: unknown): {
     authentication?: SystemAuthentication;
     error?: string;
@@ -79,6 +90,29 @@ export declare function buildAuthenticationEditorModel({ authentication, }: {
     authentication: SystemAuthentication | undefined;
     credentials?: Record<string, unknown>;
 }): AuthenticationEditorModel;
+export type CredentialField = {
+    key: string;
+    aliases?: string[];
+};
+export type CredentialRequirement = {
+    type: "field";
+    field: CredentialField;
+    optional?: boolean;
+} | {
+    type: "oneOf";
+    fields: CredentialField[];
+    optional?: boolean;
+};
+/**
+ * Structured credential requirements for a system, deduced from connection-string
+ * protocols where the runtime reads exact key names. Expresses either/or auth
+ * (password vs privateKey) and key aliases (username vs user) the flat suggested
+ * list cannot. Non-connection auth types resolve credentials via user templates,
+ * so they have no protocol requirements (returns []).
+ */
+export declare function getCredentialRequirements(authentication: SystemAuthentication | undefined): CredentialRequirement[];
+export declare function isCredentialRequirementSatisfied(requirement: CredentialRequirement, credentials: Record<string, unknown>): boolean;
+export declare function hasUnsatisfiedCredentialRequirements(requirements: CredentialRequirement[], credentials: Record<string, unknown> | undefined): boolean;
 export declare function updateAuthenticationEditorField({ authentication, path, value, }: {
     authentication: SystemAuthentication;
     path: string;
@@ -89,11 +123,6 @@ export declare function validateOAuthAuthenticationConfigPlacement({ authenticat
     credentials: unknown;
 }): string | null;
 export declare function authenticationToLegacyCredentials(authentication: SystemAuthentication | undefined): Record<string, unknown>;
-export declare function getSuggestedUserCredentialKeys({ authentication, creatorCredentials, credentialCandidates, }: {
-    authentication: SystemAuthentication | undefined;
-    creatorCredentials?: Record<string, unknown> | null;
-    credentialCandidates?: Array<Record<string, unknown> | null | undefined>;
-}): string[];
 export declare function buildRuntimeCredentialsFromAuthentication({ authentication, credentials, }: {
     authentication?: SystemAuthentication;
     credentials?: Record<string, unknown>;
@@ -109,50 +138,20 @@ export declare function getCredentialEntries(credentials: Record<string, any>, o
     hiddenKeys?: string[];
 }): ResolvedCredentialEntry[];
 export declare function getCredentialInputValues(credentials: Record<string, unknown>): Record<string, string>;
-export declare function getSuggestedCredentialInputValues(system: {
-    suggestedCredentialKeys?: string[];
-}): Record<string, string>;
 export declare function getCredentialDisplayHiddenKeys({ hideOAuthFiles, configKeys, }: {
     hideOAuthFiles?: boolean;
     configKeys?: string[];
 }): string[];
 export declare function hasOAuthTokenCredentials(credentials: Record<string, unknown>): boolean;
 export declare function getOAuthExpiryText(credentials: Record<string, unknown>): string | null;
-export declare function normalizeSystemCredentialOwnershipInput({ credentialOwnership, }: {
-    credentialOwnership?: unknown;
-}): CredentialOwnership | undefined;
 export declare function hasRuntimeCredentialValues(credentials: unknown): boolean;
 export declare function validateCredentialObjectKeys(credentials: unknown): string | null;
 export declare function validateCredentialKeyList(keys: string[]): string | null;
 export declare function normalizeAskForUserInputs(value: unknown): string[];
-export declare function validateSystemInputCollection({ credentials, askForUserInputs, authType, }: {
+export declare function validateSystemInputCollection({ credentials, askForUserInputs, }: {
     credentials: unknown;
     askForUserInputs?: unknown;
-    authType?: AuthenticationType;
 }): string | null;
-export declare function routeUserProvidedInputs(inputs: Record<string, string> | undefined, options?: {
-    authType?: AuthenticationType;
-}): {
-    credentialValues: Record<string, string>;
-    authenticationPatch: {
-        clientId?: string;
-        clientSecret?: string;
-    };
-};
-export declare function getUserInputFieldLabel(key: string, options?: {
-    authType?: AuthenticationType;
-}): string;
-export declare function getMissingUserProvidedInputKeys({ askForUserInputs, userProvidedInputs, }: {
-    askForUserInputs: unknown;
-    userProvidedInputs?: Record<string, unknown>;
-}): string[];
-export declare function applyUserProvidedAuthenticationPatch({ authentication, authenticationPatch, }: {
-    authentication: SystemAuthentication | undefined;
-    authenticationPatch?: {
-        clientId?: string;
-        clientSecret?: string;
-    };
-}): SystemAuthentication | undefined;
 export declare function mapOAuthMissingFieldsForAgent(missingFields: string[]): string[];
 export declare function validateConfirmedUserInputs({ askForUserInputs, userProvidedInputs, }: {
     askForUserInputs: unknown;

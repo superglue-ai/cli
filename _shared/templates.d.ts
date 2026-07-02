@@ -47,7 +47,6 @@ export declare function findTemplateForSystem(system: Partial<System>): {
     template: SystemConfig;
 } | null;
 export declare function uniqueKeywords(keywords: string[] | undefined): string[];
-export declare function enrichWithTemplate(input: System): System;
 export declare function getOAuthConfig(systemKey: string): SystemConfig["oauth"] | null;
 export declare function getOAuthTokenExchangeConfig(system: System): {
     tokenAuthMethod?: "body" | "basic_auth";

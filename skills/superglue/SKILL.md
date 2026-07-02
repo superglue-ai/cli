@@ -1,6 +1,6 @@
 ---
 name: superglue
-description: "Build, test, deploy and integrate superglue tools via the sg CLI and superglue SDKs. IMPORTANT — you MUST invoke this skill and read the full reference BEFORE running ANY sg command or writing ANY superglue SDK/REST/webhook integration code. Before using the sg CLI, first check that it is installed (run sg --version; if not found, install with npm install -g @superglue/cli), then verify it is configured (check that sg init has been run or that SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT environment variables are set). If not, guide the user through setup first. After reading SKILL.md, also run `sg skill <topic>` for the specific protocols and topics involved."
+description: "Build, test, deploy and integrate superglue tools via the sg CLI and superglue SDKs. IMPORTANT — you MUST invoke this skill and read the full reference BEFORE running ANY sg command or writing ANY superglue SDK/REST/webhook integration code. Before using the sg CLI, first check that it is installed (run sg --version; if not found, install with npm install -g @superglue/cli), then verify either that it is configured with sg login or, for headless/API-key auth, that SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT environment variables are set. If not, guide the user through setup first. After reading SKILL.md, also run `sg skill <topic>` for the specific protocols and topics involved."
 ---
 
 # superglue CLI (`sg`) — Agent Reference
@@ -33,7 +33,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 
 1. **Check CLI exists**: Run `sg --version`. If it fails with `command not found`, install: `npm install -g @superglue/cli`.
 2. **Keep CLI and SDK up to date**: Always use the latest versions. Run `sg update` to update the CLI. For the SDK, run `npm install @superglue/client@latest` (JS) or `pip install --upgrade superglue-client` (Python).
-3. **Verify configuration**: Run `sg system list`. If it fails with `fetch failed` or auth errors, the CLI needs configuration via `sg init` (see Setup below). For custom/self-hosted instances, the CLI must know both the instance API endpoint and an org-scoped API key.
+3. **Verify configuration**: Run `sg whoami` or `sg system list`. If it fails with `fetch failed` or auth errors, the CLI needs configuration via `sg login` (see Setup below). For custom/self-hosted instances, the CLI must know the instance API endpoint; browser login also needs the web app endpoint when it differs from the API URL. Use API-key auth only for headless/legacy environments.
 
 **Calling systems and running tools**
 
@@ -67,26 +67,22 @@ npm install -g @superglue/cli
 
 After installation the `sg` command is available globally.
 
-### Initialization
+### Authentication
 
-The CLI will not work until configured with an API key. The endpoint defaults to `https://api.superglue.cloud`.
+The preferred CLI setup is browser OAuth via `sg login`. Headless/API-key auth is available for CI and legacy automation. The API endpoint defaults to `https://api.superglue.cloud`.
 
-**Interactive (humans):**
-
-```bash
-sg init
-```
-
-Prompts for: API key (required — get one at https://app.superglue.cloud/api-keys), API endpoint, web endpoint (for OAuth callbacks), output mode (`stdout` or `stdout+file`), and config location (project-local `.superglue/config.json` vs global `~/.superglue/config.json`). Verifies the connection before saving.
-
-**Non-interactive (CI, agents):**
+**Browser login (humans):**
 
 ```bash
-sg init --api-key "your-api-key" --global
-sg init --api-key "your-api-key" --endpoint "https://custom.endpoint.com" --global
+sg login
+sg --endpoint "https://custom-api.example.com" login --web-endpoint "https://custom-app.example.com" --save-config
 ```
 
-`--api-key` and `--endpoint` are global flags and work on all subcommands.
+Opens the browser, completes OAuth login, and stores the OAuth session in `~/.superglue/auth.json`. This file is separate from `config.json`. Use `--save-config` to persist non-secret endpoint settings in `config.json`, and `sg logout` to remove the OAuth session.
+
+**Headless/API-key auth (CI, agents, backwards-compatible):**
+
+Use environment variables, global flags, or an existing `.superglue/config.json`. `sg init` remains available as a legacy hidden command for scripts that already use it, but new setup should prefer `sg login` for humans and env vars/config files for headless API-key auth.
 
 **Environment variables (no config file):**
 
@@ -95,13 +91,13 @@ export SUPERGLUE_API_KEY="your-api-key"
 export SUPERGLUE_API_ENDPOINT="https://api.superglue.cloud"   # optional, this is the default
 ```
 
-**Config resolution order:** CLI flags > environment variables > local `.superglue/config.json` > global `~/.superglue/config.json`.
+**Config resolution order:** CLI flags > environment variables > local `.superglue/config.json` > global `~/.superglue/config.json`. For authentication, API keys from flags/env/config take precedence; if no API key is configured, the CLI uses the matching OAuth session from `~/.superglue/auth.json`.
 
-Verify with `sg system list` — should return a list (possibly empty) without errors.
+Verify with `sg whoami` or `sg system list` — should return authenticated context without errors.
 
 ### Capability Presets
 
-Set during `sg init` or via `SUPERGLUE_CLI_PRESET` env var. Stored in `config.json` as `"preset"`.
+Set via `SUPERGLUE_CLI_PRESET` env var or `config.json` as `"preset"`. Legacy `sg init --preset` still writes this value for existing scripts.
 
 | Preset    | Description                                                                                    |
 | --------- | ---------------------------------------------------------------------------------------------- |
@@ -148,7 +144,7 @@ Blocked commands print a clear error showing the current preset and how to chang
 1. Search for an existing system first: `sg system find <query>`
 2. If creating: `sg system create --name "..." --url "..." --credentials '{...}'`. Prefer `--template <id>` when one exists — it auto-fills URL and OAuth config
 3. For OAuth: `sg system oauth --system-id <id> [--scopes "..."]` opens a browser flow. User approves → tokens saved automatically
-4. For user-owned non-OAuth credentials: `sg system credentials set --system-id <id> --credentials '{...}'`
+4. For non-OAuth credentials: `sg system credentials set --system-id <id> --credentials '{...}'`
 5. Verify connectivity with `sg system call`
 6. For updates: `sg system edit --id <id>` with the fields to change
 
@@ -223,7 +219,7 @@ Agents familiar with the web tool names can map them directly to CLI commands:
 | `create_system`                                  | `sg system create --name "..." --url "..."`    | Use `--template <id>` when available                               |
 | `edit_system`                                    | `sg system edit --id <id> ...`                 | Supports `--env dev\|prod`                                         |
 | `run_command` with `vfs` for `/org/systems/`     | `sg system find <query>` / `--id <id>`         | Returns `storedCredentials` and system URL                         |
-| Credentials VFS / user-owned credentials         | `sg system credentials get/set/clear`          | Manage current user's credentials for user-owned systems           |
+| Credentials VFS / saved credentials              | `sg system credentials get/set/clear`          | Manage the current user's credentials for a system                 |
 | `call_system`                                    | `sg system call --url "..." --system-id <id>`  | Authenticated ad-hoc calls for testing / schema introspection      |
 | `run_command search`                             | `sg system search-docs --system-id <id> -k`    | Targeted keyword search over ingested system docs                  |
 | `authenticate_oauth`                             | `sg system oauth --system-id <id> [--scopes]`  | Opens browser flow. Supports `--grant-type client_credentials` too |
@@ -233,13 +229,17 @@ Agents familiar with the web tool names can map them directly to CLI commands:
 | `edit_mcp_server`                                | `sg mcp edit --id <id> ...`                    | Edits name, auth mode, description, or selected tool IDs           |
 | `create_schedule`                                | `sg schedule create --tool <id> --cron <expr>` | Creates a cron schedule for a saved tool                           |
 | `edit_schedule`                                  | `sg schedule edit --tool <id> --id <schedule>` | Updates, enables, or disables an existing schedule                 |
-| (no direct equivalent)                           | `sg init`, `sg update`, `sg skill`             | CLI-specific setup, updater, and this reference system             |
+| (no direct equivalent)                           | `sg login`, `sg update`, `sg skill`            | CLI-specific setup, updater, and this reference system             |
 
 Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`).
 
 ### Command Reference
 
-**`sg init`** — Interactive or non-interactive setup. Creates `.superglue/` config. Flags: `--api-key`, `--endpoint`, `--preset`, `--global`.
+**`sg login`** — Browser OAuth setup. Stores the OAuth session in `~/.superglue/auth.json`. Flags: `--web-endpoint`, `--no-browser`, `--save-config`, `--global`. Use global `--endpoint` for custom/self-hosted API URLs.
+
+**`sg logout`** — Removes the stored OAuth session from `~/.superglue/auth.json`.
+
+**`sg whoami`** — Shows the authenticated superglue user and organization.
 
 **Tool commands:**
 
@@ -517,7 +517,7 @@ Basic auth auto-encodes: if the value after `Basic ` isn't already base64, the e
 **Credential lifecycle:**
 
 - Pass ALL credentials (including secrets) via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
-- For user-owned systems, use `sg system credentials set --system-id <id> --credentials '{...}'` to save credentials for the current API-key user
+- Use `sg system credentials set --system-id <id> --credentials '{...}'` to save credentials for the current API-key user
 - Use `sg system credentials get --system-id <id>` to inspect current-user credential keys; values are masked unless `--reveal` is passed
 - OAuth tokens (`access_token`, `refresh_token`) auto-refresh before each step execution
 - Non-sensitive fields (`client_id`, `auth_url`, `token_url`) are stored alongside secrets in the same `--credentials` JSON
