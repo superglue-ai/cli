@@ -29,11 +29,6 @@ export declare function generateUniqueId({ baseId, exists, }: {
     baseId: string;
     exists: (id: string) => Promise<boolean> | boolean;
 }): Promise<string>;
-interface SystemGetter {
-    getSystem(id: string): Promise<System | null>;
-    getManySystems?(ids: string[]): Promise<System[]>;
-}
-export declare function waitForSystemProcessing(systemGetter: SystemGetter, systemIds: string[], timeoutMs?: number): Promise<System[]>;
 /**
  * Infer JSON Schema from data with smart sampling for arrays
  *
