@@ -536,11 +536,11 @@ export declare const PLAYGROUND_TOOL_DRAFT_ID = "@playground-draft";
 export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool", "share_resource"];
 export declare const AGENT_TOOLS: Record<AgentType, string[]>;
 export declare const DYNAMIC_AGENT_TOOLS: readonly ["web_search"];
-export declare const SKILL_BODY_NAMES: readonly ["tool-building", "tool-editing", "system-setup", "access-rule-setup", "tool-deployment", "discovery", "migration", "demos"];
+export declare const SKILL_BODY_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "discovery", "migration", "demos"];
 export type SkillBody = (typeof SKILL_BODY_NAMES)[number];
-export declare const SKILL_REFERENCE_NAMES: readonly ["superglue-info", "http", "graphql", "postgres", "mssql", "odbc", "redis", "sftp-smb", "file-handling", "systems-handling"];
+export declare const SKILL_REFERENCE_NAMES: readonly ["http", "graphql", "postgres", "mssql", "odbc", "redis", "sftp-smb", "file-handling", "tunnel-handling"];
 export type SkillReference = (typeof SKILL_REFERENCE_NAMES)[number];
-export declare const LOADABLE_MARKDOWN_NAMES: readonly ["tool-building", "tool-editing", "system-setup", "access-rule-setup", "tool-deployment", "discovery", "migration", "demos", "superglue-info", "http", "graphql", "postgres", "mssql", "odbc", "redis", "sftp-smb", "file-handling", "systems-handling"];
+export declare const LOADABLE_MARKDOWN_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "discovery", "migration", "demos", "http", "graphql", "postgres", "mssql", "odbc", "redis", "sftp-smb", "file-handling", "tunnel-handling"];
 export type LoadableMarkdown = SkillBody | SkillReference;
 export declare const SKILL_GATED_TOOLS: Partial<Record<LoadableMarkdown, string[]>>;
 export declare enum ConfirmationAction {
@@ -677,6 +677,20 @@ export type AccessRulesContext = Record<string, any> & {
         id: string;
         email: string | null;
         name: string | null;
+    }>;
+    availableTools?: Array<{
+        id: string;
+        name?: string;
+    }>;
+    availableSystems?: Array<{
+        id: string;
+        name?: string;
+    }>;
+    availableCredentials?: Array<{
+        id: string;
+        name?: string;
+        systemId?: string;
+        userId?: string;
     }>;
     isEditing: boolean;
 };

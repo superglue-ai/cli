@@ -2,8 +2,7 @@ import * as crypto from "node:crypto";
 import * as http from "node:http";
 import type { AddressInfo } from "node:net";
 import type { Command } from "commander";
-import { SuperglueClient } from "@superglue/shared";
-import { readProcessEnvironmentValue } from "@superglue/shared/environment";
+import { SuperglueClient, readProcessEnvironmentValue } from "@superglue/shared";
 import {
   buildAuthFromTokenResponse,
   buildOAuthTokenRequest,
