@@ -586,7 +586,7 @@ Drafts live under the active CLI config directory: local `.superglue/drafts/` wh
 
 After building and saving, tools can be invoked from code via REST API, SDK, or webhook. See `sg skill integration` for complete SDK (TypeScript/Python), REST API, and webhook examples including retry patterns.
 
-**IP whitelisting:** if a customer's system requires IP whitelisting (firewall rules, security groups, etc.), superglue's outbound IPs are `34.234.12.178` and `18.198.191.215`.
+**IP whitelisting:** if a customer's system requires IP whitelisting for firewall rules, security groups, or vendor access controls, superglue Cloud outbound requests come from `34.234.12.178` and `18.198.191.215`. These IPs apply to superglue Cloud only; self-hosted and enterprise deployments use deployment-specific networking.
 
 Quick reference:
 
