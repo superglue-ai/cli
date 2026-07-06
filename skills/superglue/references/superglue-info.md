@@ -52,6 +52,10 @@ OAuth flows require a callback URL: `{appEndpoint}/api/auth/callback`
 
 On superglue Cloud, the app endpoint is `https://app.superglue.cloud`. Self-hosted and enterprise deployments use their own app URL. If a user doesn't know their endpoints, they can check the browser URL bar for the app endpoint and deployment configuration for the API endpoint.
 
+### Cloud Networking
+
+If a customer's system requires IP allowlisting for firewall rules, security groups, or vendor access controls, superglue Cloud outbound requests come from `34.234.12.178` and `18.198.191.215`. These IPs apply to superglue Cloud only; self-hosted and enterprise deployments use deployment-specific networking.
+
 ## Web App UI Layout
 
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
@@ -106,7 +110,8 @@ Steps are routed to execution strategies by protocol (first match wins):
 3. PostgreSQL → URL starts with `postgres://` or `postgresql://`
 4. MSSQL/Azure SQL → URL starts with `mssql://` or `sqlserver://`
 5. Redis → URL starts with `redis://` or `rediss://`
-6. FTP/SFTP → URL starts with `ftp://`, `ftps://`, or `sftp://`
-7. SMB → URL starts with `smb://`
+6. MongoDB → URL starts with `mongodb://` or `mongodb+srv://`
+7. FTP/SFTP → URL starts with `ftp://`, `ftps://`, or `sftp://`
+8. SMB → URL starts with `smb://`
 
 All user-provided JS (data selectors, transforms, stop conditions) runs in an isolated Deno sandbox.
