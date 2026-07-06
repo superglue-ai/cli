@@ -83,7 +83,7 @@ ${c.bold}Examples:${c.reset}
     --body '{"operation": "list", "path": "/uploads"}'
 
 ${c.bold}Supported Protocols:${c.reset}
-  HTTP/HTTPS, PostgreSQL, MSSQL/SQL Server, Redis, SFTP/FTP/FTPS, SMB
+  HTTP/HTTPS, PostgreSQL, MSSQL/SQL Server, Redis, MongoDB, SFTP/FTP/FTPS, SMB
 `,
     )
     .action(async (opts) => {

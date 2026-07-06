@@ -2,8 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 import { type Command, Option } from "commander";
-import { SuperglueClient } from "@superglue/shared";
-import { readProcessEnvironmentValue } from "@superglue/shared/environment";
+import { SuperglueClient, readProcessEnvironmentValue } from "@superglue/shared";
 import {
   type CLIConfig,
   type CLIPreset,

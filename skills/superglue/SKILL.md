@@ -23,6 +23,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 | `sg skill mssql`          | MSSQL / Azure SQL connection URLs, schema introspection, parameterized queries                       |
 | `sg skill odbc`           | ODBC connections (SAP ASE / Sybase via FreeTDS), driver config, positional `?` params                |
 | `sg skill redis`          | Redis command syntax, connection URLs, key type handling                                             |
+| `sg skill mongodb`        | MongoDB connection URLs (mongodb:// / mongodb+srv://), CRUD operations, Extended JSON, aggregation   |
 | `sg skill sftp-smb`       | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                         |
 | `sg skill file-handling`  | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
 | `sg skill access-rules`   | RBAC roles, resource grants, and tool/system permissions (enterprise only)                           |
@@ -335,7 +336,7 @@ Attach files with repeatable `--file key=path`. Reference in payloads with `file
 }
 ```
 
-**Request step fields** (HTTP, Postgres, MSSQL, Redis, FTP/SFTP, SMB) — see protocol-specific references for full details:
+**Request step fields** (HTTP, Postgres, MSSQL, Redis, MongoDB, FTP/SFTP, SMB) — see protocol-specific references for full details:
 
 | Field         | Type   | Description                                                              |
 | ------------- | ------ | ------------------------------------------------------------------------ |
@@ -586,7 +587,7 @@ Drafts live under the active CLI config directory: local `.superglue/drafts/` wh
 
 After building and saving, tools can be invoked from code via REST API, SDK, or webhook. See `sg skill integration` for complete SDK (TypeScript/Python), REST API, and webhook examples including retry patterns.
 
-**IP whitelisting:** if a customer's system requires IP whitelisting (firewall rules, security groups, etc.), superglue's outbound IPs are `34.234.12.178` and `18.198.191.215`.
+**IP whitelisting:** if a customer's system requires IP whitelisting for firewall rules, security groups, or vendor access controls, superglue Cloud outbound requests come from `34.234.12.178` and `18.198.191.215`. These IPs apply to superglue Cloud only; self-hosted and enterprise deployments use deployment-specific networking.
 
 Quick reference:
 
@@ -629,7 +630,7 @@ curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API
 
 ## Error Recovery
 
-For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, GraphQL, SFTP/SMB), run `sg skill <protocol>`. General strategies below.
+For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, MongoDB, GraphQL, SFTP/SMB), run `sg skill <protocol>`. General strategies below.
 
 ### Tool build fails validation
 
