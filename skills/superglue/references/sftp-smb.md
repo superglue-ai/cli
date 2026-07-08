@@ -128,7 +128,7 @@ Single operation returns the result directly. Array of operations returns an arr
 
 **FTP/FTPS:** uses `basic-ftp`. FTPS uses TLS with `rejectUnauthorized: false`. Connection timeout configurable.
 
-**SMB:** uses `@tryjsky/v9u-smb2`. Connection lifecycle: create client (with share, domain, credentials), execute operations, disconnect. Entire operation wrapped in a timeout race. For private systems via Secure Gateway, the host is `tunnelId.tunnel` (e.g. `my_tunnel.tunnel`).
+**SMB:** uses `@tryjsky/v9u-smb2`. Connection lifecycle: create client (with share, domain, credentials), execute operations, disconnect.
 
 ### Retry Behavior
 
