@@ -218,7 +218,7 @@ async function registerOAuthClient(
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       client_name: "superglue CLI",
-      client_uri: "https://docs.superglue.cloud/getting-started/cli-skills",
+      client_uri: "https://superglue.ai/docs/getting-started/cli-skills/",
       scope: OAUTH_SCOPE,
       software_id: "superglue-cli",
       software_version: CLI_VERSION,
