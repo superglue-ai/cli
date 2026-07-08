@@ -780,6 +780,7 @@ export interface CallSystemArgs {
     body?: string;
     askToConfirm?: boolean;
     credentialsId?: string;
+    timeoutMs?: number;
 }
 export interface CallSystemResult {
     success: boolean;

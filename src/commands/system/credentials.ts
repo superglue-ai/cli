@@ -22,28 +22,25 @@ function parseCredentialsJson(raw: string): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
-function formatCredentials(credentials: Record<string, unknown>, reveal: boolean) {
+function formatCredentials(credentials: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(credentials).map(([key, value]) => [
       key,
       {
         placeholder: `<<SYSTEM_ID_${key}>>`,
-        value: reveal ? value : maskCredentialValue(key, value),
+        value: maskCredentialValue(key, value),
       },
     ]),
   );
 }
 
-function formatCredentialResponse(
-  data: {
-    systemId: string;
-    environment: "dev" | "prod";
-    hasCredentials: boolean;
-    credentials: Record<string, unknown>;
-  },
-  reveal = false,
-) {
-  const credentials = formatCredentials(data.credentials || {}, reveal);
+function formatCredentialResponse(data: {
+  systemId: string;
+  environment: "dev" | "prod";
+  hasCredentials: boolean;
+  credentials: Record<string, unknown>;
+}) {
+  const credentials = formatCredentials(data.credentials || {});
   return {
     systemId: data.systemId,
     environment: data.environment,
@@ -83,12 +80,11 @@ These commands manage the executing user's credentials for a system.
     .addOption(
       new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
     )
-    .option("--reveal", "Print credential values instead of masked values")
     .action(async (opts) => {
       const { config } = getContext();
       try {
         const data = await getMySystemCredentials(config, opts.systemId, parseEnvironment(opts));
-        output({ success: true, data: formatCredentialResponse(data, opts.reveal === true) });
+        output({ success: true, data: formatCredentialResponse(data) });
       } catch (err: any) {
         error(err.message);
         process.exit(1);
