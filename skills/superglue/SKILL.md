@@ -519,7 +519,7 @@ Basic auth auto-encodes: if the value after `Basic ` isn't already base64, the e
 
 - Pass ALL credentials (including secrets) via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
 - Use `sg system credentials set --system-id <id> --credentials '{...}'` to save credentials for the current API-key user
-- Use `sg system credentials get --system-id <id>` to inspect current-user credential keys; values are masked unless `--reveal` is passed
+- Use `sg system credentials get --system-id <id>` to inspect current-user credential keys; values are always masked and never returned in plaintext
 - OAuth tokens (`access_token`, `refresh_token`) auto-refresh before each step execution
 - Non-sensitive fields (`client_id`, `auth_url`, `token_url`) are stored alongside secrets in the same `--credentials` JSON
 
