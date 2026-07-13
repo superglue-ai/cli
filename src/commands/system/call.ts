@@ -32,6 +32,7 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
     .option("--method <method>", "HTTP method", "GET")
     .option("--headers <json>", "HTTP headers JSON")
     .option("--body <string>", "Request body")
+    .option("--timeout <ms>", "Per-request timeout in milliseconds (minimum 1000)")
     .option("--continue-on-error", "Return failed response envelope instead of exiting non-zero")
     .option(
       "--file <key=path...>",
@@ -138,6 +139,16 @@ ${c.bold}Supported Protocols:${c.reset}
         }
       }
 
+      let timeout: number | undefined;
+      if (opts.timeout !== undefined) {
+        const parsed = Number(opts.timeout);
+        if (!Number.isInteger(parsed) || parsed < 1000) {
+          error("--timeout must be an integer of at least 1000 (milliseconds)");
+          process.exit(1);
+        }
+        timeout = parsed;
+      }
+
       const step = {
         id: `call_system_${Date.now()}`,
         failureBehavior: opts.continueOnError ? "continue" : "fail",
@@ -152,7 +163,12 @@ ${c.bold}Supported Protocols:${c.reset}
 
       try {
         const mode = opts.env === "dev" || opts.env === "prod" ? opts.env : undefined;
-        const result = await client.executeStep({ step, payload: {}, mode });
+        const result = await client.executeStep({
+          step,
+          payload: {},
+          mode,
+          ...(timeout !== undefined ? { options: { timeout } } : {}),
+        });
         const rawStepData = result.data;
         const responseEnvelope = isStepResponseEnvelope(rawStepData) ? rawStepData : undefined;
         const responseData = responseEnvelope ? responseEnvelope.data : rawStepData;
