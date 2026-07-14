@@ -68,7 +68,14 @@ export declare function isValidCredentialKey(key: string): boolean;
 export declare function getCredentialKeyValidationError(key: string): string | null;
 export declare function getInvalidCredentialKeyNames(keys: Iterable<string>): string[];
 export declare const isSensitiveCredentialKey: (key: string) => boolean;
-export declare const maskCredentialValue: (key: string, value: any) => string;
+export declare const maskCredentialValue: (_key: string, value: any) => string;
+export declare const FULLY_MASKED_CREDENTIAL_VALUE = "****";
+export declare function isFullyMaskedCredentialValue(value: unknown): boolean;
+export declare function maskCredentialSetValues(credentials: Record<string, any> | null | undefined): Record<string, string>;
+export declare function restoreMaskedCredentialValues({ incoming, existing, }: {
+    incoming: Record<string, any> | null | undefined;
+    existing: Record<string, any> | null | undefined;
+}): Record<string, any>;
 export declare function isMaskedValue(value: any): boolean;
 export declare function mergeCredentials(incoming: Record<string, any> | null | undefined, existing: Record<string, any> | null | undefined): Record<string, any>;
 export declare function maskCredentials(message: string, credentials?: Record<string, string>): string;

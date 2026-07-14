@@ -7,13 +7,13 @@ superglue is an open-source, AI-native integration platform that builds and runs
 Developed by superglue (Y Combinator W25), founded by Adina Görres and Stefan Faistenauer in 2025, based in Munich and San Francisco.
 
 - Website: https://superglue.ai
-- Documentation: https://docs.superglue.cloud
+- Documentation: https://superglue.ai/docs/
 - GitHub: https://github.com/superglue-ai/superglue
 
 If the user is asking general questions (not building):
 
 - Company/team/pricing → https://superglue.ai/
-- Product/features → https://docs.superglue.cloud/getting-started/introduction
+- Product/features → https://superglue.ai/docs/getting-started/introduction/
 - Open-source/code → https://github.com/superglue-ai/superglue
 
 ## Cloud Usage Tiers
@@ -35,10 +35,10 @@ Users can generate and manage API keys on the standalone **API Keys** page (`/ap
 ## Interfaces
 
 - **Web app** — primary UI for building, testing, and managing tools and systems
-- **TypeScript/Python SDK** — https://docs.superglue.cloud/sdk/overview
-- **REST API** — https://docs.superglue.cloud/api-reference/
-- **MCP Server** — https://docs.superglue.cloud/mcp/using-the-mcp
-- **CLI** — `npm install -g @superglue/cli` — https://docs.superglue.cloud/getting-started/cli-skills
+- **TypeScript/Python SDK** — https://superglue.ai/docs/sdk/overview/
+- **REST API** — https://superglue.ai/docs/api/
+- **MCP Server** — https://superglue.ai/docs/mcp/using-the-mcp/
+- **CLI** — `npm install -g @superglue/cli` — https://superglue.ai/docs/getting-started/cli-skills/
 
 ### Webhook Triggers
 

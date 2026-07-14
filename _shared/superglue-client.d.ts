@@ -307,10 +307,6 @@ export declare class SuperglueClient {
         environment?: "dev" | "prod";
     }): Promise<boolean>;
     switchSystemEnvironment(id: string, targetEnv: "dev" | "prod"): Promise<System>;
-    getTemplateOAuthCredentials(templateId: string): Promise<{
-        client_id: string;
-        client_secret: string;
-    }>;
     createOAuthExchange(params: OAuthExchangeRequest): Promise<OAuthExchangeStartResponse>;
     completeOAuthExchange(oauthExchangeId: string, params: OAuthExchangeCompleteRequest): Promise<OAuthExchangeCompleteResponse>;
     searchSystemDocumentation(systemId: string, keywords: string): Promise<string>;
