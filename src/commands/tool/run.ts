@@ -37,6 +37,7 @@ export function registerRunCommand(
     )
     .option("--include-step-results", "Include raw step results")
     .option("--include-config", "Include full tool config")
+    .option("--timeout <ms>", "Per-request timeout in milliseconds (minimum 1000)")
     .addHelpText(
       "after",
       `
@@ -100,6 +101,17 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
       let result: any;
       const toolLabel = opts.tool || opts.draft || "inline-config";
       const traceId = crypto.randomUUID();
+
+      let timeout: number | undefined;
+      if (opts.timeout !== undefined) {
+        const parsed = Number(opts.timeout);
+        if (!Number.isInteger(parsed) || parsed < 1000) {
+          error("--timeout must be an integer of at least 1000 (milliseconds)");
+          process.exit(1);
+        }
+        timeout = parsed;
+      }
+
       const spin = spinner(`Running ${c.bold}${toolLabel}${c.reset}...`);
 
       const logSub = await client
@@ -122,7 +134,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
             tool: toolConfig,
             payload,
             includeStepResultData: opts.includeStepResults === true,
-            options: { requestSource: RequestSource.CLI },
+            options: { requestSource: RequestSource.CLI, timeout },
             traceId,
             createRun: true,
             executionKind: options.executionKind,
@@ -146,7 +158,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
             toolId: opts.tool,
             payload,
             includeStepResultData: opts.includeStepResults === true,
-            options: { requestSource: RequestSource.CLI, traceId },
+            options: { requestSource: RequestSource.CLI, traceId, timeout },
           });
           logSub.unsubscribe();
           spin.stop();
