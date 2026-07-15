@@ -80,6 +80,12 @@ export declare function flattenSystemAuthentication(authentication: SystemAuthen
  * This is the single read-surface projection used by tool returns and the VFS.
  */
 export declare function maskedFlatSystemAuthentication(authentication: SystemAuthentication | undefined): Record<string, unknown> | undefined;
+export declare function isMaskedSecretValue(value: unknown): boolean;
+export declare function maskSystemAuthenticationForResponse(authentication: SystemAuthentication | undefined): SystemAuthentication | undefined;
+export declare function restoreMaskedClientSecret({ incoming, existing, }: {
+    incoming: SystemAuthentication | undefined;
+    existing: SystemAuthentication | undefined;
+}): SystemAuthentication | undefined;
 export declare function mapAgentAuthInput(auth: unknown): {
     authentication?: SystemAuthentication;
     error?: string;
@@ -123,6 +129,7 @@ export declare function validateOAuthAuthenticationConfigPlacement({ authenticat
     credentials: unknown;
 }): string | null;
 export declare function authenticationToLegacyCredentials(authentication: SystemAuthentication | undefined): Record<string, unknown>;
+export declare function isRuntimeCredentialMetadataKey(key: string): boolean;
 export declare function buildRuntimeCredentialsFromAuthentication({ authentication, credentials, }: {
     authentication?: SystemAuthentication;
     credentials?: Record<string, unknown>;
