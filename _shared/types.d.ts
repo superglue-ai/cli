@@ -22,6 +22,16 @@ export interface MessagePart {
     tool?: ToolCall;
     id: string;
 }
+export interface AgentSessionUpload {
+    key: string;
+    name: string;
+    size: number;
+    originalSize?: number;
+    contentType?: string;
+    status: "ready";
+    jsonPath: string;
+    rawPath?: string;
+}
 export interface Message {
     id: string;
     content: string;
@@ -32,13 +42,7 @@ export interface Message {
     isStreaming?: boolean;
     isHidden?: boolean;
     stale?: true;
-    attachedFiles?: Array<{
-        name: string;
-        size?: number;
-        key: string;
-        status?: "processing" | "ready" | "error";
-        error?: string;
-    }>;
+    attachedFiles?: AgentSessionUpload[];
 }
 export interface ToolCall {
     id: string;
@@ -68,6 +72,26 @@ export interface ToolCall {
     buildResult?: any;
     executionTraceId?: string;
 }
+export interface HtmlArtifactMetadata {
+    id: string;
+    kind: "html";
+    title: string;
+    bytes: number;
+    contentHash: string;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface HtmlArtifact extends HtmlArtifactMetadata {
+    html: string;
+}
+export interface HtmlArtifactToolOutput {
+    success: boolean;
+    operation?: "created" | "updated";
+    artifact?: HtmlArtifactMetadata;
+    message?: string;
+    error?: string;
+}
+export declare const MAX_HTML_ARTIFACT_BYTES: number;
 export interface UserInfo {
     id: string;
     email: string | null;
@@ -533,14 +557,15 @@ export declare enum AgentType {
     ACCESS_RULES = "access_rules"
 }
 export declare const PLAYGROUND_TOOL_DRAFT_ID = "@playground-draft";
-export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool", "share_resource"];
+export declare const AGENT_GLOBAL_TOOLS: readonly ["run_command", "load_skill", "visualize"];
+export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "visualize", "call_system", "run_tool", "share_resource"];
 export declare const AGENT_TOOLS: Record<AgentType, string[]>;
 export declare const DYNAMIC_AGENT_TOOLS: readonly ["web_search"];
-export declare const SKILL_BODY_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "discovery", "migration", "demos"];
+export declare const SKILL_BODY_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "mcp-server-setup", "notifications", "discovery", "migration", "demos", "visualization"];
 export type SkillBody = (typeof SKILL_BODY_NAMES)[number];
 export declare const SKILL_REFERENCE_NAMES: readonly ["http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
 export type SkillReference = (typeof SKILL_REFERENCE_NAMES)[number];
-export declare const LOADABLE_MARKDOWN_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "discovery", "migration", "demos", "http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
+export declare const LOADABLE_MARKDOWN_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "mcp-server-setup", "notifications", "discovery", "migration", "demos", "visualization", "http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
 export type LoadableMarkdown = SkillBody | SkillReference;
 export declare const SKILL_GATED_TOOLS: Partial<Record<LoadableMarkdown, string[]>>;
 export declare enum ConfirmationAction {
@@ -780,6 +805,7 @@ export interface CallSystemArgs {
     body?: string;
     askToConfirm?: boolean;
     credentialsId?: string;
+    timeoutMs?: number;
 }
 export interface CallSystemResult {
     success: boolean;
@@ -789,6 +815,10 @@ export interface CallSystemResult {
     headers?: Record<string, string>;
     data?: any;
     error?: string;
+    credentialPlaceholders?: {
+        keys: string[];
+        resolved: boolean;
+    };
 }
 export type NotificationMode = "realtime" | "daily_summary" | "weekly_summary";
 export interface NotificationRuleConditions {

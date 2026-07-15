@@ -105,10 +105,10 @@ endpoint settings in `config.json`.
 
 ## Documentation
 
-- [CLI + Skills](https://docs.superglue.cloud/getting-started/cli-skills) — Skill installation and agent setup
+- [CLI + Skills](https://superglue.ai/docs/getting-started/cli-skills/) — Skill installation and agent setup
 - [Full CLI Reference](./skills/superglue/SKILL.md) — Complete command documentation
-- [superglue Docs](https://docs.superglue.cloud) — Platform documentation
-- [API Reference](https://docs.superglue.cloud/api-reference/) — REST API docs
+- [superglue Docs](https://superglue.ai/docs/) — Platform documentation
+- [API Reference](https://superglue.ai/docs/api/) — REST API docs
 
 ## Related
 

@@ -16,6 +16,13 @@ export declare class SuperglueClient {
     protected getApiKey(): Promise<string>;
     private isInfrastructureError;
     protected restRequest<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: any, extraHeaders?: Record<string, string>, requestInit?: RequestInit): Promise<T>;
+    protected restResponse({ method, path, body, extraHeaders, requestInit, }: {
+        method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+        path: string;
+        body?: any;
+        extraHeaders?: Record<string, string>;
+        requestInit?: RequestInit;
+    }): Promise<Response>;
     private buildHttpError;
     private streamRequest;
     subscribeToLogsSSE(options?: SSELogSubscriptionOptions): Promise<SSESubscription>;
@@ -307,10 +314,6 @@ export declare class SuperglueClient {
         environment?: "dev" | "prod";
     }): Promise<boolean>;
     switchSystemEnvironment(id: string, targetEnv: "dev" | "prod"): Promise<System>;
-    getTemplateOAuthCredentials(templateId: string): Promise<{
-        client_id: string;
-        client_secret: string;
-    }>;
     createOAuthExchange(params: OAuthExchangeRequest): Promise<OAuthExchangeStartResponse>;
     completeOAuthExchange(oauthExchangeId: string, params: OAuthExchangeCompleteRequest): Promise<OAuthExchangeCompleteResponse>;
     searchSystemDocumentation(systemId: string, keywords: string): Promise<string>;
