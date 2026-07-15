@@ -188,6 +188,8 @@ export type SuperglueDeploymentConfig = {
     auth: {
         providers: AuthProviderConfig[];
         visibleProviders: AuthProviderName[];
+        disableSignup: boolean;
+        disableInvites: boolean;
     };
 };
 export type DeploymentConfigIssue = {
