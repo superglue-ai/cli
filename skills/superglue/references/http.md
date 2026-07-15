@@ -149,6 +149,10 @@ All HTTP responses are read as raw bytes, then classified by byte-level detectio
 - **RAW + `Content-Disposition: attachment`**: treated as a file.
 - **Structured/text responses** (JSON, XML, CSV, YAML, HTML, text under size limit): parsed inline to `data` only.
 
+### XML Response Casing
+
+XML responses are parsed into a JSON tree with ALL tag names normalized to UPPERCASE — the parsed keys will not match the raw document's casing. This applies identically to `sg system call` and to request steps in tools. A raw `fetch()` inside a transform step is the exception: it returns the original document with its real casing (often lowercase envelope tags with uppercase field tags). Never write string-level XML parsing logic in a transform from memory of what `sg system call` showed — capture a raw probe first (e.g. return `{ rawXml: xml.slice(0, 1500) }`), and guard against self-closing empty containers (`<data/>` has no closing tag) and repeated sibling result blocks.
+
 ### Error Detection
 
 Non-2xx responses throw with method, URL, response body preview (1000 chars), masked config, and retry count. Any response with status in the 2xx range is treated as success and returned to the step as-is — the runtime does not scan successful response bodies for error fields, so APIs that return HTTP 200 with `{ "error": "..." }` must be handled by your transform or by setting a `stopCondition`/assertion at the step level.
