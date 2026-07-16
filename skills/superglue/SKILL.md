@@ -378,7 +378,7 @@ All step config fields (url, headers, body, queryParams) support `<<expression>>
 <<page>> <<offset>> <<cursor>> <<limit>> <<pageSize>>   pagination variables
 <<systemId_api_key>>   system credentials (namespaced: systemId_credKey)
 <<systemId_url>>       system base URLs (namespaced: systemId_url)
-<<sg_auth_email>>      email of the authenticated user (NOT available in scheduled runs)
+<<sg_auth_email>>      email of the user triggering this run (in scheduled runs: the schedule creator)
 ```
 
 Simple `<<varName>>` only works for top-level keys. No dots, no nesting. `<<currentItem.id>>`, `<<sourceData.userId>>`, `<<user.name>>` all FAIL at runtime.
@@ -494,7 +494,7 @@ All user-provided JS runs in an isolated Deno sandbox.
 Credentials are namespaced as `<<systemId_credentialKey>>` and resolved server-side at execution time. You MUST explicitly reference them:
 
 ```
-System id="stripe", storedCredentials: api_key → "sk_proj****"
+System id="stripe", storedCredentials: api_key → "****"
 → Available as: <<stripe_api_key>>
 ```
 
@@ -519,7 +519,7 @@ Basic auth auto-encodes: if the value after `Basic ` isn't already base64, the e
 
 - Pass ALL credentials (including secrets) via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
 - Use `sg system credentials set --system-id <id> --credentials '{...}'` to save credentials for the current API-key user
-- Use `sg system credentials get --system-id <id>` to inspect current-user credential keys; values are masked unless `--reveal` is passed
+- Use `sg system credentials get --system-id <id>` to inspect current-user credential keys; values are always masked and never returned in plaintext
 - OAuth tokens (`access_token`, `refresh_token`) auto-refresh before each step execution
 - Non-sensitive fields (`client_id`, `auth_url`, `token_url`) are stored alongside secrets in the same `--credentials` JSON
 
@@ -623,7 +623,6 @@ curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API
 - **Double-encoded JSON** — when the body contains nested/stringified JSON (e.g. LLM APIs), have `<<>>` expressions return a string via `JSON.stringify(...)`, and use a single expression for the whole body rather than mixing `<<>>` with static JSON
 - **POST for read-only ops** — GraphQL queries via POST should have `modify: false`. Don't rely on HTTP method alone
 - **Saving without approval** — always present `sg tool run` results and ask before `sg tool save`
-- **`sg_auth_email` in scheduled runs** — not available in scheduler-triggered executions. Tools using `<<sg_auth_email>>` will fail
 - **Reserved key collisions** — payload inputs or step ids named after reserved/injected keys (see Naming Rules) are rejected at save time; pick a different name instead of retrying
 
 ---

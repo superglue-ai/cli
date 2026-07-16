@@ -8,6 +8,7 @@ export type UserSystemCredentials = {
   environment: "dev" | "prod";
   hasCredentials: boolean;
   credentials: Record<string, unknown>;
+  updatedAt?: string;
 };
 
 function userCredentialsPath(systemId: string, environment?: "dev" | "prod"): string {

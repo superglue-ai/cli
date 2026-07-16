@@ -2,6 +2,8 @@
 
 How the runtime detects, parses, and exposes files across all protocol strategies (HTTP, SFTP/FTP, SMB).
 
+This reference is the sole source of truth for parsed file formats, result shapes, and format-specific limitations in the CLI runtime. Protocol-specific references must link here instead of maintaining format lists.
+
 ## Step Configuration
 
 File handling is not a standalone step type — it is a cross-cutting runtime behavior that applies to any step that produces or consumes files. The `file::<alias>.<suffix>` syntax is used in step config `body` / `content` fields to reference files from previous steps or user uploads.
@@ -44,7 +46,7 @@ N/A — file handling is a runtime behavior, not a protocol. Authentication is h
 
 Every response is read as raw bytes. The runtime classifies it using this priority chain:
 
-1. **Magic-byte detection** — known binary signatures (ZIP `PK\x03\x04`, PDF `%PDF`, GZIP `\x1f\x8b`, plus internal ZIP structure checks for Excel/DOCX)
+1. **Magic-byte detection** — known binary signatures (ZIP `PK\x03\x04`, PDF `%PDF`, GZIP `\x1f\x8b`, plus internal ZIP structure checks for Excel/DOCX/PPTX)
 2. **`Content-Disposition: attachment`** — `attachment` or `filename=` in this header forces file treatment
 3. **`application/octet-stream`** — explicit octet-stream MIME catches unlabeled binary payloads
 4. **25MB size fallback** — only when byte detection returned `RAW`, the response exceeds 25MB, and `Content-Type` is not text-like (`text/*`, `application/json`, `*+json`, `application/xml`)
@@ -53,11 +55,11 @@ File server `get` operations always produce files regardless of detected type.
 
 ### Classification
 
-| Classification      | Types                       | Destination                                                    |
-| ------------------- | --------------------------- | -------------------------------------------------------------- |
-| **Binary**          | PDF, Excel, DOCX, ZIP, GZIP | `producedFiles` + `data` (extracted/parsed content)            |
-| **Structured text** | JSON, XML, CSV, YAML, HTML  | `data` only (parsed to JS objects)                             |
-| **RAW**             | Unrecognized                | File if attachment/octet-stream/25MB fallback, else raw string |
+| Classification      | Types                             | Destination                                                    |
+| ------------------- | --------------------------------- | -------------------------------------------------------------- |
+| **Binary**          | PDF, Excel, DOCX, PPTX, ZIP, GZIP | `producedFiles` + `data` (extracted/parsed content)            |
+| **Structured text** | JSON, XML, CSV, YAML, HTML        | `data` only (parsed to JS objects)                             |
+| **RAW**             | Unrecognized                      | File if attachment/octet-stream/25MB fallback, else raw string |
 
 Binary responses expose `stepFileKeys` and populate `sourceData.__files__`. Structured text responses only populate `sourceData.stepId.data`.
 
@@ -73,9 +75,12 @@ Binary responses expose `stepFileKeys` and populate `sourceData.__files__`. Stru
 | Excel | Object keyed by sheet name, each value is array of row objects |
 | PDF   | `{ textContent, structuredContent: [{ page, text }] }`         |
 | DOCX  | Markdown string                                                |
+| PPTX  | Plain text, separated by slide                                 |
 | ZIP   | Object keyed by entry filename, each value recursively parsed  |
 | GZIP  | Recursively parsed inner content                               |
 | RAW   | UTF-8 string fallback                                          |
+
+**PPTX rules:** extraction includes slide text, including text inside basic tables. It does not include images, charts, layout, animations, or speaker notes.
 
 **Excel rules:**
 

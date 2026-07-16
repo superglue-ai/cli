@@ -143,11 +143,15 @@ Multipart restrictions:
 
 All HTTP responses are read as raw bytes, then classified by byte-level detection (see `file-handling.md` for the full detection logic).
 
-- **Binary types** (PDF, Excel, DOCX, ZIP, GZIP): treated as files, parsed content also populates `data`. Later steps can reference via `file::<stepId>.raw/base64/extracted`.
+- **File responses**: formats classified as files by `file-handling.md` are stored as files, and parsed content populates `data` when extraction is available. Later steps can reference them via `file::<stepId>.raw/base64/extracted`.
 - **`application/octet-stream`**: always treated as a file.
 - **Responses over 25 MB**: treated as files as a safety fallback.
 - **RAW + `Content-Disposition: attachment`**: treated as a file.
-- **Structured/text responses** (JSON, XML, CSV, YAML, HTML, text under size limit): parsed inline to `data` only.
+- **Inline responses**: formats classified as structured or plain text by `file-handling.md` populate `data` without producing a stored file unless another file rule applies.
+
+### XML Response Casing
+
+XML responses are parsed into a JSON tree with ALL tag names normalized to UPPERCASE — the parsed keys will not match the raw document's casing. This applies identically to `sg system call` and to request steps in tools. A raw `fetch()` inside a transform step is the exception: it returns the original document with its real casing (often lowercase envelope tags with uppercase field tags). Never write string-level XML parsing logic in a transform from memory of what `sg system call` showed — capture a raw probe first (e.g. return `{ rawXml: xml.slice(0, 1500) }`), and guard against self-closing empty containers (`<data/>` has no closing tag) and repeated sibling result blocks.
 
 ### Error Detection
 
