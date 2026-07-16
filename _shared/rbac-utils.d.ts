@@ -39,6 +39,7 @@ export declare function getEffectiveSystemPermissions(roles: readonly Pick<Role,
 export declare function checkResourcePermission(roles: readonly Pick<Role, "resourceGrants">[], kind: ResourceKind, resourceId: string, permission: ResourcePermission): CheckResult;
 export declare function isToolAllowed(roles: readonly Pick<Role, "resourceGrants">[], toolId: string, permission?: ResourcePermission): CheckResult;
 export declare function isSystemVisible(roles: readonly Pick<Role, "resourceGrants">[], systemId: string, permission?: ResourcePermission): CheckResult;
+export declare function isPlaybookVisible(roles: readonly Pick<Role, "resourceGrants">[], playbookId: string, permission?: ResourcePermission): CheckResult;
 export declare function hasAllSystems(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): boolean;
 export declare function hasAllTools(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): boolean;
 export declare function getResourceGrantSources(grants: readonly ResourceGrant[], resourceRef: string, requiredPermission?: ResourcePermission): ResourceGrantSource[];

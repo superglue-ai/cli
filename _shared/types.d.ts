@@ -22,6 +22,16 @@ export interface MessagePart {
     tool?: ToolCall;
     id: string;
 }
+export interface AgentSessionUpload {
+    key: string;
+    name: string;
+    size: number;
+    originalSize?: number;
+    contentType?: string;
+    status: "ready";
+    jsonPath: string;
+    rawPath?: string;
+}
 export interface Message {
     id: string;
     content: string;
@@ -32,13 +42,7 @@ export interface Message {
     isStreaming?: boolean;
     isHidden?: boolean;
     stale?: true;
-    attachedFiles?: Array<{
-        name: string;
-        size?: number;
-        key: string;
-        status?: "processing" | "ready" | "error";
-        error?: string;
-    }>;
+    attachedFiles?: AgentSessionUpload[];
 }
 export interface ToolCall {
     id: string;
@@ -68,6 +72,26 @@ export interface ToolCall {
     buildResult?: any;
     executionTraceId?: string;
 }
+export interface HtmlArtifactMetadata {
+    id: string;
+    kind: "html";
+    title: string;
+    bytes: number;
+    contentHash: string;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface HtmlArtifact extends HtmlArtifactMetadata {
+    html: string;
+}
+export interface HtmlArtifactToolOutput {
+    success: boolean;
+    operation?: "created" | "updated";
+    artifact?: HtmlArtifactMetadata;
+    message?: string;
+    error?: string;
+}
+export declare const MAX_HTML_ARTIFACT_BYTES: number;
 export interface UserInfo {
     id: string;
     email: string | null;
@@ -100,6 +124,7 @@ export declare enum SupportedFileType {
     EXCEL = "EXCEL",
     PDF = "PDF",
     DOCX = "DOCX",
+    PPTX = "PPTX",
     ZIP = "ZIP",
     GZIP = "GZIP",
     BINARY = "BINARY",
@@ -133,6 +158,7 @@ export declare enum FileType {
     HTML = "HTML",
     PDF = "PDF",
     DOCX = "DOCX",
+    PPTX = "PPTX",
     ZIP = "ZIP",
     BINARY = "BINARY",
     RAW = "RAW",
@@ -530,17 +556,32 @@ export declare enum AgentType {
     MAIN = "main",
     PLAYGROUND = "playground",
     SYSTEM_PLAYGROUND = "system_playground",
+    PLAYBOOK_PLAYGROUND = "playbook_playground",
     ACCESS_RULES = "access_rules"
 }
 export declare const PLAYGROUND_TOOL_DRAFT_ID = "@playground-draft";
-export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool", "share_resource"];
+export declare const PLAYBOOK_PLAYGROUND_DRAFT_ID = "@playground-draft";
+export declare const AGENT_GLOBAL_TOOLS: readonly ["run_command", "load_skill", "visualize"];
+export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "visualize", "call_system", "run_tool", "generate_report", "share_resource", "use_checklist"];
 export declare const AGENT_TOOLS: Record<AgentType, string[]>;
 export declare const DYNAMIC_AGENT_TOOLS: readonly ["web_search"];
-export declare const SKILL_BODY_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "discovery", "migration", "demos"];
+export type AgentChecklistItemStatus = "pending" | "in_progress" | "done";
+export interface AgentChecklistItem {
+    label: string;
+    status: AgentChecklistItemStatus;
+}
+export interface AgentChecklistState {
+    title?: string;
+    items: AgentChecklistItem[];
+}
+export declare const AGENT_CHECKLIST_MIN_ITEMS = 4;
+export declare const AGENT_CHECKLIST_MAX_ITEMS = 15;
+export declare const AGENT_CHECKLIST_MAX_LABEL_CHARS = 120;
+export declare const SKILL_BODY_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "notifications", "visualization", "playbooks"];
 export type SkillBody = (typeof SKILL_BODY_NAMES)[number];
 export declare const SKILL_REFERENCE_NAMES: readonly ["http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
 export type SkillReference = (typeof SKILL_REFERENCE_NAMES)[number];
-export declare const LOADABLE_MARKDOWN_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "discovery", "migration", "demos", "http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
+export declare const LOADABLE_MARKDOWN_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "notifications", "visualization", "playbooks", "http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
 export type LoadableMarkdown = SkillBody | SkillReference;
 export declare const SKILL_GATED_TOOLS: Partial<Record<LoadableMarkdown, string[]>>;
 export declare enum ConfirmationAction {
@@ -697,6 +738,7 @@ export type AccessRulesContext = Record<string, any> & {
 export interface FrontendDrafts {
     tool?: DraftLookup;
     system?: SystemFrontendDraft;
+    playbook?: PlaybookFrontendDraft;
     role?: Record<string, unknown>;
 }
 export interface TokenUsageInputDetails {
@@ -780,6 +822,7 @@ export interface CallSystemArgs {
     body?: string;
     askToConfirm?: boolean;
     credentialsId?: string;
+    timeoutMs?: number;
 }
 export interface CallSystemResult {
     success: boolean;
@@ -789,6 +832,10 @@ export interface CallSystemResult {
     headers?: Record<string, string>;
     data?: any;
     error?: string;
+    credentialPlaceholders?: {
+        keys: string[];
+        resolved: boolean;
+    };
 }
 export type NotificationMode = "realtime" | "daily_summary" | "weekly_summary";
 export interface NotificationRuleConditions {
@@ -973,7 +1020,7 @@ export type RunLimitCheckResponse = {
 export type SystemEnvironment = "dev" | "prod";
 export type ResourcePermission = "viewer" | "editor";
 export type ResourceGrantSource = "access_rule" | "ownership" | "share";
-export type ResourceKind = "tool" | "system" | "credential";
+export type ResourceKind = "tool" | "system" | "credential" | "playbook";
 export interface ResourceGrant extends BaseConfig {
     orgId?: string;
     roleId: string;
@@ -1204,4 +1251,104 @@ export interface McpServerConfigInput {
     authMode?: McpServerAuthMode;
     toolIds: string[];
 }
+export interface PlaybookSystemRef {
+    id: string;
+}
+export interface PlaybookToolRef {
+    id: string;
+}
+export interface PlaybookCredentialRef {
+    id: string;
+}
+export interface PlaybookFileRef {
+    id: string;
+}
+export interface PlaybookFileAttachment extends PlaybookFileRef {
+    name: string;
+    contentType?: string;
+    size?: number;
+}
+export interface Playbook {
+    id: string;
+    orgId?: string;
+    name: string;
+    whenToRun: string;
+    inputs: string;
+    systemRefs: PlaybookSystemRef[];
+    toolRefs: PlaybookToolRef[];
+    credentialRefs: PlaybookCredentialRef[];
+    fileRefs: PlaybookFileRef[];
+    instructions: string;
+    completionCriteria: string;
+    sourceTemplateId?: string;
+    isBuiltin?: boolean;
+    createdByUserId?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export interface PlaybookInput {
+    id?: string;
+    name: string;
+    whenToRun?: string;
+    inputs?: string;
+    systemRefs?: PlaybookSystemRef[];
+    toolRefs?: PlaybookToolRef[];
+    credentialRefs?: PlaybookCredentialRef[];
+    fileRefs?: PlaybookFileRef[];
+    instructions?: string;
+    completionCriteria?: string;
+}
+export interface PlaybookWithFiles extends Omit<Playbook, "fileRefs"> {
+    fileRefs: PlaybookFileAttachment[];
+}
+export interface PlaybookReferenceHealth {
+    missingSystemIds: string[];
+    missingToolIds: string[];
+    missingCredentialIds: string[];
+}
+export interface PlaybookFileUploadInput {
+    fileName: string;
+    contentType?: string;
+    contentLength: number;
+}
+export interface PlaybookFileUploadSlot extends PlaybookFileAttachment {
+    uploadUrl: string;
+    expiresIn: number;
+}
+export interface PlaybookApiRecord extends Omit<PlaybookWithFiles, "createdAt" | "updatedAt"> {
+    createdAt?: string;
+    updatedAt?: string;
+    referenceHealth: PlaybookReferenceHealth;
+}
+export interface PlaybookDraftConfig {
+    id?: string;
+    name: string;
+    whenToRun: string;
+    inputs: string;
+    systemRefs: PlaybookSystemRef[];
+    toolRefs: PlaybookToolRef[];
+    credentialRefs: PlaybookCredentialRef[];
+    fileRefs: PlaybookFileAttachment[];
+    instructions: string;
+    completionCriteria: string;
+}
+export interface PlaybookFrontendDraft {
+    config: PlaybookDraftConfig;
+    persistedId?: string;
+    isNew: boolean;
+    isDirty: boolean;
+    canEdit: boolean;
+}
+export declare const PLAYBOOK_LIMITS: {
+    readonly name: 120;
+    readonly whenToRun: 500;
+    readonly inputs: 2000;
+    readonly instructions: 8000;
+    readonly completionCriteria: 2000;
+    readonly systemRefs: 10;
+    readonly toolRefs: 25;
+    readonly credentialRefs: 10;
+    readonly fileRefs: 15;
+    readonly compiledRender: 24000;
+};
 //# sourceMappingURL=types.d.ts.map
