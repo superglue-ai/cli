@@ -3,35 +3,59 @@ import type { SuperglueClient } from "@superglue/shared";
 import {
   findTemplateForSystem,
   getOAuthTokenExchangeConfig,
-  parseJsonRecord,
+  hasCredentialKeyValue,
+  isMaskedSecretValue,
   resolveOAuthConfigFromAuthentication,
+  stringValue,
 } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
 import { error, isTableMode, success, spinner, colors as c } from "../../output.js";
-import { getMySystemCredentials } from "./user-credentials-api.js";
+import { getOwnedCredentialSet } from "./credentials-api.js";
 import { openBrowser } from "../../browser.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
-async function pollForTokens(
-  config: CLIConfig,
-  _client: SuperglueClient,
-  systemId: string,
-  options: { environment?: "dev" | "prod" },
-  originalToken: string | undefined,
-  timeoutMs: number = 300_000,
-  intervalMs: number = 2000,
-): Promise<boolean> {
+type TokenBaseline = { hasToken: boolean; updatedAt?: string };
+
+async function readTokenBaseline({
+  client,
+  systemId,
+}: {
+  client: SuperglueClient;
+  systemId: string;
+}): Promise<TokenBaseline> {
+  try {
+    const set = await getOwnedCredentialSet(client, systemId);
+    const hasToken = hasCredentialKeyValue(set?.credentialKeys, "access_token");
+    return { hasToken, updatedAt: set?.updatedAt?.toString() };
+  } catch {
+    return { hasToken: false };
+  }
+}
+
+async function pollForTokens({
+  client,
+  systemId,
+  baseline,
+  timeoutMs = 300_000,
+  intervalMs = 2000,
+}: {
+  client: SuperglueClient;
+  systemId: string;
+  baseline: TokenBaseline;
+  timeoutMs?: number;
+  intervalMs?: number;
+}): Promise<boolean> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     await new Promise((r) => setTimeout(r, intervalMs));
     try {
-      // Tokens land in the executing user's credentials.
-      const currentToken = (await getMySystemCredentials(config, systemId, options)).credentials
-        ?.access_token;
-      if (currentToken && currentToken !== originalToken) {
-        return true;
-      }
+      const set = await getOwnedCredentialSet(client, systemId);
+      const hasToken = hasCredentialKeyValue(set?.credentialKeys, "access_token");
+      if (!hasToken) continue;
+      if (!baseline.hasToken) return true;
+      const updatedAt = set?.updatedAt?.toString();
+      if (updatedAt !== baseline.updatedAt) return true;
     } catch {}
   }
   return false;
@@ -41,60 +65,25 @@ function parseEnvironment(opts: { env?: string }): { environment?: "dev" | "prod
   return opts.env === "dev" || opts.env === "prod" ? { environment: opts.env } : {};
 }
 
-function stringValue(value: unknown): string | undefined {
-  if (value === undefined || value === null) return undefined;
-  const str = String(value).trim();
-  return str ? str : undefined;
-}
-
-function normalizeTokenConfig(system: any) {
-  const credentials = system.credentials || {};
-  const base = getOAuthTokenExchangeConfig(system);
-  const legacyHeaders = parseJsonRecord(credentials.extraHeaders);
-  const legacyBodyParams = parseJsonRecord(credentials.extraBodyParams);
-  return {
-    tokenAuthMethod:
-      credentials.tokenAuthMethod === "body" || credentials.tokenAuthMethod === "basic_auth"
-        ? credentials.tokenAuthMethod
-        : base.tokenAuthMethod,
-    tokenContentType:
-      credentials.tokenContentType === "form" || credentials.tokenContentType === "json"
-        ? credentials.tokenContentType
-        : base.tokenContentType,
-    extraHeaders: legacyHeaders ?? base.extraHeaders,
-    extraBodyParams: legacyBodyParams ?? base.extraBodyParams,
-  };
-}
-
 function resolveCliOAuthConfig(system: any, opts: any) {
   const templateMatch = findTemplateForSystem(system);
   const templateOAuth = templateMatch?.template?.oauth;
-  const authConfig = resolveOAuthConfigFromAuthentication({
+  const resolved = resolveOAuthConfigFromAuthentication({
+    input: { ...(system.credentials || {}), ...opts },
     authentication: system.authentication,
     templateOAuth,
   });
-  const credentials = system.credentials || {};
+  const resolvedClientSecret = stringValue(resolved.client_secret);
 
   return {
     templateMatch,
-    clientId: stringValue(credentials.client_id) ?? stringValue(authConfig.client_id),
-    clientSecret: stringValue(credentials.client_secret) ?? stringValue(authConfig.client_secret),
-    authUrl:
-      stringValue(opts.authUrl) ??
-      stringValue(credentials.auth_url) ??
-      stringValue(authConfig.auth_url),
-    tokenUrl:
-      stringValue(opts.tokenUrl) ??
-      stringValue(credentials.token_url) ??
-      stringValue(authConfig.token_url),
-    grantType:
-      stringValue(opts.grantType) ??
-      stringValue(credentials.grant_type) ??
-      stringValue(authConfig.grant_type) ??
-      "authorization_code",
-    scopes:
-      stringValue(opts.scopes) ?? stringValue(credentials.scopes) ?? stringValue(authConfig.scopes),
-    tokenConfig: normalizeTokenConfig(system),
+    clientId: stringValue(resolved.client_id),
+    clientSecret: isMaskedSecretValue(resolvedClientSecret) ? undefined : resolvedClientSecret,
+    authUrl: stringValue(resolved.auth_url),
+    tokenUrl: stringValue(resolved.token_url),
+    grantType: stringValue(resolved.grant_type) || "authorization_code",
+    scopes: stringValue(resolved.scopes),
+    tokenConfig: getOAuthTokenExchangeConfig(system),
   };
 }
 
@@ -200,9 +189,10 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
 
       // Authorization code flow: create backend exchange, open browser, poll for token change.
       // Tokens live in the executing user's credentials.
-      const originalToken = await getMySystemCredentials(config, opts.systemId, envOption)
-        .then((data) => stringValue(data.credentials?.access_token))
-        .catch(() => undefined);
+      const baseline = await readTokenBaseline({
+        client,
+        systemId: opts.systemId,
+      });
 
       const redirectUri = `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`;
       let exchange: Awaited<ReturnType<SuperglueClient["createOAuthExchange"]>>;
@@ -244,13 +234,7 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
 
       const spin = spinner("Waiting for browser authentication...");
 
-      const authenticated = await pollForTokens(
-        config,
-        client,
-        opts.systemId,
-        envOption,
-        originalToken,
-      );
+      const authenticated = await pollForTokens({ client, systemId: opts.systemId, baseline });
       spin.stop();
       if (authenticated) {
         success(`OAuth authentication successful for ${c.bold}${opts.systemId}${c.reset}`);

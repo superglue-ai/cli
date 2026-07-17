@@ -16,7 +16,7 @@ export declare const BILLING_CURRENCIES: readonly ["eur", "usd"];
 export declare function isBillingCurrency(value: unknown): value is BillingCurrency;
 export declare const PAID_ORG_TIERS: readonly ["pro", "team", "enterprise"];
 export declare const SELF_SERVE_BILLING_TIERS: readonly ["pro", "team"];
-export declare const ORG_FEATURES: readonly ["activity_tracking", "custom_mcp_servers", "access_control", "organization_management", "custom_timeouts"];
+export declare const ORG_FEATURES: readonly ["activity_tracking", "access_control", "organization_management", "custom_timeouts"];
 export declare function isOrgTier(tier?: string | null): tier is OrgTier;
 export declare function parseOrgTier(tier?: string | null): OrgTier | null;
 export declare function normalizeOrgTier(tier?: string | null): OrgTier;
@@ -52,7 +52,6 @@ export declare const ORG_TIER_CONFIG_DEFAULTS: {
         maximumConcurrentRuns: number;
         features: {
             activity_tracking: false;
-            custom_mcp_servers: false;
             access_control: false;
             organization_management: false;
             custom_timeouts: false;
@@ -66,7 +65,6 @@ export declare const ORG_TIER_CONFIG_DEFAULTS: {
         maximumConcurrentRuns: any;
         features: {
             activity_tracking: true;
-            custom_mcp_servers: true;
             access_control: false;
             organization_management: true;
             custom_timeouts: false;

@@ -1,43 +1,23 @@
 import { type Command, Option } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
-import { findTemplateForSystem, maskCredentialValue } from "@superglue/shared";
-import type { CLIConfig } from "../../config.js";
+import { findTemplateForSystem } from "@superglue/shared";
 import { output, error, table, isTableMode, isFullMode } from "../../output.js";
-import { getMySystemCredentials } from "./user-credentials-api.js";
+import { getOwnedCredentialSet } from "./credentials-api.js";
 
-type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
-
-function formatCredentialPlaceholders(systemId: string, credentials: Record<string, unknown>) {
-  const storedCredentials = Object.fromEntries(
-    Object.entries(credentials).map(([key, value]) => [
-      key,
-      { placeholder: `<<${systemId}_${key}>>`, value: maskCredentialValue(key, value) },
-    ]),
-  );
-  return Object.keys(storedCredentials).length > 0 ? storedCredentials : undefined;
-}
+type ContextFn = () => { client: SuperglueClient };
 
 function getAuthType(system: any): string {
   return system.authentication?.type || "none";
-}
-
-function hasCredentialValues(credentials: unknown): credentials is Record<string, unknown> {
-  return Boolean(
-    credentials &&
-    typeof credentials === "object" &&
-    !Array.isArray(credentials) &&
-    Object.keys(credentials).length > 0,
-  );
 }
 
 function getCredentialSummary(system: any): string {
   return system.hasUserCredentials ? "credentials: configured" : "credentials: missing";
 }
 
-function filterSystemFields(system: any, userCredentials?: Record<string, unknown>) {
-  const credentialPlaceholders = hasCredentialValues(userCredentials)
-    ? formatCredentialPlaceholders(system.id, userCredentials)
-    : undefined;
+function filterSystemFields(
+  system: any,
+  credentialKeys?: Array<{ key: string; hasValue: boolean }>,
+) {
   return {
     id: system.id,
     name: system.name,
@@ -49,7 +29,10 @@ function filterSystemFields(system: any, userCredentials?: Record<string, unknow
       ? { requiredCredentialKeys: system.requiredCredentialKeys }
       : {}),
     specificInstructions: system.specificInstructions,
-    credentials: credentialPlaceholders,
+    credentialKeys: credentialKeys?.map((credential) => ({
+      ...credential,
+      placeholder: `<<${system.id}_${credential.key}>>`,
+    })),
   };
 }
 
@@ -107,7 +90,7 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
       new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
     )
     .action(async (query: string | undefined, opts) => {
-      const { config, client } = getContext();
+      const { client } = getContext();
       try {
         if (opts.id) {
           const envOption =
@@ -118,14 +101,13 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
             process.exit(1);
           }
           const templateMatch = findTemplateForSystem(system);
-          let userCredentials: Record<string, unknown> | undefined;
+          let credentialKeys: Array<{ key: string; hasValue: boolean }> | undefined;
           if (system.hasUserCredentials) {
-            userCredentials = (await getMySystemCredentials(config, system.id, envOption))
-              .credentials;
+            credentialKeys = (await getOwnedCredentialSet(client, system.id))?.credentialKeys;
           }
           output({
             success: true,
-            system: filterSystemFields(system, userCredentials),
+            system: filterSystemFields(system, credentialKeys),
             template: templateMatch?.template || null,
           });
           return;
