@@ -3,6 +3,7 @@ import type { SuperglueClient } from "@superglue/shared";
 import {
   findTemplateForSystem,
   getOAuthTokenExchangeConfig,
+  isMaskedSecretValue,
   parseJsonRecord,
   resolveOAuthConfigFromAuthentication,
 } from "@superglue/shared";
@@ -13,12 +14,32 @@ import { openBrowser } from "../../browser.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
+type TokenBaseline = { hasToken: boolean; updatedAt?: string; tokenValue?: string };
+
+async function readTokenBaseline({
+  config,
+  systemId,
+  options,
+}: {
+  config: CLIConfig;
+  systemId: string;
+  options: { environment?: "dev" | "prod" };
+}): Promise<TokenBaseline> {
+  try {
+    const data = await getMySystemCredentials(config, systemId, options);
+    const tokenValue = stringValue(data.credentials?.access_token);
+    return { hasToken: Boolean(tokenValue), updatedAt: data.updatedAt, tokenValue };
+  } catch {
+    return { hasToken: false };
+  }
+}
+
 async function pollForTokens(
   config: CLIConfig,
   _client: SuperglueClient,
   systemId: string,
   options: { environment?: "dev" | "prod" },
-  originalToken: string | undefined,
+  baseline: TokenBaseline,
   timeoutMs: number = 300_000,
   intervalMs: number = 2000,
 ): Promise<boolean> {
@@ -26,10 +47,16 @@ async function pollForTokens(
   while (Date.now() - start < timeoutMs) {
     await new Promise((r) => setTimeout(r, intervalMs));
     try {
-      // Tokens land in the executing user's credentials.
-      const currentToken = (await getMySystemCredentials(config, systemId, options)).credentials
-        ?.access_token;
-      if (currentToken && currentToken !== originalToken) {
+      const data = await getMySystemCredentials(config, systemId, options);
+      const tokenValue = stringValue(data.credentials?.access_token);
+      if (!tokenValue) continue;
+      if (!baseline.hasToken) return true;
+      // Token values come back masked on current servers, so completion is
+      // detected via updatedAt; the value compare covers servers that predate
+      // the updatedAt field and still return raw tokens.
+      if (data.updatedAt !== undefined || baseline.updatedAt !== undefined) {
+        if (data.updatedAt !== baseline.updatedAt) return true;
+      } else if (tokenValue !== baseline.tokenValue) {
         return true;
       }
     } catch {}
@@ -75,10 +102,13 @@ function resolveCliOAuthConfig(system: any, opts: any) {
   });
   const credentials = system.credentials || {};
 
+  const resolvedClientSecret =
+    stringValue(credentials.client_secret) ?? stringValue(authConfig.client_secret);
+
   return {
     templateMatch,
     clientId: stringValue(credentials.client_id) ?? stringValue(authConfig.client_id),
-    clientSecret: stringValue(credentials.client_secret) ?? stringValue(authConfig.client_secret),
+    clientSecret: isMaskedSecretValue(resolvedClientSecret) ? undefined : resolvedClientSecret,
     authUrl:
       stringValue(opts.authUrl) ??
       stringValue(credentials.auth_url) ??
@@ -200,9 +230,11 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
 
       // Authorization code flow: create backend exchange, open browser, poll for token change.
       // Tokens live in the executing user's credentials.
-      const originalToken = await getMySystemCredentials(config, opts.systemId, envOption)
-        .then((data) => stringValue(data.credentials?.access_token))
-        .catch(() => undefined);
+      const baseline = await readTokenBaseline({
+        config,
+        systemId: opts.systemId,
+        options: envOption,
+      });
 
       const redirectUri = `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`;
       let exchange: Awaited<ReturnType<SuperglueClient["createOAuthExchange"]>>;
@@ -244,13 +276,7 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
 
       const spin = spinner("Waiting for browser authentication...");
 
-      const authenticated = await pollForTokens(
-        config,
-        client,
-        opts.systemId,
-        envOption,
-        originalToken,
-      );
+      const authenticated = await pollForTokens(config, client, opts.systemId, envOption, baseline);
       spin.stop();
       if (authenticated) {
         success(`OAuth authentication successful for ${c.bold}${opts.systemId}${c.reset}`);
