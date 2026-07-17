@@ -11,7 +11,7 @@
 }
 ```
 
-Configure the connection URL based on which credentials are stored in the system — use `sg system find` to check `storedCredentials` and reference them accordingly.
+Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for database steps.
 
@@ -185,7 +185,7 @@ For other ODBC-backed databases, look up the database/driver-specific error code
 When an ODBC step fails and the cause is not obvious:
 
 1. **Read the error message** — superglue includes a truncated query preview in the error. Check for syntax errors, missing columns, or type mismatches.
-2. **Verify connection credentials** — use `sg system find` to confirm `storedCredentials` keys match the placeholders in your URL. Test connectivity with a simple `SELECT 1` via `sg system call`.
+2. **Verify connection secrets** — use `sg system find` to confirm the stored secret names match the placeholders in your URL. Test connectivity with a simple `SELECT 1` via `sg system call`.
 3. **Check database-side access** — connection refused or permission denied errors typically mean the database user lacks access. Verify with the user that the credentials have the required grants.
 4. **Check driver availability** — if the error mentions "driver not found", the `DRIVER` query parameter does not match any registered driver in `/etc/odbcinst.ini`. Verify the driver name is correct and the driver is installed in the Docker image.
 5. **Test the query directly** — use `sg system call` with a simplified version of the query to isolate whether the issue is the query itself, the parameters, or the connection.

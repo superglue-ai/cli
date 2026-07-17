@@ -13,7 +13,7 @@
 }
 ```
 
-Configure the connection URL based on which credentials are stored in the system — use `sg system find` to check `storedCredentials` and reference them accordingly.
+Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for database steps.
 
@@ -93,46 +93,46 @@ mssql://<<my_db_user>>:<<my_db_password>>@<<my_db_host>>:<<my_db_port>>/<<my_db_
 
 ### Windows Authentication (NTLM)
 
-For on-prem SQL Servers that only accept Windows domain logins (no SQL auth), store these credential keys on the system:
+For on-prem SQL Servers that only accept Windows domain logins (no SQL auth), add secrets with these names to the credential:
 
-| Credential Key | Required | Notes                                                 |
-| -------------- | -------- | ----------------------------------------------------- |
-| `authType`     | yes      | `ntlm`                                                |
-| `domain`       | yes      | Windows domain (e.g. `CORP`)                          |
-| `user`         | yes      | Windows username (also accepts `username`, or in URL) |
-| `password`     | yes      | Windows password (or in URL)                          |
+| Secret Name | Required | Notes                                                 |
+| ----------- | -------- | ----------------------------------------------------- |
+| `authType`  | yes      | `ntlm`                                                |
+| `domain`    | yes      | Windows domain (e.g. `CORP`)                          |
+| `user`      | yes      | Windows username (also accepts `username`, or in URL) |
+| `password`  | yes      | Windows password (or in URL)                          |
 
 ```
 URL:  mssql://<<sys_user>>:<<sys_password>>@<<sys_host>>:<<sys_port>>/<<sys_database>>
-Credentials: { authType: "ntlm", domain, user, password, host, port, database }
+Secrets: { authType: "ntlm", domain, user, password, host, port, database }
 ```
 
 Alternatively, pass the domain as a `?domain=CORP` query parameter on the URL — any URL with a `domain` set authenticates via NTLM. Kerberos-only environments are not supported; ask the DBA to permit NTLM or create a SQL login.
 
 ### Azure Active Directory Authentication
 
-For Azure AD auth, store the following credential keys on the system alongside the standard connection fields:
+For Azure AD auth, add secrets with the following names to the credential alongside the standard connection fields:
 
 **Entra ID User + Password** — authenticates as an Azure AD user. Requires an Azure app registration.
 
-| Credential Key | Required | Notes                                                  |
-| -------------- | -------- | ------------------------------------------------------ |
-| `authType`     | yes      | `azure-active-directory-password`                      |
-| `clientId`     | yes      | Application (client) ID from Azure app registration    |
-| `tenantId`     | no       | Directory (tenant) ID                                  |
-| `user`         | yes      | Azure AD username (also accepts `username`, or in URL) |
-| `password`     | yes      | Azure AD password (or in URL)                          |
+| Secret Name | Required | Notes                                                  |
+| ----------- | -------- | ------------------------------------------------------ |
+| `authType`  | yes      | `azure-active-directory-password`                      |
+| `clientId`  | yes      | Application (client) ID from Azure app registration    |
+| `tenantId`  | no       | Directory (tenant) ID                                  |
+| `user`      | yes      | Azure AD username (also accepts `username`, or in URL) |
+| `password`  | yes      | Azure AD password (or in URL)                          |
 
-`user` and `password` can be stored as credentials or embedded in the URL — values resolved into the URL take precedence; stored credentials only fill gaps the URL omits.
+`user` and `password` can be stored as secrets or embedded in the URL — values resolved into the URL take precedence; stored secrets only fill gaps the URL omits.
 
 ```
 URL:  mssql://<<sys_user>>:<<sys_password>>@myserver.database.windows.net:1433/mydb
-Credentials: { authType, clientId, tenantId, user, password, host, port, database }
+Secrets: { authType, clientId, tenantId, user, password, host, port, database }
 ```
 
 **Service Principal** — authenticates as an Azure AD application. No user/password needed in the URL.
 
-| Credential Key | Required | Notes                                             |
+| Secret Name    | Required | Notes                                             |
 | -------------- | -------- | ------------------------------------------------- |
 | `authType`     | yes      | `azure-active-directory-service-principal-secret` |
 | `clientId`     | yes      | Application (client) ID                           |
@@ -141,7 +141,7 @@ Credentials: { authType, clientId, tenantId, user, password, host, port, databas
 
 ```
 URL:  mssql://myserver.database.windows.net:1433/mydb
-Credentials: { authType, clientId, clientSecret, tenantId, host, port, database }
+Secrets: { authType, clientId, clientSecret, tenantId, host, port, database }
 ```
 
 The runtime authenticates entirely via the service principal credentials — no user or password is needed in the URL.
@@ -245,7 +245,7 @@ Default retries from server config. On final failure, error includes query text 
 When an MSSQL step fails and the cause is not obvious:
 
 1. **Read the error message** — superglue includes the query text and params in the error. Check for syntax errors, missing columns, or type mismatches.
-2. **Verify connection credentials** — use `sg system find` to confirm `storedCredentials` keys match the placeholders in your URL. Test connectivity with a simple `SELECT 1` via `sg system call`.
+2. **Verify connection secrets** — use `sg system find` to confirm the stored secret names match the placeholders in your URL. Test connectivity with a simple `SELECT 1` via `sg system call`.
 3. **Check database-side access** — connection refused or permission denied errors typically mean the database user lacks access. Verify with the user that the credentials have the required grants.
 4. **Check Azure-specific issues** — if connecting to Azure SQL:
    - Confirm the client IP is allowed in the Azure SQL firewall rules

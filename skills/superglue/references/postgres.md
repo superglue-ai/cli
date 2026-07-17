@@ -11,7 +11,7 @@
 }
 ```
 
-Configure the connection URL based on which credentials are stored in the system — use `sg system find` to check `storedCredentials` and reference them accordingly.
+Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for database steps.
 
@@ -148,7 +148,7 @@ Default retries from server config. On final failure, error includes query text 
 When a PostgreSQL step fails and the cause is not obvious:
 
 1. **Read the error message** — superglue includes the query text and params in the error. Check for syntax errors, missing columns, or type mismatches.
-2. **Verify connection credentials** — use `sg system find` to confirm `storedCredentials` keys match the placeholders in your URL. Test connectivity with a simple `SELECT 1` via `sg system call`.
+2. **Verify connection secrets** — use `sg system find` to confirm the stored secret names match the placeholders in your URL. Test connectivity with a simple `SELECT 1` via `sg system call`.
 3. **Check database-side access** — connection refused or permission denied errors typically mean the database user lacks access to the database, schema, or table. Verify with the user that the credentials have the required grants.
 4. **Test the query directly** — use `sg system call` with a simplified version of the query to isolate whether the issue is the query itself, the parameters, or the connection.
 5. **Check for SSL/TLS issues** — if the error mentions SSL or handshake failure, check the SSL / TLS section above. For non-localhost servers that don't support SSL, add `?sslmode=disable` to the URL. For servers that require SSL, add `?sslmode=require`.

@@ -68,8 +68,15 @@ Some APIs (e.g. Salesforce) use SOAP XML login where credentials are embedded in
 
 `<<systemId_password>><<systemId_security_token>>` resolves to the password and token concatenated — no separator needed. This works in URL, headers, and body fields.
 
-Headers starting with `x-` are treated as custom headers.
-Modern APIs expect auth in headers, not query parameters, unless docs explicitly say otherwise.
+### Parsing XML responses
+
+XML responses (SOAP and other XML APIs) are auto-parsed to an object on `sourceData.stepId.data`. The parser has quirks you MUST account for in transforms and stopConditions — probe the real response with a small page before writing selectors:
+
+- **Every tag name is UPPERCASED.** `<response><record>` becomes `RESPONSE.RECORD`, regardless of the source casing. Always select uppercase keys.
+- **Single vs multiple children collapse.** One child element parses to an object; multiple with the same tag parse to an array. Normalize before mapping: `const rows = Array.isArray(x) ? x : (x ? [x] : [])`.
+- **Element attributes become keys on the element object** (also uppercased). `<data count="2" total="127">` gives `DATA.COUNT` and `DATA.TOTAL` alongside the child records.
+- **Text with attributes goes to `_TEXT`.** An element with both attributes and text content stores the text under a `_TEXT` key. Empty elements (`<field></field>`) become `{}`.
+- **Numbers and booleans are strings.** Everything is a string; wrap with `Number(...)` where you need arithmetic.
 
 ## HTTP Runtime Details
 
@@ -143,11 +150,15 @@ Multipart restrictions:
 
 All HTTP responses are read as raw bytes, then classified by byte-level detection (see `file-handling.md` for the full detection logic).
 
-- **Binary types** (PDF, Excel, DOCX, ZIP, GZIP): treated as files, parsed content also populates `data`. Later steps can reference via `file::<stepId>.raw/base64/extracted`.
+- **File responses**: formats classified as files by `file-handling.md` are stored as files, and parsed content populates `data` when extraction is available. Later steps can reference them via `file::<stepId>.raw/base64/extracted`.
 - **`application/octet-stream`**: always treated as a file.
 - **Responses over 25 MB**: treated as files as a safety fallback.
 - **RAW + `Content-Disposition: attachment`**: treated as a file.
-- **Structured/text responses** (JSON, XML, CSV, YAML, HTML, text under size limit): parsed inline to `data` only.
+- **Inline responses**: formats classified as structured or plain text by `file-handling.md` populate `data` without producing a stored file unless another file rule applies.
+
+### XML Response Casing
+
+XML responses are parsed into a JSON tree with ALL tag names normalized to UPPERCASE — the parsed keys will not match the raw document's casing. This applies identically to `sg system call` and to request steps in tools. A raw `fetch()` inside a transform step is the exception: it returns the original document with its real casing (often lowercase envelope tags with uppercase field tags). Never write string-level XML parsing logic in a transform from memory of what `sg system call` showed — capture a raw probe first (e.g. return `{ rawXml: xml.slice(0, 1500) }`), and guard against self-closing empty containers (`<data/>` has no closing tag) and repeated sibling result blocks.
 
 ### Error Detection
 

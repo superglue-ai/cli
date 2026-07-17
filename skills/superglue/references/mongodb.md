@@ -11,7 +11,7 @@
 }
 ```
 
-Configure the connection URL based on which credentials are stored in the system — use `sg system find` to check `storedCredentials` and reference them accordingly.
+Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for MongoDB steps.
 
@@ -130,7 +130,7 @@ Default retries come from server config. On final failure, the error includes th
 When a MongoDB step fails:
 
 1. **Read the error message** — superglue includes the operation name in the error. Check for unknown operations, missing required fields (`filter`, `update`, `pipeline`), or malformed Extended JSON.
-2. **Verify connection credentials** — use `sg system find` to confirm `storedCredentials` keys match the placeholders in your URL. Test with a `listCollections` operation via `sg system call`.
+2. **Verify connection secrets** — use `sg system find` to confirm the stored secret names match the placeholders in your URL. Test with a `listCollections` operation via `sg system call`.
 3. **Check auth source** — "Authentication failed" usually means a missing or wrong `authSource`. Root users authenticate against `admin`.
 4. **Check connectivity** — connection refused or server-selection timeouts mean the host is unreachable, the SRV record can't resolve, or an IP allowlist (Atlas) is blocking you. `mongodb+srv://` requires outbound DNS.
 5. **Check the operation shape** — read operations (`find`, `countDocuments`, `distinct`) never mutate; write operations require their specific fields. `aggregate` is read-only unless its pipeline contains a `$out` or `$merge` stage, which writes results back to a collection. Confirm `filter`/`update`/`pipeline` are objects/arrays, not strings.

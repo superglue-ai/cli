@@ -11,7 +11,7 @@
 }
 ```
 
-Configure the connection URL based on which credentials are stored in the system — use `sg system find` to check `storedCredentials` and reference them accordingly.
+Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for Redis steps.
 
@@ -133,7 +133,7 @@ Default retries from server config. On final failure, error includes command and
 When a Redis step fails:
 
 1. **Read the error message** — superglue includes the command and args in the error. Check for unknown commands, wrong argument counts, or type errors (e.g. running a list command on a string key).
-2. **Verify connection credentials** — use `sg system find` to confirm `storedCredentials` keys match the placeholders in your URL. Test with a simple `PING` command via `sg system call`.
+2. **Verify connection secrets** — use `sg system find` to confirm the stored secret names match the placeholders in your URL. Test with a simple `PING` command via `sg system call`.
 3. **Check connectivity and access** — connection refused errors typically mean the Redis server is unreachable or requires TLS (`rediss://`). AUTH errors mean the password is wrong or the user lacks access.
 4. **Check key types** — Redis commands are type-specific. Running `GET` on a hash key or `HGETALL` on a string key returns a `WRONGTYPE` error. Use `TYPE` command via `sg system call` to check a key's type before building.
 5. **Verify TLS requirements** — if the error mentions connection reset or handshake failure, try switching between `redis://` and `rediss://`.

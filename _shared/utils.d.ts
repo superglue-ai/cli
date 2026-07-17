@@ -1,6 +1,15 @@
-import type { AgentCompactionPayload, ConnectionProtocol, ExecutionFileEnvelope, Message, PatchSystemBody, System, Tool, ToolCall } from "./types.js";
+import type { AgentCompactionPayload, ConnectionProtocol, CredentialKeyMetadata, ExecutionFileEnvelope, Message, PatchSystemBody, PlaybookDraftConfig, PlaybookInput, PlaybookWithFiles, System, Tool, ToolCall } from "./types.js";
 export * from "./utils/cron.js";
 export * from "./utils/model-context-length.js";
+type PlaybookDraftSource = Pick<PlaybookWithFiles, "id" | "name" | "whenToRun" | "inputs" | "systemRefs" | "toolRefs" | "credentialRefs" | "fileRefs" | "instructions" | "completionCriteria">;
+export declare function mapPlaybookToDraftConfig(playbook: PlaybookDraftSource): PlaybookDraftConfig;
+export declare function mapPlaybookDraftToInput(config: PlaybookDraftConfig): PlaybookInput;
+export declare function createEmptyPlaybookDraftConfig(): PlaybookDraftConfig;
+export declare function reserveUniqueFileName({ fileName, usedNames, caseInsensitive, }: {
+    fileName: string;
+    usedNames: Set<string>;
+    caseInsensitive?: boolean;
+}): string;
 export declare function inferProtocolFromUrl(url: string): ConnectionProtocol;
 export declare function isReadOnlyCallSystem(input: {
     protocol?: ConnectionProtocol;
@@ -9,7 +18,7 @@ export declare function isReadOnlyCallSystem(input: {
     body?: any;
 }): boolean;
 export declare function isAbortError(error: unknown): boolean;
-export declare const ALLOWED_FILE_EXTENSIONS: readonly [".json", ".csv", ".txt", ".xml", ".xlsx", ".xls", ".pdf", ".docx", ".zip", ".gz", ".yaml", ".yml", ".py", ".ts", ".tsx", ".js", ".jsx", ".java", ".go", ".rs", ".rb", ".php", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".kt", ".scala", ".sh", ".bash", ".sql", ".html", ".css", ".scss", ".md", ".rst"];
+export declare const ALLOWED_FILE_EXTENSIONS: readonly [".json", ".csv", ".txt", ".xml", ".xlsx", ".xls", ".pdf", ".docx", ".pptx", ".zip", ".gz", ".yaml", ".yml", ".py", ".ts", ".tsx", ".js", ".jsx", ".java", ".go", ".rs", ".rb", ".php", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".kt", ".scala", ".sh", ".bash", ".sql", ".html", ".css", ".scss", ".md", ".rst"];
 type ParsedToolInputSchema = {
     rawSchema: any | null;
     payloadSchema: any | null;
@@ -68,7 +77,18 @@ export declare function isValidCredentialKey(key: string): boolean;
 export declare function getCredentialKeyValidationError(key: string): string | null;
 export declare function getInvalidCredentialKeyNames(keys: Iterable<string>): string[];
 export declare const isSensitiveCredentialKey: (key: string) => boolean;
-export declare const maskCredentialValue: (key: string, value: any) => string;
+export declare const maskCredentialValue: (_key: string, value: any) => string;
+export declare const FULLY_MASKED_CREDENTIAL_VALUE = "****";
+export declare function hasCredentialValue(value: unknown): boolean;
+export declare function hasCredentialKeyValue(credentialKeys: CredentialKeyMetadata[] | undefined, key: string): boolean;
+export declare function getCredentialKeyMetadata(credentials: Record<string, unknown> | null | undefined): CredentialKeyMetadata[];
+export declare function getMissingRequiredCredentialKeys(requiredCredentialKeys: string[] | null | undefined, credentialKeys: CredentialKeyMetadata[]): string[];
+export declare function isFullyMaskedCredentialValue(value: unknown): boolean;
+export declare function maskCredentialSetValues(credentials: Record<string, any> | null | undefined): Record<string, string>;
+export declare function restoreMaskedCredentialValues({ incoming, existing, }: {
+    incoming: Record<string, any> | null | undefined;
+    existing: Record<string, any> | null | undefined;
+}): Record<string, any>;
 export declare function isMaskedValue(value: any): boolean;
 export declare function mergeCredentials(incoming: Record<string, any> | null | undefined, existing: Record<string, any> | null | undefined): Record<string, any>;
 export declare function maskCredentials(message: string, credentials?: Record<string, string>): string;

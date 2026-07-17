@@ -13,7 +13,7 @@ FTP, SFTP, and SMB share an identical operation interface. Only the URL protocol
 }
 ```
 
-Configure the connection URL based on which credentials are stored in the system — use `sg system find` to check `storedCredentials` and reference them accordingly.
+Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for file server steps.
 
@@ -128,7 +128,7 @@ Single operation returns the result directly. Array of operations returns an arr
 
 **FTP/FTPS:** uses `basic-ftp`. FTPS uses TLS with `rejectUnauthorized: false`. Connection timeout configurable.
 
-**SMB:** uses `@tryjsky/v9u-smb2`. Connection lifecycle: create client (with share, domain, credentials), execute operations, disconnect. Entire operation wrapped in a timeout race. For private systems via Secure Gateway, the host is `tunnelId.tunnel` (e.g. `my_tunnel.tunnel`).
+**SMB:** uses `@tryjsky/v9u-smb2`. Connection lifecycle: create client (with share, domain, credentials), execute operations, disconnect.
 
 ### Retry Behavior
 
@@ -152,10 +152,10 @@ When the user wants to **download** a file fetched via SFTP/SMB/FTP, set `output
 When a file server step fails and the cause is not obvious:
 
 1. **Read the error message** — superglue includes the operations list in the error. Check for typos in paths, missing fields, or unsupported operations.
-2. **Verify connection credentials** — use `sg system find` to confirm `storedCredentials` keys match the placeholders in your URL. Test with a simple `list` operation on the base path via `sg system call`.
+2. **Verify connection secrets** — use `sg system find` to confirm the stored secret names match the placeholders in your URL. Test with a simple `list` operation on the base path via `sg system call`.
 3. **Check path resolution** — if you get "file not found", verify the path is relative to the URL base path, not an absolute filesystem path. Use `list` on the parent directory to see what files exist.
 4. **Check permissions** — permission denied errors mean the user account lacks read/write access to the target path. Verify with the user that the account has the required grants.
 5. **Check protocol-specific issues:**
-   - **SFTP**: if the error mentions authentication, verify whether the server expects password or private key auth. If using private key, ensure `privateKey` and `passphrase` are stored as system credentials.
+   - **SFTP**: if the error mentions authentication, verify whether the server expects password or private key auth. If using private key, ensure `privateKey` and `passphrase` are stored as secrets in the credential.
    - **FTP/FTPS**: if the connection fails, try switching between `ftp://` and `ftps://` — some servers require TLS, others don't support it.
-   - **SMB**: verify the share name is correct (first path segment). If using domain auth, ensure the domain is included in the URL or stored as a credential. Check that the SMB port (445) is accessible.
+   - **SMB**: verify the share name is correct (first path segment). If using domain auth, ensure the domain is included in the URL or stored as a secret. Check that the SMB port (445) is accessible.
