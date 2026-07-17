@@ -7,7 +7,7 @@ import { Tool } from "./types.js";
  * validation, schedule payload validation, tool-chain payload sanitization, and
  * skill docs.
  */
-export declare const RESERVED_RUNTIME_KEYS: readonly ["__files__", "currentItem", "sg_auth_email"];
+export declare const RESERVED_RUNTIME_KEYS: readonly ["__files__", "currentItem", "sg_auth_email", "sg_auth_jwt"];
 /**
  * Injected into request vars only while a step actually paginates. Payload
  * inputs with these names OVERRIDE the runtime's pagination counters

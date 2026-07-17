@@ -1,4 +1,5 @@
 export type AuthenticationType = "none" | "api_key" | "basic_auth" | "oauth2" | "connection_string";
+export type OAuthClientMode = "managed" | "custom";
 export type SystemAuthentication = {
     type: "none";
     config?: Record<string, unknown>;
@@ -10,6 +11,7 @@ export type SystemAuthentication = {
     config?: Record<string, unknown>;
 } | {
     type: "oauth2";
+    oauthClientMode?: OAuthClientMode;
     grantType?: "authorization_code" | "client_credentials" | "password" | "service_account" | "custom";
     authUrl?: string;
     tokenUrl?: string;
@@ -41,12 +43,13 @@ export type ResolvedCredentialEntry = {
     isReservedMasked: boolean;
     isKeyLocked?: boolean;
 };
-export declare const OAUTH_CONFIG_CREDENTIAL_KEYS: readonly ["auth_url", "authUrl", "token_url", "tokenUrl", "token_uri", "scopes", "scope", "grant_type", "grantType", "client_id", "clientId", "client_secret", "clientSecret", "tokenAuthMethod", "tokenContentType", "usePKCE", "extraHeaders", "extraBodyParams"];
+export declare const OAUTH_CONFIG_CREDENTIAL_KEYS: readonly ["auth_url", "authUrl", "token_url", "tokenUrl", "token_uri", "scopes", "scope", "grant_type", "grantType", "oauthClientMode", "client_id", "clientId", "client_secret", "clientSecret", "tokenAuthMethod", "tokenContentType", "usePKCE", "extraHeaders", "extraBodyParams"];
 export declare function hasMeaningfulValue(value: unknown): boolean;
 export declare function stringValue(value: unknown): string | undefined;
 export type OAuthExecutableGrantType = "authorization_code" | "client_credentials";
 export type OAuthConnectionValidationInput = Record<string, unknown> & {
     hasServerSideClientSecret?: boolean;
+    hasServerSideCertificateCredentials?: boolean;
 };
 export type OAuthConnectionValidationResult = {
     grantType: OAuthExecutableGrantType;
@@ -63,7 +66,12 @@ export declare function parseScopes(value: unknown): string[] | undefined;
 export declare function normalizeGrantType(value: unknown): Extract<SystemAuthentication, {
     type: "oauth2";
 }>["grantType"];
+export declare function normalizeOAuthClientMode(value: unknown): OAuthClientMode | undefined;
 export declare function normalizeSystemAuthentication(authentication: SystemAuthentication | undefined): SystemAuthentication | undefined;
+export declare function resolveOAuthClientMode({ authentication, templateClientId, }: {
+    authentication: SystemAuthentication | undefined;
+    templateClientId: string | undefined;
+}): OAuthClientMode;
 /**
  * Flattens the persisted nested `SystemAuthentication` into the flat shape the
  * create_system / edit_system `auth` input accepts: protocol/OAuth knobs stored
@@ -80,6 +88,12 @@ export declare function flattenSystemAuthentication(authentication: SystemAuthen
  * This is the single read-surface projection used by tool returns and the VFS.
  */
 export declare function maskedFlatSystemAuthentication(authentication: SystemAuthentication | undefined): Record<string, unknown> | undefined;
+export declare function isMaskedSecretValue(value: unknown): boolean;
+export declare function maskSystemAuthenticationForResponse(authentication: SystemAuthentication | undefined): SystemAuthentication | undefined;
+export declare function restoreMaskedClientSecret({ incoming, existing, }: {
+    incoming: SystemAuthentication | undefined;
+    existing: SystemAuthentication | undefined;
+}): SystemAuthentication | undefined;
 export declare function mapAgentAuthInput(auth: unknown): {
     authentication?: SystemAuthentication;
     error?: string;
@@ -123,6 +137,7 @@ export declare function validateOAuthAuthenticationConfigPlacement({ authenticat
     credentials: unknown;
 }): string | null;
 export declare function authenticationToLegacyCredentials(authentication: SystemAuthentication | undefined): Record<string, unknown>;
+export declare function isRuntimeCredentialMetadataKey(key: string): boolean;
 export declare function buildRuntimeCredentialsFromAuthentication({ authentication, credentials, }: {
     authentication?: SystemAuthentication;
     credentials?: Record<string, unknown>;

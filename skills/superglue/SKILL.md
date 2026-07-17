@@ -54,7 +54,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 
 **Non-interactive environments (AI agents, CI)**
 
-- Pass ALL credentials (including secrets) directly via `--credentials '{"api_key":"sk-xxx"}'`. Ask the user for secret values, then include them in the JSON.
+- Pass all secret values directly via `--credentials '{"api_key":"sk-xxx"}'`. Ask the user for secret values, then include them in the JSON.
 
 ---
 
@@ -124,7 +124,7 @@ Blocked commands print a clear error showing the current preset and how to chang
 ### Building a Tool
 
 1. **Load relevant protocol references** via `sg skill <topic>` based on the systems involved (http, postgres, graphql, etc.)
-2. Use `sg system find` for every involved system — note `storedCredentials` and the system URL
+2. Use `sg system find` for every involved system — note the available secret names and the system URL
 3. Use `sg system search-docs` for each system — look up endpoints, auth patterns, pagination, response structure
 4. Use `sg system call` to test 1-2 primary endpoints — verify response structure and field names before building
 5. Call `sg tool build --config '{...}'` with the full tool config (see Reference → Tool Config Schema)
@@ -145,7 +145,7 @@ Blocked commands print a clear error showing the current preset and how to chang
 1. Search for an existing system first: `sg system find <query>`
 2. If creating: `sg system create --name "..." --url "..." --credentials '{...}'`. Prefer `--template <id>` when one exists — it auto-fills URL and OAuth config
 3. For OAuth: `sg system oauth --system-id <id> [--scopes "..."]` opens a browser flow. User approves → tokens saved automatically
-4. For non-OAuth credentials: `sg system credentials set --system-id <id> --credentials '{...}'`
+4. For non-OAuth secrets: `sg system credentials set --system-id <id> --credentials '{...}'`
 5. Verify connectivity with `sg system call`
 6. For updates: `sg system edit --id <id>` with the fields to change
 
@@ -219,7 +219,7 @@ Agents familiar with the web tool names can map them directly to CLI commands:
 | `run_command` with `vfs` for `/org/tools/`       | `sg tool find --id <id>` / `sg tool find <q>`  | Full config with `--id`, compact search with a query string        |
 | `create_system`                                  | `sg system create --name "..." --url "..."`    | Use `--template <id>` when available                               |
 | `edit_system`                                    | `sg system edit --id <id> ...`                 | Supports `--env dev\|prod`                                         |
-| `run_command` with `vfs` for `/org/systems/`     | `sg system find <query>` / `--id <id>`         | Returns `storedCredentials` and system URL                         |
+| `run_command` with `vfs` for `/org/systems/`     | `sg system find <query>` / `--id <id>`         | Returns secret-key presence and the system URL                     |
 | Credentials VFS / saved credentials              | `sg system credentials get/set/clear`          | Manage the current user's credentials for a system                 |
 | `call_system`                                    | `sg system call --url "..." --system-id <id>`  | Authenticated ad-hoc calls for testing / schema introspection      |
 | `run_command search`                             | `sg system search-docs --system-id <id> -k`    | Targeted keyword search over ingested system docs                  |
@@ -378,7 +378,8 @@ All step config fields (url, headers, body, queryParams) support `<<expression>>
 <<page>> <<offset>> <<cursor>> <<limit>> <<pageSize>>   pagination variables
 <<systemId_api_key>>   system credentials (namespaced: systemId_credKey)
 <<systemId_url>>       system base URLs (namespaced: systemId_url)
-<<sg_auth_email>>      email of the authenticated user (NOT available in scheduled runs)
+<<sg_auth_email>>      email of the user triggering this run (in scheduled runs: the schedule creator)
+<<sg_auth_jwt>>        short-lived signed JWT proving the identity of the user triggering this run; receivers verify it against superglue's outbound JWKS endpoint (/api/auth/outbound-jwks on the web app origin)
 ```
 
 Simple `<<varName>>` only works for top-level keys. No dots, no nesting. `<<currentItem.id>>`, `<<sourceData.userId>>`, `<<user.name>>` all FAIL at runtime.
@@ -423,7 +424,7 @@ sourceData = {
 
 Everything in `sourceData` shares ONE flat namespace. Saving a tool rejects payload input keys and step ids that collide with it:
 
-- `__files__`, `currentItem`, `sg_auth_email` — injected by the runtime
+- `__files__`, `currentItem`, `sg_auth_email`, `sg_auth_jwt` — injected by the runtime
 - `page`, `offset`, `cursor`, `limit`, `pageSize` — rejected only when the tool has a paginated step, because they would shadow the live pagination counters; on non-paginated tools they are allowed but discouraged (a later edit that adds pagination will force a rename)
 - the tool's own step ids — the step result overwrites a same-named payload key
 - anything starting with `<systemId>_` for a system the tool uses — the entire prefix is reserved for namespaced credentials (`<systemId>_<credKey>`, `<systemId>_url`), even names that don't match an existing credential, because credentials added to the system later would silently shadow the input
@@ -491,10 +492,10 @@ All user-provided JS runs in an isolated Deno sandbox.
 
 ### Credentials and Systems
 
-Credentials are namespaced as `<<systemId_credentialKey>>` and resolved server-side at execution time. You MUST explicitly reference them:
+Secrets are referenced by name as `<<systemId_credentialKey>>` and resolved from the selected credential at execution time. You MUST explicitly reference them:
 
 ```
-System id="stripe", storedCredentials: api_key → "sk_proj****"
+System id="stripe", selected credential has secret named: api_key
 → Available as: <<stripe_api_key>>
 ```
 
@@ -517,11 +518,11 @@ Basic auth auto-encodes: if the value after `Basic ` isn't already base64, the e
 
 **Credential lifecycle:**
 
-- Pass ALL credentials (including secrets) via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
-- Use `sg system credentials set --system-id <id> --credentials '{...}'` to save credentials for the current API-key user
-- Use `sg system credentials get --system-id <id>` to inspect current-user credential keys; values are masked unless `--reveal` is passed
+- Pass all secret values via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
+- Use `sg system credentials set --system-id <id> --credentials '{...}'` to save secrets in the current API-key user's credential
+- Use `sg system credentials get --system-id <id>` to inspect the current user's secret names and whether each has a non-empty value; secret values are never returned
 - OAuth tokens (`access_token`, `refresh_token`) auto-refresh before each step execution
-- Non-sensitive fields (`client_id`, `auth_url`, `token_url`) are stored alongside secrets in the same `--credentials` JSON
+- Non-sensitive fields (`client_id`, `auth_url`, `token_url`) can be submitted alongside secrets in the same `--credentials` JSON
 
 **System IDs:** lowercase letters, numbers, underscores only — no hyphens. Used for credential namespacing.
 
@@ -623,7 +624,6 @@ curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API
 - **Double-encoded JSON** — when the body contains nested/stringified JSON (e.g. LLM APIs), have `<<>>` expressions return a string via `JSON.stringify(...)`, and use a single expression for the whole body rather than mixing `<<>>` with static JSON
 - **POST for read-only ops** — GraphQL queries via POST should have `modify: false`. Don't rely on HTTP method alone
 - **Saving without approval** — always present `sg tool run` results and ask before `sg tool save`
-- **`sg_auth_email` in scheduled runs** — not available in scheduler-triggered executions. Tools using `<<sg_auth_email>>` will fail
 - **Reserved key collisions** — payload inputs or step ids named after reserved/injected keys (see Naming Rules) are rejected at save time; pick a different name instead of retrying
 
 ---
@@ -640,14 +640,14 @@ For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, MongoDB, Gra
 
 1. Re-run with `--include-step-results` to see raw per-step responses and `data` fields
 2. Use `sg system call` to test the failing endpoint directly — isolates step config vs system/auth issues
-3. Use `sg system find --id <systemId>` to verify `storedCredentials` keys match what the step references
+3. Use `sg system find --id <systemId>` to verify the stored secret names match what the step references
 4. For HTTP: run `sg skill http` and follow the error recovery section (endpoint vs system isolation, credential scopes, rate limiting)
 5. For databases: run `sg skill postgres` or `sg skill mssql` — SSL/TLS and schema issues are common causes
 6. Use `sg system search-docs` and web search to verify the current API shape. APIs change across versions
 
 ### Authentication failures
 
-1. Run `sg system find --id <systemId>` → check `storedCredentials` for masked but present values
+1. Run `sg system find --id <systemId>` → check which secret names are present and whether they have non-empty values
 2. For OAuth: re-run `sg system oauth` if tokens are missing or expired
 3. For custom OAuth: verify `client_id`, `client_secret`, `auth_url`, `token_url` are all present. Confirm the redirect URI is registered on the provider's OAuth app
 4. Check scopes — 403 / empty responses often mean the token lacks required scopes

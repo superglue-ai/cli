@@ -1,4 +1,4 @@
-import { ActivityDailyCount, ClientRequestSource, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunClientInfo, RunExecutionKind, Run, RunLimitCheckResponse, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult } from "./types.js";
+import { AccessibleCredentials, ActivityDailyCount, ClientRequestSource, CreateCredentialsRequest, CredentialSetSummary, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunClientInfo, RunExecutionKind, Run, RunLimitCheckResponse, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult, UpdateCredentialsRequest } from "./types.js";
 import type { SystemAuthentication } from "./authentication.js";
 import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
 export declare class SuperglueClient {
@@ -16,6 +16,13 @@ export declare class SuperglueClient {
     protected getApiKey(): Promise<string>;
     private isInfrastructureError;
     protected restRequest<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: any, extraHeaders?: Record<string, string>, requestInit?: RequestInit): Promise<T>;
+    protected restResponse({ method, path, body, extraHeaders, requestInit, }: {
+        method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+        path: string;
+        body?: any;
+        extraHeaders?: Record<string, string>;
+        requestInit?: RequestInit;
+    }): Promise<Response>;
     private buildHttpError;
     private streamRequest;
     subscribeToLogsSSE(options?: SSELogSubscriptionOptions): Promise<SSESubscription>;
@@ -274,6 +281,14 @@ export declare class SuperglueClient {
     createToolSchedule(toolId: string, schedule: Pick<ToolScheduleInput, "cronExpression" | "timezone"> & Pick<ToolScheduleInput, "enabled" | "payload" | "options">): Promise<ToolSchedule>;
     updateToolSchedule(toolId: string, scheduleId: string, updates: Pick<ToolScheduleInput, "cronExpression" | "timezone" | "enabled" | "payload" | "options">): Promise<ToolSchedule>;
     deleteToolSchedule(toolId: string, scheduleId: string): Promise<boolean>;
+    listCredentials(params?: {
+        systemId?: string;
+    }): Promise<AccessibleCredentials[]>;
+    createCredentials(params: CreateCredentialsRequest): Promise<CredentialSetSummary>;
+    replaceCredentials(id: string, credentials: Record<string, unknown>): Promise<CredentialSetSummary>;
+    updateCredentials(id: string, params: UpdateCredentialsRequest): Promise<CredentialSetSummary>;
+    deleteCredentials(id: string): Promise<void>;
+    setDefaultCredentials(id: string): Promise<void>;
     listSystems(limit?: number, page?: number, options?: {
         mode?: "dev" | "prod" | "all";
     }): Promise<{
@@ -307,10 +322,6 @@ export declare class SuperglueClient {
         environment?: "dev" | "prod";
     }): Promise<boolean>;
     switchSystemEnvironment(id: string, targetEnv: "dev" | "prod"): Promise<System>;
-    getTemplateOAuthCredentials(templateId: string): Promise<{
-        client_id: string;
-        client_secret: string;
-    }>;
     createOAuthExchange(params: OAuthExchangeRequest): Promise<OAuthExchangeStartResponse>;
     completeOAuthExchange(oauthExchangeId: string, params: OAuthExchangeCompleteRequest): Promise<OAuthExchangeCompleteResponse>;
     searchSystemDocumentation(systemId: string, keywords: string): Promise<string>;
