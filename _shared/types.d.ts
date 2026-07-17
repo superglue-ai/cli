@@ -733,6 +733,10 @@ export type AccessRulesContext = Record<string, any> & {
         systemId?: string;
         userId?: string;
     }>;
+    availablePlaybooks?: Array<{
+        id: string;
+        name?: string;
+    }>;
     isEditing: boolean;
 };
 export interface FrontendDrafts {
