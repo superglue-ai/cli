@@ -418,6 +418,8 @@ export type RequestOptions = {
     retries?: number;
     retryDelay?: number;
     webhookUrl?: string;
+    pinnedCredentials?: Record<string, string>;
+    /** @deprecated Use pinnedCredentials instead. */
     credentialsList?: Record<string, string>;
 };
 export interface RunClientInfo {
@@ -732,6 +734,10 @@ export type AccessRulesContext = Record<string, any> & {
         name?: string;
         systemId?: string;
         userId?: string;
+    }>;
+    availablePlaybooks?: Array<{
+        id: string;
+        name?: string;
     }>;
     isEditing: boolean;
 };
@@ -1259,6 +1265,7 @@ export interface McpServerConfig {
     description?: string;
     authMode?: McpServerAuthMode;
     toolIds: string[];
+    pinnedCredentials?: Record<string, string>;
     createdByUserId?: string;
     createdAt?: Date;
     updatedAt?: Date;
@@ -1269,6 +1276,7 @@ export interface McpServerConfigInput {
     description?: string;
     authMode?: McpServerAuthMode;
     toolIds: string[];
+    pinnedCredentials?: Record<string, string>;
 }
 export interface PlaybookSystemRef {
     id: string;
