@@ -184,7 +184,7 @@ If `sg mcp ...` returns "MCP server management is not available", the target ins
 
 ### Creating/Editing Tool Schedules
 
-Schedules run saved tools on cron expressions. Use 5-field cron syntax and an IANA timezone.
+Schedules run saved tools on cron expressions. Use 5-field cron syntax. The timezone is optional and defaults to the CLI host's local timezone, with UTC as the fallback.
 
 ```bash
 sg schedule list
