@@ -418,6 +418,8 @@ export type RequestOptions = {
     retries?: number;
     retryDelay?: number;
     webhookUrl?: string;
+    pinnedCredentials?: Record<string, string>;
+    /** @deprecated Use pinnedCredentials instead. */
     credentialsList?: Record<string, string>;
 };
 export interface RunClientInfo {
@@ -561,8 +563,8 @@ export declare enum AgentType {
 }
 export declare const PLAYGROUND_TOOL_DRAFT_ID = "@playground-draft";
 export declare const PLAYBOOK_PLAYGROUND_DRAFT_ID = "@playground-draft";
-export declare const AGENT_GLOBAL_TOOLS: readonly ["run_command", "load_skill", "visualize"];
-export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "visualize", "call_system", "run_tool", "generate_report", "share_resource", "use_checklist"];
+export declare const AGENT_GLOBAL_TOOLS: readonly ["run_command", "load_skill"];
+export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool", "generate_report", "share_resource", "use_checklist"];
 export declare const AGENT_TOOLS: Record<AgentType, string[]>;
 export declare const DYNAMIC_AGENT_TOOLS: readonly ["web_search"];
 export type AgentChecklistItemStatus = "pending" | "in_progress" | "done";
@@ -732,6 +734,10 @@ export type AccessRulesContext = Record<string, any> & {
         name?: string;
         systemId?: string;
         userId?: string;
+    }>;
+    availablePlaybooks?: Array<{
+        id: string;
+        name?: string;
     }>;
     isEditing: boolean;
 };
@@ -1259,6 +1265,7 @@ export interface McpServerConfig {
     description?: string;
     authMode?: McpServerAuthMode;
     toolIds: string[];
+    pinnedCredentials?: Record<string, string>;
     createdByUserId?: string;
     createdAt?: Date;
     updatedAt?: Date;
@@ -1269,6 +1276,7 @@ export interface McpServerConfigInput {
     description?: string;
     authMode?: McpServerAuthMode;
     toolIds: string[];
+    pinnedCredentials?: Record<string, string>;
 }
 export interface PlaybookSystemRef {
     id: string;
