@@ -418,6 +418,8 @@ export type RequestOptions = {
     retries?: number;
     retryDelay?: number;
     webhookUrl?: string;
+    pinnedCredentials?: Record<string, string>;
+    /** @deprecated Use pinnedCredentials instead. */
     credentialsList?: Record<string, string>;
 };
 export interface RunClientInfo {
@@ -561,8 +563,8 @@ export declare enum AgentType {
 }
 export declare const PLAYGROUND_TOOL_DRAFT_ID = "@playground-draft";
 export declare const PLAYBOOK_PLAYGROUND_DRAFT_ID = "@playground-draft";
-export declare const AGENT_GLOBAL_TOOLS: readonly ["run_command", "load_skill", "visualize"];
-export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "visualize", "call_system", "run_tool", "generate_report", "share_resource", "use_checklist"];
+export declare const AGENT_GLOBAL_TOOLS: readonly ["run_command", "load_skill"];
+export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool", "generate_report", "share_resource", "use_checklist"];
 export declare const AGENT_TOOLS: Record<AgentType, string[]>;
 export declare const DYNAMIC_AGENT_TOOLS: readonly ["web_search"];
 export type AgentChecklistItemStatus = "pending" | "in_progress" | "done";
@@ -733,6 +735,10 @@ export type AccessRulesContext = Record<string, any> & {
         systemId?: string;
         userId?: string;
     }>;
+    availablePlaybooks?: Array<{
+        id: string;
+        name?: string;
+    }>;
     isEditing: boolean;
 };
 export interface FrontendDrafts {
@@ -789,13 +795,40 @@ export interface AgentRequest {
     visibleUserMessageId?: string;
     resumeToolCallId?: string;
     conversationId?: string;
+    sessionScope?: string;
     loadedSkills?: string[];
     frontendDrafts?: FrontendDrafts;
     accessRulesContext?: AccessRulesContext;
     contextUsage?: AgentContextUsage;
 }
+export declare const AGENT_MESSAGE_SCHEMA_VERSION = 1;
+export declare const AGENT_SESSION_SCOPE_PATTERN: RegExp;
+export interface AgentSession {
+    id: string;
+    userId: string;
+    agentId: AgentType;
+    sessionScope?: string;
+    title?: string;
+    latestMessagePosition: number;
+    messageCount: number;
+    metadata: Record<string, unknown>;
+    lastMessageAt?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface PersistedAgentMessage {
+    messageId: string;
+    position: number;
+    role: "user" | "assistant" | "system";
+    body: Message;
+    isHidden: boolean;
+    isStale: boolean;
+    schemaVersion: number;
+    createdAt: string;
+    updatedAt: string;
+}
 export interface AgentStreamChunk {
-    type: "content" | "system_message" | "context_usage" | "compaction_start" | "compaction_complete" | "tool_call_start" | "tool_call_complete" | "tool_call_update" | "done" | "paused" | "error";
+    type: "content" | "system_message" | "assistant_message_start" | "context_usage" | "compaction_start" | "compaction_complete" | "tool_call_start" | "tool_call_complete" | "tool_call_update" | "done" | "paused" | "error";
     content?: string;
     errorDetails?: string;
     contextUsage?: AgentContextUsage;
@@ -804,6 +837,7 @@ export interface AgentStreamChunk {
         id: string;
         content: string;
     };
+    assistantMessageId?: string;
     toolCall?: Record<string, any> & {
         id: string;
         name: string;
@@ -1259,6 +1293,7 @@ export interface McpServerConfig {
     description?: string;
     authMode?: McpServerAuthMode;
     toolIds: string[];
+    pinnedCredentials?: Record<string, string>;
     createdByUserId?: string;
     createdAt?: Date;
     updatedAt?: Date;
@@ -1269,6 +1304,7 @@ export interface McpServerConfigInput {
     description?: string;
     authMode?: McpServerAuthMode;
     toolIds: string[];
+    pinnedCredentials?: Record<string, string>;
 }
 export interface PlaybookSystemRef {
     id: string;
@@ -1337,6 +1373,8 @@ export interface PlaybookFileUploadSlot extends PlaybookFileAttachment {
 export interface PlaybookApiRecord extends Omit<PlaybookWithFiles, "createdAt" | "updatedAt"> {
     createdAt?: string;
     updatedAt?: string;
+    isPinned: boolean;
+    pinnedAt?: string;
     referenceHealth: PlaybookReferenceHealth;
 }
 export interface PlaybookDraftConfig {
