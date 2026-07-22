@@ -17,7 +17,7 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
     .description("Create a schedule for a saved tool")
     .requiredOption("--tool <id>", "Saved tool ID to schedule")
     .requiredOption("--cron <expression>", "5-field cron expression")
-    .requiredOption("--timezone <name>", "IANA timezone, e.g. UTC or Europe/Berlin")
+    .option("--timezone <name>", "IANA timezone, defaults to the local timezone")
     .option("--disabled", "Create the schedule disabled")
     .option("--payload <json>", "JSON object payload passed to each scheduled run")
     .option("--payload-file <path>", "JSON file payload passed to each scheduled run")
