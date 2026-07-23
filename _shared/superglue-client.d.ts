@@ -49,6 +49,9 @@ export declare class SuperglueClient {
             async?: boolean;
             requestSource?: ClientRequestSource;
             clientInfo?: RunClientInfo;
+            pinnedCredentials?: Record<string, string>;
+            /** @deprecated Use pinnedCredentials instead. */
+            credentialsList?: Record<string, string>;
         };
         runId?: string;
         includeStepResultData?: boolean;
