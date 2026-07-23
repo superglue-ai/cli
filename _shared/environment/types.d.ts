@@ -10,9 +10,6 @@ export type SchedulerConfig = {
     mode: "disabled";
 } | {
     mode: "in_process";
-} | {
-    mode: "remote";
-    url: string;
 };
 export type PostgresConfig = {
     host: string;

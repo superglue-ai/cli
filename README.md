@@ -46,9 +46,11 @@ sg system list                 # verify connection
 sg tool build --config '...'   # build a tool
 sg tool run --draft <id>       # test it
 sg tool save --draft <id>      # save it
-sg schedule create --tool <toolId> --cron "0 9 * * *" --timezone UTC
+sg schedule create --tool <toolId> --cron "0 9 * * *"
 sg mcp create --name my-mcp --tool <toolId>  # expose saved tools through MCP
 ```
+
+Pass `--timezone UTC` to `sg schedule create` when you want to set the schedule timezone explicitly.
 
 The CLI needs authentication and the target superglue API endpoint. Use `sg login` for browser
 OAuth setup. For headless/API-key auth, use `SUPERGLUE_API_KEY` /
