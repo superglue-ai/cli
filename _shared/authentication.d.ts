@@ -168,10 +168,6 @@ export declare function validateSystemInputCollection({ credentials, askForUserI
     askForUserInputs?: unknown;
 }): string | null;
 export declare function mapOAuthMissingFieldsForAgent(missingFields: string[]): string[];
-export declare function validateConfirmedUserInputs({ askForUserInputs, userProvidedInputs, }: {
-    askForUserInputs: unknown;
-    userProvidedInputs?: Record<string, unknown>;
-}): string | null;
 export declare function validateOAuthAuthenticationAndCredentialInputs({ authentication, credentials, }: {
     authentication: SystemAuthentication | undefined;
     credentials: unknown;

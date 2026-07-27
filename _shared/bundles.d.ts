@@ -17,7 +17,16 @@ export interface BundleAgentLaunch {
     userPrompt: string;
     nextSteps: string;
 }
+export interface BundlePlaybook {
+    id: string;
+    name: string;
+    whenToRun: string;
+    inputs: string;
+    instructions: string;
+    completionCriteria: string;
+}
 export interface Bundle {
+    bundleId: string;
     templateId: string;
     systemId: string;
     displayName: string;
@@ -28,6 +37,8 @@ export interface Bundle {
     demoCredentials?: Record<string, string>;
     tools: BundleTool[];
     mcpServer: BundleMcpServer;
+    installMcpServer: boolean;
+    playbook?: BundlePlaybook;
     agentLaunch: BundleAgentLaunch;
 }
 export interface BundlePreview {
@@ -48,6 +59,8 @@ export interface BundlePreview {
         instruction: string;
     }>;
     mcpServer: BundleMcpServer;
+    installMcpServer: boolean;
+    playbook?: BundlePlaybook;
 }
 export interface BundleInstallResult {
     bundleId: string;
@@ -61,7 +74,11 @@ export interface BundleInstallResult {
         id: string;
         name?: string;
     }>;
-    mcpServer: {
+    mcpServer?: {
+        id: string;
+        name: string;
+    };
+    playbook?: {
         id: string;
         name: string;
     };
