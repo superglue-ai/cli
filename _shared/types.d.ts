@@ -364,7 +364,7 @@ export interface System extends BaseConfig {
     documentationFiles?: DocumentationFiles;
     requiredCredentialKeys?: string[];
     tunnel?: TunnelConfig;
-    environment?: "dev" | "prod";
+    tags: string[];
     createdByUserName?: string;
     createdByUserEmail?: string;
 }
@@ -381,7 +381,7 @@ export interface SystemInput {
     metadata?: Record<string, any>;
     templateName?: string;
     requiredCredentialKeys?: string[];
-    environment?: "dev" | "prod";
+    tags?: string[];
 }
 export interface SuggestedTool {
     id: string;
@@ -451,7 +451,6 @@ export interface Run {
     metadata: RunMetadata;
     resultStorageUri?: string;
     userId?: string;
-    executionMode?: SystemEnvironment;
     fileArtifacts?: FileArtifact[];
 }
 export interface StoredRunResults {
@@ -599,7 +598,6 @@ export type OAuthExchangeGrantType = "authorization_code" | "client_credentials"
 export type OAuthTokenDestination = "user_credentials" | "none";
 export interface OAuthExchangeRequest {
     systemId: string;
-    environment?: "dev" | "prod";
     grantType: OAuthExchangeGrantType;
     redirectUri: string;
     authUrl?: string;
@@ -672,7 +670,7 @@ export type SystemFrontendDraft = {
     system: Record<string, any> & {
         id: string;
         url: string;
-        environment?: "dev" | "prod";
+        tags: string[];
         specificInstructions: string;
         authentication?: SystemAuthentication;
     };
@@ -848,7 +846,6 @@ export interface AgentStreamChunk {
 }
 export interface CallSystemArgs {
     systemId?: string;
-    environment?: "dev" | "prod";
     protocol?: ConnectionProtocol;
     url: string;
     method?: string;
@@ -997,7 +994,6 @@ export interface CredentialsInput {
     id?: string;
     name?: string;
     systemId: string;
-    environment?: SystemEnvironment;
     credentials?: Record<string, any>;
 }
 export interface CredentialAccessSummary {
@@ -1013,7 +1009,6 @@ export interface AccessibleCredentials extends CredentialSetSummary {
 export interface UserDefaultCredential {
     userId: string;
     systemId: string;
-    environment: SystemEnvironment;
     credentialsId: string;
 }
 export type OrgTier = "trial" | "pro" | "team" | "enterprise";
@@ -1075,7 +1070,6 @@ export type RunLimitCheckResponse = {
     used: number;
     resetAt: string | null;
 };
-export type SystemEnvironment = "dev" | "prod";
 export type ResourcePermission = "viewer" | "editor";
 export type ResourceGrantSource = "access_rule" | "ownership" | "share";
 export type ResourceKind = "tool" | "system" | "credential" | "playbook";
@@ -1287,7 +1281,7 @@ export interface PatchSystemBody {
     requiredCredentialKeys?: string[];
     documentationFiles?: DocumentationFiles;
     tunnel?: TunnelConfig | null;
-    environment?: "dev" | "prod";
+    tags?: string[];
 }
 export declare const MCP_SERVER_AUTH_MODES: readonly ["oauth", "creator_api_key"];
 export type McpServerAuthMode = (typeof MCP_SERVER_AUTH_MODES)[number];

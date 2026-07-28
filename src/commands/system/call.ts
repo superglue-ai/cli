@@ -1,4 +1,4 @@
-import { type Command, Option } from "commander";
+import { type Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import { inferProtocolFromUrl } from "@superglue/shared";
 import { parseFileFlags } from "../../files.js";
@@ -42,9 +42,6 @@ export function registerCallCommand(parent: Command, getContext: ContextFn): voi
         return arr;
       },
       [],
-    )
-    .addOption(
-      new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
     )
     .addHelpText(
       "after",
@@ -162,11 +159,9 @@ ${c.bold}Supported Protocols:${c.reset}
       };
 
       try {
-        const mode = opts.env === "dev" || opts.env === "prod" ? opts.env : undefined;
         const result = await client.executeStep({
           step,
           payload: {},
-          mode,
           ...(timeout !== undefined ? { options: { timeout } } : {}),
         });
         const rawStepData = result.data;

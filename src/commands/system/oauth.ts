@@ -1,4 +1,4 @@
-import { type Command, Option } from "commander";
+import { type Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import {
   findTemplateForSystem,
@@ -61,10 +61,6 @@ async function pollForTokens({
   return false;
 }
 
-function parseEnvironment(opts: { env?: string }): { environment?: "dev" | "prod" } {
-  return opts.env === "dev" || opts.env === "prod" ? { environment: opts.env } : {};
-}
-
 function resolveCliOAuthConfig(system: any, opts: any) {
   const templateMatch = findTemplateForSystem(system);
   const templateOAuth = templateMatch?.template?.oauth;
@@ -96,16 +92,12 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
     .option("--auth-url <url>", "OAuth authorization URL")
     .option("--token-url <url>", "OAuth token URL")
     .option("--grant-type <type>", "Grant type")
-    .addOption(
-      new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
-    )
     .action(async (opts) => {
       const { config, client } = getContext();
-      const envOption = parseEnvironment(opts);
 
       let system: any;
       try {
-        system = await client.getSystem(opts.systemId, envOption);
+        system = await client.getSystem(opts.systemId);
         if (!system) {
           error(`System not found: ${opts.systemId}`);
           process.exit(1);
@@ -145,7 +137,6 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
         try {
           const exchange = await client.createOAuthExchange({
             systemId: opts.systemId,
-            environment: envOption.environment,
             grantType: "client_credentials",
             redirectUri: `${config.webEndpoint.replace(/\/$/, "")}/api/auth/callback`,
             tokenUrl,
@@ -199,7 +190,6 @@ export function registerOAuthCommand(parent: Command, getContext: ContextFn): vo
       try {
         exchange = await client.createOAuthExchange({
           systemId: opts.systemId,
-          environment: envOption.environment,
           grantType: "authorization_code",
           redirectUri,
           authUrl,

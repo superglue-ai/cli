@@ -218,7 +218,7 @@ Agents familiar with the web tool names can map them directly to CLI commands:
 | `save_tool`                                      | `sg tool save --draft <draftId>`               | Persists a draft to the database                                   |
 | `run_command` with `vfs` for `/org/tools/`       | `sg tool find --id <id>` / `sg tool find <q>`  | Full config with `--id`, compact search with a query string        |
 | `create_system`                                  | `sg system create --name "..." --url "..."`    | Use `--template <id>` when available                               |
-| `edit_system`                                    | `sg system edit --id <id> ...`                 | Supports `--env dev\|prod`                                         |
+| `edit_system`                                    | `sg system edit --id <id> ...`                 | Edits the system with that exact ID                                |
 | `run_command` with `vfs` for `/org/systems/`     | `sg system find <query>` / `--id <id>`         | Returns secret-key presence and the system URL                     |
 | Credentials VFS / saved credentials              | `sg system credentials get/set/clear`          | Manage the current user's credentials for a system                 |
 | `call_system`                                    | `sg system call --url "..." --system-id <id>`  | Authenticated ad-hoc calls for testing / schema introspection      |
@@ -267,7 +267,7 @@ sg system create --name "Slack" --template slack
 sg system edit --id my_api --credentials '{...}'
 sg system list
 sg system find slack
-sg system find --id my_api --env dev
+sg system find --id my_api
 sg system credentials get --system-id my_api
 sg system credentials set --system-id my_api --credentials '{"api_key":"sk-xxx"}'
 sg system credentials clear --system-id my_api
@@ -510,7 +510,7 @@ System id="stripe", selected credential has secret named: api_key
 
 Basic auth auto-encodes: if the value after `Basic ` isn't already base64, the engine encodes it.
 
-**System URL variables** — use these instead of hardcoding base URLs. They switch automatically between dev/prod environments:
+**System URL variables** — use these instead of hardcoding base URLs. They resolve the URL of the exact referenced system ID:
 
 ```json
 { "url": "<<salesforce_url>>/services/data/v58.0/sobjects/Account" }
@@ -538,7 +538,7 @@ sg system create --name "My API" --url https://api.example.com \
   --credentials '{"client_id":"...","client_secret":"...","auth_url":"https://example.com/oauth/authorize","token_url":"https://example.com/oauth/token"}'
 ```
 
-**Dev/Prod environments:** `--env dev|prod` at creation (immutable afterward). Two systems with the same ID but different environments are automatically linked. Dev systems inherit documentation from their linked prod system. When creating a dev system, always ask for new credentials — never copy from prod.
+**Tags:** systems accept an optional `tags` string array in their JSON config. Tags such as `dev`, `prod`, and `sandbox` are metadata only. Tools and credentials always reference the exact system ID.
 
 **System-specific instructions:** systems may include `specificInstructions` from the user (visible in `sg system find` output). Follow them when present — they override general patterns.
 
@@ -615,7 +615,7 @@ curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API
 - **`<<currentItem.id>>`** — must use arrow function syntax: `<<(sourceData) => sourceData.currentItem.id>>`
 - **Hardcoded pagination params** — use `<<page>>`, `<<offset>>`, `<<cursor>>`, `<<limit>>`
 - **Missing auth headers** — credentials are never automatically included in any protocol, including for OAuth systems (only token refresh is automatic)
-- **Hardcoded base URLs** — prefer system URL variables (`<<systemId_url>>`) for environment portability
+- **Hardcoded base URLs** — prefer system URL variables (`<<systemId_url>>`) so tools follow the referenced system's configured URL
 - **Empty `instruction`** — never leave the tool-level `instruction` blank
 - **Adding `outputSchema` unsolicited** — only add when the user explicitly requests a specific response structure
 - **Multi-line `outputTransform`** — must be a single-line JS string (no literal newlines or tabs)
