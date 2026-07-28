@@ -69,7 +69,6 @@ export declare class SuperglueClient {
         options?: {
             timeout?: number;
             requestSource?: ClientRequestSource;
-            mode?: "dev" | "prod";
         };
         runId?: string;
         traceId?: string;
@@ -87,7 +86,7 @@ export declare class SuperglueClient {
     /**
      * Execute a single step. Individual playground tests can opt into run persistence.
      */
-    executeStep({ step, payload, files, previousResults, credentials, options, runId, mode, systemIds, createRun, parentToolId, stepIndex, stepId, signal, stream, }: {
+    executeStep({ step, payload, files, previousResults, credentials, options, runId, systemIds, createRun, parentToolId, stepIndex, stepId, signal, stream, }: {
         step: any;
         payload?: Record<string, any>;
         files?: Record<string, ExecutionFileEnvelope>;
@@ -97,7 +96,6 @@ export declare class SuperglueClient {
             timeout?: number;
         };
         runId?: string;
-        mode?: "dev" | "prod";
         systemIds?: string[];
         createRun?: boolean;
         parentToolId?: string;
@@ -292,15 +290,11 @@ export declare class SuperglueClient {
     updateCredentials(id: string, params: UpdateCredentialsRequest): Promise<CredentialSetSummary>;
     deleteCredentials(id: string): Promise<void>;
     setDefaultCredentials(id: string): Promise<void>;
-    listSystems(limit?: number, page?: number, options?: {
-        mode?: "dev" | "prod" | "all";
-    }): Promise<{
+    listSystems(limit?: number, page?: number): Promise<{
         items: System[];
         total: number;
     }>;
-    getSystem(id: string, options?: {
-        environment?: "dev" | "prod";
-    }): Promise<System>;
+    getSystem(id: string): Promise<System>;
     createSystem(input: {
         id: string;
         name: string;
@@ -316,15 +310,10 @@ export declare class SuperglueClient {
         tunnel?: {
             tunnelId: string;
         };
-        environment?: "dev" | "prod";
+        tags?: string[];
     }): Promise<System>;
-    updateSystem(id: string, input: PatchSystemBody, options?: {
-        environment?: "dev" | "prod";
-    }): Promise<System>;
-    deleteSystem(id: string, options?: {
-        environment?: "dev" | "prod";
-    }): Promise<boolean>;
-    switchSystemEnvironment(id: string, targetEnv: "dev" | "prod"): Promise<System>;
+    updateSystem(id: string, input: PatchSystemBody): Promise<System>;
+    deleteSystem(id: string): Promise<boolean>;
     createOAuthExchange(params: OAuthExchangeRequest): Promise<OAuthExchangeStartResponse>;
     completeOAuthExchange(oauthExchangeId: string, params: OAuthExchangeCompleteRequest): Promise<OAuthExchangeCompleteResponse>;
     searchSystemDocumentation(systemId: string, keywords: string): Promise<string>;
@@ -399,7 +388,6 @@ export declare class SuperglueClient {
      */
     generateCredentialsLink(input?: {
         systemId?: string;
-        environment?: "dev" | "prod";
     }): Promise<{
         success: boolean;
         credentialsUrl?: string;

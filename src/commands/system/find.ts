@@ -1,4 +1,4 @@
-import { type Command, Option } from "commander";
+import { type Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import { findTemplateForSystem } from "@superglue/shared";
 import { output, error, table, isTableMode, isFullMode } from "../../output.js";
@@ -22,7 +22,7 @@ function filterSystemFields(
     id: system.id,
     name: system.name,
     url: system.url,
-    environment: system.environment,
+    tags: system.tags,
     authType: getAuthType(system),
     hasUserCredentials: Boolean(system.hasUserCredentials),
     ...(Array.isArray(system.requiredCredentialKeys) && system.requiredCredentialKeys.length > 0
@@ -40,17 +40,15 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
   parent
     .command("list")
     .description("List all systems")
-    .option("--mode <mode>", "Filter by environment: dev, prod, or all (default: all)")
     .option("--limit <n>", "Max results", "25")
     .option("--offset <n>", "Skip first N results", "0")
     .action(async (opts) => {
       const { client } = getContext();
       try {
-        const mode = opts.mode === "dev" || opts.mode === "prod" ? opts.mode : "all";
         const limit = Math.min(Math.max(parseInt(opts.limit, 10) || 25, 1), 100);
         const offset = Math.max(parseInt(opts.offset, 10) || 0, 0);
         const page = Math.floor(offset / limit) + 1;
-        const { items: rawItems, total } = await client.listSystems(limit, page, { mode });
+        const { items: rawItems, total } = await client.listSystems(limit, page);
         const pageOffset = offset % limit;
         const items = pageOffset > 0 ? rawItems.slice(pageOffset) : rawItems;
         const full = isFullMode();
@@ -59,7 +57,7 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
           return {
             id: s.id,
             name: s.name || "",
-            env: s.environment || "prod",
+            tags: Array.isArray(s.tags) ? s.tags.join(",") : "",
             auth: getAuthType(s),
             url: full ? s.url || "" : (s.url || "").slice(0, 40),
             credentials: getCredentialSummary(s),
@@ -67,7 +65,7 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
         });
 
         if (isTableMode()) {
-          table(rows, ["id", "name", "env", "auth", "url", "credentials"], { total });
+          table(rows, ["id", "name", "tags", "auth", "url", "credentials"], { total });
         } else {
           output({
             success: true,
@@ -86,16 +84,11 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
     .command("find [query]")
     .description("Find systems by query or exact ID")
     .option("--id <exactId>", "Exact system ID lookup")
-    .addOption(
-      new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
-    )
     .action(async (query: string | undefined, opts) => {
       const { client } = getContext();
       try {
         if (opts.id) {
-          const envOption =
-            opts.env === "dev" || opts.env === "prod" ? { environment: opts.env } : undefined;
-          const system = await client.getSystem(opts.id, envOption);
+          const system = await client.getSystem(opts.id);
           if (!system) {
             error(`System not found: ${opts.id}`);
             process.exit(1);
@@ -113,9 +106,8 @@ export function registerFindCommand(parent: Command, getContext: ContextFn): voi
           return;
         }
 
-        const listMode = opts.env ? { mode: opts.env as "dev" | "prod" } : undefined;
         const rawQuery = (query || "*").trim();
-        const { items } = await client.listSystems(100, 1, listMode);
+        const { items } = await client.listSystems(100, 1);
 
         if (rawQuery === "*") {
           output({
