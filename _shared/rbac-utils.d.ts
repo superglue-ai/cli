@@ -1,4 +1,5 @@
 import type { ResourceGrant, ResourceGrantInput, ResourceGrantSource, ResourceKind, ResourcePermission, Role, RoleResourceGrantInput } from "./types.js";
+type ResourceAccessRole = Pick<Role, "id" | "isBaseRole" | "resourceGrants">;
 export type CheckResult = {
     allowed: boolean;
     error?: string;
@@ -18,10 +19,12 @@ export declare function grantHasPermission(grant: Pick<ResourceGrant, "permissio
 export declare function grantMatchesResource(grant: Pick<ResourceGrant, "resourceRef" | "revokedAt">, resourceRef: string): boolean;
 export declare function getEffectiveResourcePermissions(grants: readonly Pick<ResourceGrant, "resourceRef" | "permissions" | "revokedAt">[], resourceRef: string): ResourcePermission[];
 export declare function hasResourcePermission(grants: readonly Pick<ResourceGrant, "resourceRef" | "permissions" | "revokedAt">[], resourceRef: string, required: ResourcePermission): boolean;
-export declare function getRoleResourceGrants(roles: readonly Pick<Role, "resourceGrants">[]): ResourceGrant[];
+export declare function getRoleResourceGrants(roles: readonly ResourceAccessRole[]): ResourceGrant[];
 export declare function getAllowedResourceIds(grants: readonly Pick<ResourceGrant, "resourceRef" | "permissions" | "revokedAt">[], kind: ResourceKind, required: ResourcePermission): string[] | undefined;
-export declare function getAllowedToolIds(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): string[] | undefined;
-export declare function getAllowedSystemIds(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): string[] | undefined;
+export declare function getAllowedResourceIdsForRoles(roles: readonly ResourceAccessRole[], kind: ResourceKind, required: ResourcePermission): string[] | undefined;
+export declare function getEffectiveResourcePermissionsForRoles(roles: readonly ResourceAccessRole[], kind: ResourceKind, resourceId: string): ResourcePermission[];
+export declare function getAllowedToolIds(roles: readonly ResourceAccessRole[], permission?: ResourcePermission): string[] | undefined;
+export declare function getAllowedSystemIds(roles: readonly ResourceAccessRole[], permission?: ResourcePermission): string[] | undefined;
 /**
  * Picks the resource the user has held longest: earliest matching grant
  * createdAt, tie-broken by the resource's own createdAt. Collapses to the single
@@ -32,22 +35,22 @@ export declare function pickLongestHeldResource<T extends {
     id: string;
     createdAt?: Date;
 }>(items: readonly T[], grants: readonly Pick<ResourceGrant, "resourceRef" | "revokedAt" | "createdAt">[], kind: ResourceKind): T | undefined;
-export declare function getAllowedCredentialsIds(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): string[] | undefined;
-export declare function getEffectiveCredentialsPermissions(roles: readonly Pick<Role, "resourceGrants">[], credentialsId: string): ResourcePermission[];
-export declare function getEffectiveToolPermissions(roles: readonly Pick<Role, "resourceGrants">[], toolId: string): ResourcePermission[];
-export declare function getEffectiveSystemPermissions(roles: readonly Pick<Role, "resourceGrants">[], systemId: string): ResourcePermission[];
-export declare function checkResourcePermission(roles: readonly Pick<Role, "resourceGrants">[], kind: ResourceKind, resourceId: string, permission: ResourcePermission): CheckResult;
-export declare function isToolAllowed(roles: readonly Pick<Role, "resourceGrants">[], toolId: string, permission?: ResourcePermission): CheckResult;
-export declare function isSystemVisible(roles: readonly Pick<Role, "resourceGrants">[], systemId: string, permission?: ResourcePermission): CheckResult;
-export declare function isPlaybookVisible(roles: readonly Pick<Role, "resourceGrants">[], playbookId: string, permission?: ResourcePermission): CheckResult;
-export declare function hasAllSystems(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): boolean;
-export declare function hasAllTools(roles: readonly Pick<Role, "resourceGrants">[], permission?: ResourcePermission): boolean;
+export declare function getAllowedCredentialsIds(roles: readonly ResourceAccessRole[], permission?: ResourcePermission): string[] | undefined;
+export declare function getEffectiveCredentialsPermissions(roles: readonly ResourceAccessRole[], credentialsId: string): ResourcePermission[];
+export declare function getEffectiveToolPermissions(roles: readonly ResourceAccessRole[], toolId: string): ResourcePermission[];
+export declare function getEffectiveSystemPermissions(roles: readonly ResourceAccessRole[], systemId: string): ResourcePermission[];
+export declare function checkResourcePermission(roles: readonly ResourceAccessRole[], kind: ResourceKind, resourceId: string, permission: ResourcePermission): CheckResult;
+export declare function isToolAllowed(roles: readonly ResourceAccessRole[], toolId: string, permission?: ResourcePermission): CheckResult;
+export declare function isSystemVisible(roles: readonly ResourceAccessRole[], systemId: string, permission?: ResourcePermission): CheckResult;
+export declare function isPlaybookVisible(roles: readonly ResourceAccessRole[], playbookId: string, permission?: ResourcePermission): CheckResult;
+export declare function hasAllSystems(roles: readonly ResourceAccessRole[], permission?: ResourcePermission): boolean;
+export declare function hasAllTools(roles: readonly ResourceAccessRole[], permission?: ResourcePermission): boolean;
 export declare function getResourceGrantSources(grants: readonly ResourceGrant[], resourceRef: string, requiredPermission?: ResourcePermission): ResourceGrantSource[];
 export declare function getSharePermissionForResource(grants: readonly ResourceGrant[], resourceRef: string): ResourcePermission | undefined;
 export declare function getAccessRulePermissionForResource(grants: readonly ResourceGrant[], resourceRef: string): ResourcePermission | undefined;
 export declare function hasAdminBaseRole(roles: readonly Pick<Role, "id" | "isBaseRole">[]): boolean;
 export declare function resolveResourceAccessForRoles({ roles, resource, userId, }: {
-    roles: readonly Pick<Role, "resourceGrants">[];
+    roles: readonly ResourceAccessRole[];
     resource: {
         kind: ResourceKind;
         id: string;
@@ -90,4 +93,5 @@ export declare function getPersonalRoleId(roles: {
     id: string;
     isPersonalRole?: boolean;
 }[]): string | null;
+export {};
 //# sourceMappingURL=rbac-utils.d.ts.map

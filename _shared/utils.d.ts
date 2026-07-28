@@ -171,5 +171,4 @@ export declare function truncateRunResult(result: unknown, maxLength?: number): 
 export declare function getToolSystemIds(tool: Tool): string[];
 export declare function getCredentialPlaceholderKeysForSystem(value: unknown, systemId: string): string[];
 export declare function getToolCredentialPlaceholderKeys(tool: Tool): Record<string, string[]>;
-export declare function isProductionSystem(system: System): boolean;
 //# sourceMappingURL=utils.d.ts.map

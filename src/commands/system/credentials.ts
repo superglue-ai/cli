@@ -1,4 +1,4 @@
-import { type Command, Option } from "commander";
+import { type Command } from "commander";
 import type {
   CredentialKeyMetadata,
   CredentialSetSummary,
@@ -13,10 +13,6 @@ import {
 
 type ContextFn = () => { client: SuperglueClient };
 
-function parseEnvironment(opts: { env?: string }): "dev" | "prod" {
-  return opts.env === "dev" ? "dev" : "prod";
-}
-
 function parseCredentialsJson(raw: string): Record<string, unknown> {
   const parsed = JSON.parse(raw);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -27,17 +23,14 @@ function parseCredentialsJson(raw: string): Record<string, unknown> {
 
 function formatCredentialResponse({
   systemId,
-  environment,
   set,
 }: {
   systemId: string;
-  environment: "dev" | "prod";
   set?: Pick<CredentialSetSummary, "credentialKeys" | "missingRequiredCredentialKeys"> | null;
 }) {
   const credentialKeys = set?.credentialKeys || [];
   return {
     systemId,
-    environment,
     credentialKeys: credentialKeys.map((credential) => ({
       ...credential,
       placeholder: `<<${systemId}_${credential.key}>>`,
@@ -72,18 +65,14 @@ These commands manage the executing user's credentials for a system.
     .command("get")
     .description("Get the current user's credentials for a system")
     .requiredOption("--system-id <id>", "System ID")
-    .addOption(
-      new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
-    )
     .action(async (opts) => {
       const { client } = getContext();
       try {
-        const environment = parseEnvironment(opts);
-        await client.getSystem(opts.systemId, { environment });
+        await client.getSystem(opts.systemId);
         const set = await getOwnedCredentialSet(client, opts.systemId);
         output({
           success: true,
-          data: formatCredentialResponse({ systemId: opts.systemId, environment, set }),
+          data: formatCredentialResponse({ systemId: opts.systemId, set }),
         });
       } catch (err: any) {
         error(err.message);
@@ -96,9 +85,6 @@ These commands manage the executing user's credentials for a system.
     .description("Set the current user's credentials for a system")
     .requiredOption("--system-id <id>", "System ID")
     .requiredOption("--credentials <json>", "Credentials JSON object")
-    .addOption(
-      new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
-    )
     .action(async (opts) => {
       const { client } = getContext();
       let parsedCredentials: Record<string, unknown>;
@@ -111,8 +97,7 @@ These commands manage the executing user's credentials for a system.
 
       const spin = spinner(`Saving user credentials for ${c.bold}${opts.systemId}${c.reset}...`);
       try {
-        const environment = parseEnvironment(opts);
-        await client.getSystem(opts.systemId, { environment });
+        await client.getSystem(opts.systemId);
         const set = await setOwnedCredentials({
           client,
           systemId: opts.systemId,
@@ -121,13 +106,12 @@ These commands manage the executing user's credentials for a system.
         spin.stop();
         if (isTableMode()) {
           success(`Credentials saved for ${c.bold}${opts.systemId}${c.reset}`, {
-            environment,
             keys: formatCredentialKeyList(set?.credentialKeys || []) || "(none)",
           });
         } else {
           output({
             success: true,
-            data: formatCredentialResponse({ systemId: opts.systemId, environment, set }),
+            data: formatCredentialResponse({ systemId: opts.systemId, set }),
           });
         }
       } catch (err: any) {
@@ -141,25 +125,19 @@ These commands manage the executing user's credentials for a system.
     .command("clear")
     .description("Delete the current user's credentials for a system")
     .requiredOption("--system-id <id>", "System ID")
-    .addOption(
-      new Option("--env <environment>", "Environment: dev or prod").choices(["dev", "prod"]),
-    )
     .action(async (opts) => {
       const { client } = getContext();
       const spin = spinner(`Clearing user credentials for ${c.bold}${opts.systemId}${c.reset}...`);
       try {
-        const environment = parseEnvironment(opts);
-        await client.getSystem(opts.systemId, { environment });
+        await client.getSystem(opts.systemId);
         const set = await clearOwnedCredentials(client, opts.systemId);
         spin.stop();
         if (isTableMode()) {
-          success(`Credentials cleared for ${c.bold}${opts.systemId}${c.reset}`, {
-            environment,
-          });
+          success(`Credentials cleared for ${c.bold}${opts.systemId}${c.reset}`);
         } else {
           output({
             success: true,
-            data: formatCredentialResponse({ systemId: opts.systemId, environment, set }),
+            data: formatCredentialResponse({ systemId: opts.systemId, set }),
           });
         }
       } catch (err: any) {

@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { type Command, Option } from "commander";
+import { type Command } from "commander";
 import type { SuperglueClient } from "@superglue/shared";
 import { systems, slugify, findTemplateForSystem } from "@superglue/shared";
 import type { CLIConfig } from "../../config.js";
@@ -24,12 +24,6 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
     .option("--authentication <json>", "Authentication config JSON")
     .option("--docs-url <url>", "Documentation URL to scrape")
     .option("--openapi-url <url>", "OpenAPI spec URL")
-    .addOption(
-      new Option("--env <environment>", "Environment: dev or prod (default: prod)").choices([
-        "dev",
-        "prod",
-      ]),
-    )
     .addHelpText("after", () => {
       const oauthTemplates = Object.entries(systems)
         .filter(([, t]) => t.oauth)
@@ -44,9 +38,6 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
       if (opts.config) {
         try {
           const parsed = JSON.parse(fs.readFileSync(opts.config, "utf-8"));
-          if (opts.env === "dev" || opts.env === "prod") {
-            parsed.environment = opts.env;
-          }
           systemInput = parsed;
         } catch (err: any) {
           error(`Invalid config file: ${err.message}`);
@@ -78,7 +69,6 @@ export function registerCreateCommand(parent: Command, getContext: ContextFn): v
           specificInstructions: opts.instructions,
           credentials,
           authentication,
-          environment: opts.env === "dev" || opts.env === "prod" ? opts.env : undefined,
         };
       }
 
