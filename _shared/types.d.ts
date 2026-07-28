@@ -719,24 +719,10 @@ export type AccessRulesContext = Record<string, any> & {
         email: string | null;
         name: string | null;
     }>;
-    availableTools?: Array<{
+    availableResources?: Partial<Record<ResourceKind, Array<{
         id: string;
         name?: string;
-    }>;
-    availableSystems?: Array<{
-        id: string;
-        name?: string;
-    }>;
-    availableCredentials?: Array<{
-        id: string;
-        name?: string;
-        systemId?: string;
-        userId?: string;
-    }>;
-    availablePlaybooks?: Array<{
-        id: string;
-        name?: string;
-    }>;
+    }>>>;
     isEditing: boolean;
 };
 export interface FrontendDrafts {
@@ -1073,6 +1059,18 @@ export type RunLimitCheckResponse = {
 export type ResourcePermission = "viewer" | "editor";
 export type ResourceGrantSource = "access_rule" | "ownership" | "share";
 export type ResourceKind = "tool" | "system" | "credential" | "playbook";
+export interface ResourceKindDefinition {
+    label: string;
+    pluralLabel: string;
+    collectionKey: string;
+    memberDefaultPermission: ResourcePermission;
+    pickerDefaultPermission: ResourcePermission;
+}
+export interface ResourceAccessGrantInput {
+    resourceId: string;
+    permission: ResourcePermission;
+}
+export type RoleResourceAccessInput = Partial<Record<ResourceKind, ResourceAccessGrantInput[]>>;
 export interface ResourceGrant extends BaseConfig {
     orgId?: string;
     roleId: string;

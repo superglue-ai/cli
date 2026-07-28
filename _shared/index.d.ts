@@ -19,6 +19,7 @@ export * from "./outbound-identity.js";
 export * from "./playbook-utils.js";
 export * from "./rbac-utils.js";
 export * from "./request-sources.js";
+export * from "./resource-registry.js";
 export * from "./system-playground-utils.js";
 export * from "./templates.js";
 export * from "./tool-key-collisions.js";
