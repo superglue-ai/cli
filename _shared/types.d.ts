@@ -80,6 +80,7 @@ export interface HtmlArtifactMetadata {
     contentHash: string;
     createdAt: string;
     updatedAt: string;
+    version?: number;
 }
 export interface HtmlArtifact extends HtmlArtifactMetadata {
     html: string;
@@ -92,6 +93,91 @@ export interface HtmlArtifactToolOutput {
     error?: string;
 }
 export declare const MAX_HTML_ARTIFACT_BYTES: number;
+export interface ArtifactFrontendDraft {
+    artifactId: string;
+    title: string;
+    html: string;
+    bytes: number;
+    contentHash: string;
+    baseVersion: number;
+    isDirty: boolean;
+    canEdit: boolean;
+}
+export declare const ARTIFACT_EXPORT_FORMATS: readonly ["html", "pdf", "docx"];
+export type ArtifactExportFormat = (typeof ARTIFACT_EXPORT_FORMATS)[number];
+export declare function isArtifactExportFormat(value: unknown): value is ArtifactExportFormat;
+export interface HostedArtifact {
+    id: string;
+    orgId: string;
+    title: string;
+    createdByUserId: string;
+    sourceSessionId: string;
+    currentVersion: number;
+    contentHash: string;
+    bytes: number;
+    hasPreview: boolean;
+    responseCount: number;
+    submittedResponseCount: number;
+    lastResponseAt?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface HostedArtifactVersion {
+    orgId: string;
+    artifactId: string;
+    version: number;
+    contentHash: string;
+    html: string;
+    bytes: number;
+    hasPreview: boolean;
+    createdByUserId: string;
+    createdAt: string;
+}
+export interface HostedArtifactSubmission {
+    data: Record<string, unknown>;
+    revision: number;
+    submittedAt: string;
+}
+export type HostedArtifactResponseStatus = "active" | "revoked" | "expired";
+export interface HostedArtifactResponse {
+    id: string;
+    orgId: string;
+    artifactId: string;
+    artifactVersion: number;
+    label: string;
+    status: HostedArtifactResponseStatus;
+    data: Record<string, unknown>;
+    revision: number;
+    submission?: HostedArtifactSubmission;
+    expiresAt?: string;
+    revokedAt?: string;
+    lastOpenedAt?: string;
+    createdByUserId: string;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface HostedArtifactShare extends HostedArtifactResponse {
+    magicUrl?: string;
+}
+export interface HostedArtifactResponseDetail {
+    response: HostedArtifactResponse;
+    version: HostedArtifactVersion;
+}
+export interface PublicHostedArtifactState {
+    artifact: {
+        id: string;
+        title: string;
+        contentHash: string;
+        html: string;
+    };
+    response: {
+        id: string;
+        label: string;
+        data: Record<string, unknown>;
+        revision: number;
+        submission?: HostedArtifactSubmission;
+    };
+}
 export interface UserInfo {
     id: string;
     email: string | null;
@@ -558,12 +644,15 @@ export declare enum AgentType {
     PLAYGROUND = "playground",
     SYSTEM_PLAYGROUND = "system_playground",
     PLAYBOOK_PLAYGROUND = "playbook_playground",
+    ARTIFACT_PLAYGROUND = "artifact_playground",
     ACCESS_RULES = "access_rules"
 }
 export declare const PLAYGROUND_TOOL_DRAFT_ID = "@playground-draft";
 export declare const PLAYBOOK_PLAYGROUND_DRAFT_ID = "@playground-draft";
+export declare const ARTIFACT_PLAYGROUND_DRAFT_ID = "@playground-draft";
+export declare const ARTIFACT_PROPOSAL_ID_PREFIX = "artifact_proposal_";
 export declare const AGENT_GLOBAL_TOOLS: readonly ["run_command", "load_skill"];
-export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool", "generate_report", "share_resource", "use_checklist"];
+export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool", "share_resource", "use_checklist"];
 export declare const AGENT_TOOLS: Record<AgentType, string[]>;
 export declare const DYNAMIC_AGENT_TOOLS: readonly ["web_search"];
 export type AgentChecklistItemStatus = "pending" | "in_progress" | "done";
@@ -578,11 +667,11 @@ export interface AgentChecklistState {
 export declare const AGENT_CHECKLIST_MIN_ITEMS = 4;
 export declare const AGENT_CHECKLIST_MAX_ITEMS = 15;
 export declare const AGENT_CHECKLIST_MAX_LABEL_CHARS = 120;
-export declare const SKILL_BODY_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "notifications", "visualization", "playbooks"];
+export declare const SKILL_BODY_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "notifications", "artifacts", "playbooks"];
 export type SkillBody = (typeof SKILL_BODY_NAMES)[number];
 export declare const SKILL_REFERENCE_NAMES: readonly ["http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
 export type SkillReference = (typeof SKILL_REFERENCE_NAMES)[number];
-export declare const LOADABLE_MARKDOWN_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "notifications", "visualization", "playbooks", "http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
+export declare const LOADABLE_MARKDOWN_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "notifications", "artifacts", "playbooks", "http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
 export type LoadableMarkdown = SkillBody | SkillReference;
 export declare const SKILL_GATED_TOOLS: Partial<Record<LoadableMarkdown, string[]>>;
 export declare enum ConfirmationAction {
@@ -719,30 +808,17 @@ export type AccessRulesContext = Record<string, any> & {
         email: string | null;
         name: string | null;
     }>;
-    availableTools?: Array<{
+    availableResources?: Partial<Record<ResourceKind, Array<{
         id: string;
         name?: string;
-    }>;
-    availableSystems?: Array<{
-        id: string;
-        name?: string;
-    }>;
-    availableCredentials?: Array<{
-        id: string;
-        name?: string;
-        systemId?: string;
-        userId?: string;
-    }>;
-    availablePlaybooks?: Array<{
-        id: string;
-        name?: string;
-    }>;
+    }>>>;
     isEditing: boolean;
 };
 export interface FrontendDrafts {
     tool?: DraftLookup;
     system?: SystemFrontendDraft;
     playbook?: PlaybookFrontendDraft;
+    artifact?: ArtifactFrontendDraft;
     role?: Record<string, unknown>;
 }
 export interface TokenUsageInputDetails {
@@ -1072,7 +1148,19 @@ export type RunLimitCheckResponse = {
 };
 export type ResourcePermission = "viewer" | "editor";
 export type ResourceGrantSource = "access_rule" | "ownership" | "share";
-export type ResourceKind = "tool" | "system" | "credential" | "playbook";
+export type ResourceKind = "tool" | "system" | "credential" | "playbook" | "artifact";
+export interface ResourceKindDefinition {
+    label: string;
+    pluralLabel: string;
+    collectionKey: string;
+    memberDefaultPermission: ResourcePermission;
+    pickerDefaultPermission: ResourcePermission;
+}
+export interface ResourceAccessGrantInput {
+    resourceId: string;
+    permission: ResourcePermission;
+}
+export type RoleResourceAccessInput = Partial<Record<ResourceKind, ResourceAccessGrantInput[]>>;
 export interface ResourceGrant extends BaseConfig {
     orgId?: string;
     roleId: string;
@@ -1142,6 +1230,25 @@ export interface ShareResourceToolInput {
     kind: ResourceKind;
     id: string;
     targets: ShareResourceToolTargetInput[];
+}
+export interface ShareArtifactExternallyToolInput {
+    artifactId: string;
+    name: string;
+}
+export interface EditArtifactToolInput {
+    artifactId: string;
+    patches: Array<{
+        op: "str_replace";
+        path: string;
+        find: string;
+        replace: string;
+        replace_all?: boolean;
+    } | {
+        op: "replace" | "test";
+        path: string;
+        value: string;
+    }>;
+    editSummary?: string;
 }
 export interface ResourceShareUserAccess {
     userId: string;
