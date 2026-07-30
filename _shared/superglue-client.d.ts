@@ -1,6 +1,12 @@
 import { AccessibleCredentials, ActivityDailyCount, ClientRequestSource, CreateCredentialsRequest, CredentialSetSummary, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunClientInfo, RunExecutionKind, Run, RunLimitCheckResponse, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult, UpdateCredentialsRequest } from "./types.js";
 import type { SystemAuthentication } from "./authentication.js";
 import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
+export declare class SuperglueHttpError extends Error {
+    readonly status: number;
+    readonly code?: string;
+    readonly details?: Record<string, unknown>;
+    constructor(message: string, status: number, code?: string, details?: Record<string, unknown>);
+}
 export declare class SuperglueClient {
     private tokenProvider;
     private sseManager;

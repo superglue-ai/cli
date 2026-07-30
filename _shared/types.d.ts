@@ -28,6 +28,7 @@ export interface AgentSessionUpload {
     size: number;
     originalSize?: number;
     contentType?: string;
+    contentHash?: string;
     status: "ready";
     jsonPath: string;
     rawPath?: string;
@@ -80,6 +81,7 @@ export interface HtmlArtifactMetadata {
     contentHash: string;
     createdAt: string;
     updatedAt: string;
+    version?: number;
 }
 export interface HtmlArtifact extends HtmlArtifactMetadata {
     html: string;
@@ -92,6 +94,91 @@ export interface HtmlArtifactToolOutput {
     error?: string;
 }
 export declare const MAX_HTML_ARTIFACT_BYTES: number;
+export interface ArtifactFrontendDraft {
+    artifactId: string;
+    title: string;
+    html: string;
+    bytes: number;
+    contentHash: string;
+    baseVersion: number;
+    isDirty: boolean;
+    canEdit: boolean;
+}
+export declare const ARTIFACT_EXPORT_FORMATS: readonly ["html", "pdf", "docx"];
+export type ArtifactExportFormat = (typeof ARTIFACT_EXPORT_FORMATS)[number];
+export declare function isArtifactExportFormat(value: unknown): value is ArtifactExportFormat;
+export interface HostedArtifact {
+    id: string;
+    orgId: string;
+    title: string;
+    createdByUserId: string;
+    sourceSessionId: string;
+    currentVersion: number;
+    contentHash: string;
+    bytes: number;
+    hasPreview: boolean;
+    responseCount: number;
+    submittedResponseCount: number;
+    lastResponseAt?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface HostedArtifactVersion {
+    orgId: string;
+    artifactId: string;
+    version: number;
+    contentHash: string;
+    html: string;
+    bytes: number;
+    hasPreview: boolean;
+    createdByUserId: string;
+    createdAt: string;
+}
+export interface HostedArtifactSubmission {
+    data: Record<string, unknown>;
+    revision: number;
+    submittedAt: string;
+}
+export type HostedArtifactResponseStatus = "active" | "revoked" | "expired";
+export interface HostedArtifactResponse {
+    id: string;
+    orgId: string;
+    artifactId: string;
+    artifactVersion: number;
+    label: string;
+    status: HostedArtifactResponseStatus;
+    data: Record<string, unknown>;
+    revision: number;
+    submission?: HostedArtifactSubmission;
+    expiresAt?: string;
+    revokedAt?: string;
+    lastOpenedAt?: string;
+    createdByUserId: string;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface HostedArtifactShare extends HostedArtifactResponse {
+    magicUrl?: string;
+}
+export interface HostedArtifactResponseDetail {
+    response: HostedArtifactResponse;
+    version: HostedArtifactVersion;
+}
+export interface PublicHostedArtifactState {
+    artifact: {
+        id: string;
+        title: string;
+        contentHash: string;
+        html: string;
+    };
+    response: {
+        id: string;
+        label: string;
+        data: Record<string, unknown>;
+        revision: number;
+        submission?: HostedArtifactSubmission;
+    };
+}
 export interface UserInfo {
     id: string;
     email: string | null;
@@ -558,12 +645,15 @@ export declare enum AgentType {
     PLAYGROUND = "playground",
     SYSTEM_PLAYGROUND = "system_playground",
     PLAYBOOK_PLAYGROUND = "playbook_playground",
+    ARTIFACT_PLAYGROUND = "artifact_playground",
     ACCESS_RULES = "access_rules"
 }
 export declare const PLAYGROUND_TOOL_DRAFT_ID = "@playground-draft";
 export declare const PLAYBOOK_PLAYGROUND_DRAFT_ID = "@playground-draft";
+export declare const ARTIFACT_PLAYGROUND_DRAFT_ID = "@playground-draft";
+export declare const ARTIFACT_PROPOSAL_ID_PREFIX = "artifact_proposal_";
 export declare const AGENT_GLOBAL_TOOLS: readonly ["run_command", "load_skill"];
-export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool", "generate_report", "share_resource", "use_checklist"];
+export declare const AGENT_BASE_TOOLS: readonly ["run_command", "load_skill", "call_system", "run_tool", "share_resource", "use_checklist"];
 export declare const AGENT_TOOLS: Record<AgentType, string[]>;
 export declare const DYNAMIC_AGENT_TOOLS: readonly ["web_search"];
 export type AgentChecklistItemStatus = "pending" | "in_progress" | "done";
@@ -578,11 +668,11 @@ export interface AgentChecklistState {
 export declare const AGENT_CHECKLIST_MIN_ITEMS = 4;
 export declare const AGENT_CHECKLIST_MAX_ITEMS = 15;
 export declare const AGENT_CHECKLIST_MAX_LABEL_CHARS = 120;
-export declare const SKILL_BODY_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "notifications", "visualization", "playbooks"];
+export declare const SKILL_BODY_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "notifications", "artifacts", "playbooks"];
 export type SkillBody = (typeof SKILL_BODY_NAMES)[number];
 export declare const SKILL_REFERENCE_NAMES: readonly ["http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
 export type SkillReference = (typeof SKILL_REFERENCE_NAMES)[number];
-export declare const LOADABLE_MARKDOWN_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "notifications", "visualization", "playbooks", "http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
+export declare const LOADABLE_MARKDOWN_NAMES: readonly ["superglue-info", "tool-building", "tool-editing", "system-setup", "access-management", "tool-deployment", "notifications", "artifacts", "playbooks", "http", "graphql", "postgres", "mssql", "odbc", "redis", "mongodb", "sftp-smb", "file-handling", "tunnel-handling"];
 export type LoadableMarkdown = SkillBody | SkillReference;
 export declare const SKILL_GATED_TOOLS: Partial<Record<LoadableMarkdown, string[]>>;
 export declare enum ConfirmationAction {
@@ -639,6 +729,7 @@ export interface OAuthExchangeCompleteResponse {
     suppressErrorUI?: boolean;
     tokenDestination?: OAuthTokenDestination;
     saved?: boolean;
+    credentialsId?: string;
 }
 export interface SectionStatus {
     isComplete: boolean;
@@ -719,30 +810,17 @@ export type AccessRulesContext = Record<string, any> & {
         email: string | null;
         name: string | null;
     }>;
-    availableTools?: Array<{
+    availableResources?: Partial<Record<ResourceKind, Array<{
         id: string;
         name?: string;
-    }>;
-    availableSystems?: Array<{
-        id: string;
-        name?: string;
-    }>;
-    availableCredentials?: Array<{
-        id: string;
-        name?: string;
-        systemId?: string;
-        userId?: string;
-    }>;
-    availablePlaybooks?: Array<{
-        id: string;
-        name?: string;
-    }>;
+    }>>>;
     isEditing: boolean;
 };
 export interface FrontendDrafts {
     tool?: DraftLookup;
     system?: SystemFrontendDraft;
     playbook?: PlaybookFrontendDraft;
+    artifact?: ArtifactFrontendDraft;
     role?: Record<string, unknown>;
 }
 export interface TokenUsageInputDetails {
@@ -785,20 +863,6 @@ export interface AgentCompactionPayload {
         after: number;
     };
 }
-export interface AgentRequest {
-    agentId: AgentType;
-    messages: Message[];
-    agentParams?: Record<string, any>;
-    userMessage?: string;
-    visibleUserMessageId?: string;
-    resumeToolCallId?: string;
-    conversationId?: string;
-    sessionScope?: string;
-    loadedSkills?: string[];
-    frontendDrafts?: FrontendDrafts;
-    accessRulesContext?: AccessRulesContext;
-    contextUsage?: AgentContextUsage;
-}
 export declare const AGENT_MESSAGE_SCHEMA_VERSION = 1;
 export declare const AGENT_SESSION_SCOPE_PATTERN: RegExp;
 export interface AgentSession {
@@ -810,9 +874,81 @@ export interface AgentSession {
     latestMessagePosition: number;
     messageCount: number;
     metadata: Record<string, unknown>;
+    contextUsage: AgentContextUsage | null;
     lastMessageAt?: string;
     createdAt: string;
     updatedAt: string;
+}
+export type AgentRequestStatus = "queued" | "claimed" | "running" | "cancelling" | "completed" | "paused" | "failed" | "cancelled";
+export declare const AGENT_REQUEST_BUSY_STATUSES: readonly ["queued", "claimed", "running", "cancelling"];
+export type AgentRequestBusyStatus = (typeof AGENT_REQUEST_BUSY_STATUSES)[number];
+export type AgentRequestFailureCode = "AGENT_AUTHORIZATION_REVOKED" | "ORG_TOKEN_LIMIT_EXHAUSTED" | "AGENT_REQUEST_INVALID" | "AGENT_LEASE_EXPIRED" | "AGENT_EXECUTION_FAILED" | "AGENT_TRANSCRIPT_PERSISTENCE_FAILED";
+export interface AgentRequestError {
+    code: AgentRequestFailureCode;
+    message: string;
+}
+export type AgentToolContinuationAction = "approve" | "reject" | "oauth_success" | "oauth_failure";
+export interface AgentRequestMessageInput {
+    id: string;
+    content: string;
+    isHidden: boolean;
+    attachedFiles?: AgentSessionUpload[];
+}
+export interface AgentMessageRequestPayloadV1 {
+    version: 1;
+    kind: "message";
+    message: AgentRequestMessageInput;
+    hiddenSteeringMessage?: AgentRequestMessageInput;
+    frontendDrafts?: FrontendDrafts;
+    accessRulesContext?: AccessRulesContext;
+}
+export interface AgentToolContinuationRequestPayloadV1 {
+    version: 1;
+    kind: "tool_continuation";
+    toolCallId: string;
+    action: AgentToolContinuationAction;
+    input?: unknown;
+    frontendDrafts?: FrontendDrafts;
+    accessRulesContext?: AccessRulesContext;
+}
+export type AgentRequestPayloadV1 = AgentMessageRequestPayloadV1 | AgentToolContinuationRequestPayloadV1;
+export interface SetCredentialsContinuationInput {
+    credentialsId: string;
+}
+export interface OAuthSuccessContinuationInput {
+    credentialsId: string;
+}
+export interface OAuthFailureContinuationInput {
+    reason: string;
+}
+export declare const OAUTH_CONTINUATION_REASON_MAX_CHARS = 500;
+export interface AgentSessionReferenceV1 {
+    id: string;
+    agentId: AgentType;
+    sessionScope?: string;
+}
+export interface AgentRequestSubmissionV1 {
+    session: AgentSessionReferenceV1;
+    request: AgentRequestPayloadV1;
+}
+export interface AgentRequestStatusView {
+    id: string;
+    sessionId: string;
+    status: AgentRequestStatus;
+    error: AgentRequestError | null;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface ActiveAgentRequestSummary {
+    id: string;
+    status: AgentRequestBusyStatus;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface AgentRequestSubmissionResult {
+    requestId: string;
+    sessionId: string;
+    status: Extract<AgentRequestStatus, "claimed" | "queued">;
 }
 export interface PersistedAgentMessage {
     messageId: string;
@@ -826,7 +962,7 @@ export interface PersistedAgentMessage {
     updatedAt: string;
 }
 export interface AgentStreamChunk {
-    type: "content" | "system_message" | "assistant_message_start" | "context_usage" | "compaction_start" | "compaction_complete" | "tool_call_start" | "tool_call_complete" | "tool_call_update" | "done" | "paused" | "error";
+    type: "request_accepted" | "content" | "system_message" | "assistant_message_start" | "context_usage" | "compaction_start" | "compaction_complete" | "tool_call_start" | "tool_call_complete" | "tool_call_update" | "done" | "paused" | "error";
     content?: string;
     errorDetails?: string;
     contextUsage?: AgentContextUsage;
@@ -843,6 +979,17 @@ export interface AgentStreamChunk {
     executionMode?: AgentExecutionMode;
     awaitingConfirmation?: boolean;
     pauseReason?: "awaiting_confirmation";
+    requestId?: string;
+    sessionId?: string;
+    requestStatus?: AgentRequestStatus;
+}
+export interface AgentSessionResponse {
+    session: AgentSession;
+    activeRequest: ActiveAgentRequestSummary | null;
+    latestRequest: AgentRequestStatusView | null;
+}
+export interface AgentCancelResponse {
+    request: AgentRequestStatusView;
 }
 export interface CallSystemArgs {
     systemId?: string;
@@ -986,6 +1133,7 @@ export interface CreateCredentialsRequest {
     makeDefault?: boolean;
 }
 export interface UpdateCredentialsRequest {
+    expectedSystemId?: string;
     name?: string;
     credentials?: Record<string, unknown>;
     removeCredentialKeys?: string[];
@@ -1072,7 +1220,19 @@ export type RunLimitCheckResponse = {
 };
 export type ResourcePermission = "viewer" | "editor";
 export type ResourceGrantSource = "access_rule" | "ownership" | "share";
-export type ResourceKind = "tool" | "system" | "credential" | "playbook";
+export type ResourceKind = "tool" | "system" | "credential" | "playbook" | "artifact";
+export interface ResourceKindDefinition {
+    label: string;
+    pluralLabel: string;
+    collectionKey: string;
+    memberDefaultPermission: ResourcePermission;
+    pickerDefaultPermission: ResourcePermission;
+}
+export interface ResourceAccessGrantInput {
+    resourceId: string;
+    permission: ResourcePermission;
+}
+export type RoleResourceAccessInput = Partial<Record<ResourceKind, ResourceAccessGrantInput[]>>;
 export interface ResourceGrant extends BaseConfig {
     orgId?: string;
     roleId: string;
@@ -1142,6 +1302,25 @@ export interface ShareResourceToolInput {
     kind: ResourceKind;
     id: string;
     targets: ShareResourceToolTargetInput[];
+}
+export interface ShareArtifactExternallyToolInput {
+    artifactId: string;
+    name: string;
+}
+export interface EditArtifactToolInput {
+    artifactId: string;
+    patches: Array<{
+        op: "str_replace";
+        path: string;
+        find: string;
+        replace: string;
+        replace_all?: boolean;
+    } | {
+        op: "replace" | "test";
+        path: string;
+        value: string;
+    }>;
+    editSummary?: string;
 }
 export interface ResourceShareUserAccess {
     userId: string;
