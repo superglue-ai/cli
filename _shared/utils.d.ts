@@ -93,7 +93,7 @@ export declare function restoreMaskedCredentialValues({ incoming, existing, }: {
 export declare function isMaskedValue(value: any): boolean;
 export declare function mergeCredentials(incoming: Record<string, any> | null | undefined, existing: Record<string, any> | null | undefined): Record<string, any>;
 export declare function maskCredentials(message: string, credentials?: Record<string, string>): string;
-export declare function sampleResultObject(value: any, sampleSize?: number, seen?: WeakSet<object>): any;
+export declare function sampleResultObject(value: any, sampleSize?: number): any;
 export declare function safeStringify(value: any, indent?: number): string;
 export declare function coerceDate(value: unknown, fallback?: Date): Date;
 export declare function normalizeToolCallDates(tool: ToolCall & {

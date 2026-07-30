@@ -538,7 +538,7 @@ sg system create --name "My API" --url https://api.example.com \
   --credentials '{"client_id":"...","client_secret":"...","auth_url":"https://example.com/oauth/authorize","token_url":"https://example.com/oauth/token"}'
 ```
 
-**Tags:** systems accept an optional `tags` string array in their JSON config. Tags such as `dev`, `prod`, and `sandbox` are metadata only. Tools and credentials always reference the exact system ID.
+**Tags:** do not add tags by default. Add tags only when the user explicitly requests them or when existing systems show a clear tag or grouping convention that applies. Reuse exact existing tag values; do not invent new tags. Tags are metadata only. Tools and credentials always reference the exact system ID.
 
 **System-specific instructions:** systems may include `specificInstructions` from the user (visible in `sg system find` output). Follow them when present — they override general patterns.
 
