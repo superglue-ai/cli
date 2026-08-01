@@ -164,7 +164,7 @@ XML responses are parsed into a JSON tree with ALL tag names normalized to UPPER
 
 Non-2xx responses throw with method, URL, response body preview (1000 chars), masked config, and retry count. Any response with status in the 2xx range is treated as success and returned to the step as-is — the runtime does not scan successful response bodies for error fields, so APIs that return HTTP 200 with `{ "error": "..." }` must be handled by your transform or by setting a `stopCondition`/assertion at the step level.
 
-Bypass: set `failureBehavior: "continue"` to skip the non-2xx throw and return the response anyway.
+Set step-level `failureBehavior: "continue"` to keep the workflow running after a non-2xx failure. The failure remains in `stepResults`.
 
 ### Retry Behavior
 

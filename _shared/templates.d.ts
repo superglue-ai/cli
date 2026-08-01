@@ -3,6 +3,7 @@ import type { System } from "./types.js";
 import type { ConnectionFieldDef } from "./utils.js";
 export interface SystemConfig {
     name: string;
+    label?: string;
     apiUrl: string;
     regex: string;
     icon: string;
