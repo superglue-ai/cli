@@ -202,6 +202,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
         success: result.success,
         data: result.data,
         ...(result.error ? { error: result.error } : {}),
+        ...(result.warnings?.length ? { warnings: result.warnings } : {}),
         ...(result.fileArtifacts && result.fileArtifacts.length > 0
           ? { fileArtifacts: result.fileArtifacts }
           : {}),
