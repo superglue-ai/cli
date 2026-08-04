@@ -28,7 +28,10 @@ export declare function findAndResumeMessageWithTool(messages: Message[], toolCa
 };
 export declare function serializeToolCallForPersistence(tool: ToolCall): ToolCall;
 export declare function serializeMessageForPersistence(message: Message): Message;
-export type AgentTranscriptOutcome = "streaming" | "completed" | "paused";
+export declare const AGENT_CONTEXT_MEMORY_MESSAGE_ID_PREFIX = "context-memory-";
+export declare function normalizeAgentSessionForkMessages(messages: Message[]): Message[];
+export declare function normalizeAgentSessionImportMessages(messages: Message[]): Message[];
+export type AgentTranscriptOutcome = "streaming" | "completed" | "paused" | "failed";
 export interface AgentTranscriptState {
     messages: Message[];
     assistantMessageId: string | null;

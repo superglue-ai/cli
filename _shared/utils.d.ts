@@ -2,6 +2,7 @@ import type { AgentCompactionPayload, ConnectionProtocol, CredentialKeyMetadata,
 export * from "./utils/cron.js";
 export * from "./utils/timezone.js";
 export * from "./utils/model-context-length.js";
+export * from "./utils/model-output-token-limit.js";
 type PlaybookDraftSource = Pick<PlaybookWithFiles, "id" | "name" | "whenToRun" | "inputs" | "systemRefs" | "toolRefs" | "credentialRefs" | "fileRefs" | "instructions" | "completionCriteria">;
 export declare function mapPlaybookToDraftConfig(playbook: PlaybookDraftSource): PlaybookDraftConfig;
 export declare function mapPlaybookDraftToInput(config: PlaybookDraftConfig): PlaybookInput;
@@ -93,7 +94,9 @@ export declare function restoreMaskedCredentialValues({ incoming, existing, }: {
 export declare function isMaskedValue(value: any): boolean;
 export declare function mergeCredentials(incoming: Record<string, any> | null | undefined, existing: Record<string, any> | null | undefined): Record<string, any>;
 export declare function maskCredentials(message: string, credentials?: Record<string, string>): string;
-export declare function sampleResultObject(value: any, sampleSize?: number, seen?: WeakSet<object>): any;
+export declare function buildSensitiveCredentialMap(systems: System[]): Record<string, string>;
+export declare function redactKnownCredentialValues(value: unknown, credentials: Record<string, string>): unknown;
+export declare function sampleResultObject(value: any, sampleSize?: number): any;
 export declare function safeStringify(value: any, indent?: number): string;
 export declare function coerceDate(value: unknown, fallback?: Date): Date;
 export declare function normalizeToolCallDates(tool: ToolCall & {
