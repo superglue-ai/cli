@@ -414,17 +414,38 @@ sourceData = {
   // Current loop item (only set inside a looping step's config)
   currentItem: { id: 1 },
 
+  // Persistent per-tool state (see Persistent Tool State)
+  persistedState: { lastSyncedAt: "..." },
+
   // Credentials (flattened, namespaced)
   my_api_access_token: "...",
   my_api_api_key: "..."
 }
 ```
 
+### Persistent Tool State
+
+`sourceData.persistedState` is a per-tool key-value object that persists across runs of a saved tool. It is loaded before the run starts and written back only after the workflow and run record complete successfully. A failed step that stops execution, failed output processing, cancellation, or run-finalization failure leaves the previous state unchanged. A step with `failureBehavior: "continue"` does not fail the run, so earlier state changes can still commit when the remaining workflow succeeds.
+
+- Write it by setting keys inside a transform: `(sourceData) => { sourceData.persistedState.cursor = sourceData.fetchOrders.data.nextCursor; return sourceData.fetchOrders.data.items; }`. Never reassign `sourceData.persistedState` itself — whether reassignment takes effect depends on the execution context, so only key mutation is reliable.
+- Read it anywhere: `<<(sourceData) => sourceData.persistedState.lastSyncedAt || "2024-01-01">>`. A tool's first run starts with `{}`, so every read needs a fallback.
+- Inline runs (`sg tool run` with an unsaved config) start with empty state and do not persist it; only saved-tool runs (frontend, agent, REST, MCP, webhook, schedule, tool-chain) persist state.
+- Limits: 100 keys, 64KB per value. Exceeding a limit rejects the entire state write and records a run warning — the run itself still succeeds.
+- Concurrent runs of the same tool are reconciled per key with compare-and-set: if another run changed a key first, this run's value for that key is discarded and a run warning is recorded.
+- Batch continuation: process a large import in manageable batches and save the next cursor, so each scheduled run continues where the previous run stopped.
+- Polling-based change detection: poll an API on a schedule, compare its version or fingerprint with the previous result, and trigger follow-up work only when it changes. This is useful when the provider lacks the required webhook.
+- Incremental syncs and dedupe: store a timestamp or cursor for new records, or a bounded set such as `persistedState.seenIds`.
+- State gives at-least-once execution with progress tracking, never exactly-once: crashes, concurrent-run conflicts, and state resets all cause re-processing, which re-executes side effects. Steps that write to external systems MUST be replay-safe — upsert by a stable external id or pass an idempotency key — or duplicates will land in the target system.
+- Keep set-valued keys bounded (e.g. keep only the most recent ~1,000 ids): an unbounded set eventually exceeds the 64KB value limit, which rejects the tool's entire state write on every run.
+- Never copy credential values into state — state is stored unencrypted and readable by anyone with read access to the tool.
+- Inspect current state via `sg tool state get <toolId>` (values matching known system credentials are masked); reset it via `sg tool state reset <toolId>`. A reset wins over in-flight runs: their updates to pre-reset keys are discarded as conflicts; only keys they newly add are kept.
+- Set state deliberately via `sg tool state set <toolId> --state '<json>'` (or `--state-file`) — a full replace, subject to the same key and size limits. To test warm-state behavior without touching real state, pass `--state-fixture '<json>'` (or `--state-fixture-file`) to `sg tool run`: it seeds `sourceData.persistedState` for that run and the run never saves state changes. Side effects still execute, including `tool:` chain webhooks — a chained tool runs for real against its own real state.
+
 ### Naming Rules — Avoiding Key Collisions
 
 Everything in `sourceData` shares ONE flat namespace. Saving a tool rejects payload input keys and step ids that collide with it:
 
-- `__files__`, `currentItem`, `sg_auth_email`, `sg_auth_jwt` — injected by the runtime
+- `__files__`, `currentItem`, `persistedState`, `sg_auth_email`, `sg_auth_jwt` — injected by the runtime
 - `page`, `offset`, `cursor`, `limit`, `pageSize` — rejected only when the tool has a paginated step, because they would shadow the live pagination counters; on non-paginated tools they are allowed but discouraged (a later edit that adds pagination will force a rename)
 - the tool's own step ids — the step result overwrites a same-named payload key
 - anything starting with `<systemId>_` for a system the tool uses — the entire prefix is reserved for namespaced credentials (`<systemId>_<credKey>`, `<systemId>_url`), even names that don't match an existing credential, because credentials added to the system later would silently shadow the input
@@ -538,7 +559,7 @@ sg system create --name "My API" --url https://api.example.com \
   --credentials '{"client_id":"...","client_secret":"...","auth_url":"https://example.com/oauth/authorize","token_url":"https://example.com/oauth/token"}'
 ```
 
-**Tags:** systems accept an optional `tags` string array in their JSON config. Tags such as `dev`, `prod`, and `sandbox` are metadata only. Tools and credentials always reference the exact system ID.
+**Tags:** do not add tags by default. Add tags only when the user explicitly requests them or when existing systems show a clear tag or grouping convention that applies. Reuse exact existing tag values; do not invent new tags. Tags are metadata only. Tools and credentials always reference the exact system ID.
 
 **System-specific instructions:** systems may include `specificInstructions` from the user (visible in `sg system find` output). Follow them when present — they override general patterns.
 

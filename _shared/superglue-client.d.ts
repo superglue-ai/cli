@@ -1,6 +1,12 @@
-import { AccessibleCredentials, ActivityDailyCount, ClientRequestSource, CreateCredentialsRequest, CredentialSetSummary, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunClientInfo, RunExecutionKind, Run, RunLimitCheckResponse, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult, UpdateCredentialsRequest } from "./types.js";
+import { AccessibleCredentials, ActivityDailyCount, BulkMutationResult, ClientRequestSource, CreateCredentialsRequest, CredentialSetSummary, ExecutionFileEnvelope, ExtractArgs, ExtractResult, FileReference, PatchSystemBody, OAuthExchangeCompleteRequest, OAuthExchangeCompleteResponse, OAuthExchangeRequest, OAuthExchangeStartResponse, RequestSource, RunClientInfo, RunExecutionKind, Run, RunLimitCheckResponse, System, Tool, ToolSchedule, ToolScheduleInput, ToolResult, UpdateCredentialsRequest } from "./types.js";
 import type { SystemAuthentication } from "./authentication.js";
 import { SSELogSubscriptionOptions, SSESubscription, type TokenProvider } from "./sse-log-subscription.js";
+export declare class SuperglueHttpError extends Error {
+    readonly status: number;
+    readonly code?: string;
+    readonly details?: Record<string, unknown>;
+    constructor(message: string, status: number, code?: string, details?: Record<string, unknown>);
+}
 export declare class SuperglueClient {
     private tokenProvider;
     private sseManager;
@@ -54,6 +60,7 @@ export declare class SuperglueClient {
             credentialsList?: Record<string, string>;
         };
         runId?: string;
+        stateFixture?: Record<string, unknown>;
         includeStepResultData?: boolean;
         signal?: AbortSignal;
     }): Promise<ToolResult>;
@@ -71,6 +78,7 @@ export declare class SuperglueClient {
             requestSource?: ClientRequestSource;
         };
         runId?: string;
+        stateFixture?: Record<string, unknown>;
         traceId?: string;
         createRun?: boolean;
         executionKind?: RunExecutionKind;
@@ -209,7 +217,12 @@ export declare class SuperglueClient {
     }): Promise<ActivityDailyCount[]>;
     getRun(id: string): Promise<Run | null>;
     getTool(id: string): Promise<Tool | null>;
+    getToolState(id: string): Promise<Record<string, unknown>>;
+    setToolState(id: string, state: Record<string, unknown>): Promise<string[]>;
+    deleteToolState(id: string): Promise<number>;
     archiveTool(id: string, archived?: boolean): Promise<Tool>;
+    bulkArchiveTools(ids: string[], archived?: boolean): Promise<BulkMutationResult>;
+    bulkDeleteTools(ids: string[]): Promise<BulkMutationResult>;
     listTools(limit?: number, offset?: number, includeArchived?: boolean): Promise<{
         items: Tool[];
         total: number;
@@ -282,6 +295,8 @@ export declare class SuperglueClient {
     createToolSchedule(toolId: string, schedule: Pick<ToolScheduleInput, "cronExpression" | "timezone"> & Pick<ToolScheduleInput, "enabled" | "payload" | "options">): Promise<ToolSchedule>;
     updateToolSchedule(toolId: string, scheduleId: string, updates: Pick<ToolScheduleInput, "cronExpression" | "timezone" | "enabled" | "payload" | "options">): Promise<ToolSchedule>;
     deleteToolSchedule(toolId: string, scheduleId: string): Promise<boolean>;
+    bulkSetSchedulesEnabled(ids: string[], enabled: boolean): Promise<BulkMutationResult>;
+    bulkDeleteSchedules(ids: string[]): Promise<BulkMutationResult>;
     listCredentials(params?: {
         systemId?: string;
     }): Promise<AccessibleCredentials[]>;
@@ -314,6 +329,7 @@ export declare class SuperglueClient {
     }): Promise<System>;
     updateSystem(id: string, input: PatchSystemBody): Promise<System>;
     deleteSystem(id: string): Promise<boolean>;
+    bulkDeleteSystems(ids: string[]): Promise<BulkMutationResult>;
     createOAuthExchange(params: OAuthExchangeRequest): Promise<OAuthExchangeStartResponse>;
     completeOAuthExchange(oauthExchangeId: string, params: OAuthExchangeCompleteRequest): Promise<OAuthExchangeCompleteResponse>;
     searchSystemDocumentation(systemId: string, keywords: string): Promise<string>;
