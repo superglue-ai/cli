@@ -16,7 +16,7 @@ export declare const BILLING_CURRENCIES: readonly ["eur", "usd"];
 export declare function isBillingCurrency(value: unknown): value is BillingCurrency;
 export declare const PAID_ORG_TIERS: readonly ["pro", "team", "enterprise"];
 export declare const SELF_SERVE_BILLING_TIERS: readonly ["pro", "team"];
-export declare const ORG_FEATURES: readonly ["activity_tracking", "access_control", "organization_management", "custom_timeouts"];
+export declare const ORG_FEATURES: readonly ["activity_tracking", "access_control", "organization_management", "custom_timeouts", "sub_organizations"];
 export declare function isOrgTier(tier?: string | null): tier is OrgTier;
 export declare function parseOrgTier(tier?: string | null): OrgTier | null;
 export declare function normalizeOrgTier(tier?: string | null): OrgTier;
@@ -42,6 +42,7 @@ export declare const ORG_TIER_CONFIG_DEFAULTS: {
         runLimitPerUser: number;
         runLimitPeriod: "lifetime";
         maximumConcurrentRuns: number;
+        maxSubOrganizations: any;
         features: OrgFeatureFlags;
     };
     pro: {
@@ -50,11 +51,13 @@ export declare const ORG_TIER_CONFIG_DEFAULTS: {
         runLimitPerUser: number;
         runLimitPeriod: "calendar_month";
         maximumConcurrentRuns: number;
+        maxSubOrganizations: any;
         features: {
             activity_tracking: false;
             access_control: false;
             organization_management: false;
             custom_timeouts: false;
+            sub_organizations: false;
         };
     };
     team: {
@@ -63,11 +66,13 @@ export declare const ORG_TIER_CONFIG_DEFAULTS: {
         runLimitPerUser: number;
         runLimitPeriod: "calendar_month";
         maximumConcurrentRuns: any;
+        maxSubOrganizations: any;
         features: {
             activity_tracking: true;
             access_control: false;
             organization_management: true;
             custom_timeouts: false;
+            sub_organizations: false;
         };
     };
     enterprise: {
@@ -76,6 +81,7 @@ export declare const ORG_TIER_CONFIG_DEFAULTS: {
         runLimitPerUser: any;
         runLimitPeriod: "calendar_month";
         maximumConcurrentRuns: any;
+        maxSubOrganizations: any;
         features: OrgFeatureFlags;
     };
 };
