@@ -8,6 +8,7 @@ import { registerRunCommand } from "./run.js";
 import { registerEditCommand } from "./edit.js";
 import { registerSaveCommand } from "./save.js";
 import { registerFindCommand } from "./find.js";
+import { registerStateCommand } from "./state.js";
 
 type ContextFn = () => { config: CLIConfig; client: SuperglueClient };
 
@@ -55,6 +56,9 @@ Quick Reference:
   sg tool list [--limit N]                   List tools (default 25)
   sg tool find <query>                       Search by keyword
   sg tool find --id <toolId>                 Get full tool config
+  sg tool state get <toolId>                 Show persistent state
+  sg tool state set <toolId> --state <json>  Replace persistent state
+  sg tool state reset <toolId>               Delete persistent state
 
 Output: JSON by default. Use --table for human-readable, --full to disable truncation.
 `,
@@ -63,5 +67,6 @@ Output: JSON by default. Use --table for human-readable, --full to disable trunc
   registerRunCommand(tool, getContext, preset);
   gatedRegister(tool, "edit", "tool.edit", preset, () => registerEditCommand(tool, getContext));
   gatedRegister(tool, "save", "tool.save", preset, () => registerSaveCommand(tool, getContext));
+  gatedRegister(tool, "state", "tool.state", preset, () => registerStateCommand(tool, getContext));
   registerFindCommand(tool, getContext);
 }

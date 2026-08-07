@@ -207,7 +207,7 @@ To make files downloadable from the tool's API response, set `outputFile: true` 
       "config": { "type": "request", "url": "https://api.example.com/report" }
     },
     {
-      "id": "generateReport",
+      "id": "createCsv",
       "config": {
         "type": "transform",
         "transformCode": "(sourceData) => ({ __files__: { \"report.csv\": Papa.unparse(sourceData.fetchData.data) } })"
