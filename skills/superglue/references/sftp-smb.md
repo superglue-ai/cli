@@ -15,6 +15,8 @@ FTP, SFTP, and SMB share an identical operation interface. Only the URL protocol
 
 Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
+`<<systemId_url>>` resolves to the selected credential's `url` override when one is set, else to the system `url`. Use it as the full connection string when each tenant has its own host; set the override with `sg system credentials set --url`.
+
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for file server steps.
 
 ### Fields

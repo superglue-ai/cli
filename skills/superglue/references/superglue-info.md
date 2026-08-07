@@ -69,7 +69,6 @@ The persistent left sidebar contains these top-level items:
 - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs. Runs is a top-level sidebar item, not a Control Panel sub-item.
 - **Control Panel** (`/admin`) — expandable group for organization and account administration:
   - **Overview** (`/admin`) — dashboard summary, including failed-run and schedule summaries.
-  - **Landscape** (`/landscape`) — graph overview of tools, systems, and their connections.
   - **Schedules** (`/admin?view=schedules`) — scheduled and recurring tool runs.
   - **Access Rules** (`/admin/access`) — role and access-rule configuration; visible to admins on paid tiers. Use the access-rules reference for RBAC behavior, base roles, and personal roles.
   - **Organization** (`/organization`) — visible on paid tiers as a standalone page without tabs. It shows members, invitations, role assignment, and member-management actions; management actions are admin-gated.

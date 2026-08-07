@@ -31,17 +31,21 @@ export async function setOwnedCredentials({
   client,
   systemId,
   credentials,
+  url,
 }: {
   client: SuperglueClient;
   systemId: string;
   credentials: Record<string, unknown>;
+  url?: string;
 }): Promise<CredentialSetSummary | null> {
   const existing = await getOwnedCredentialSet(client, systemId);
   if (!existing) {
-    if (Object.keys(credentials).length === 0) return null;
-    return client.createCredentials({ systemId, credentials });
+    if (Object.keys(credentials).length === 0 && url === undefined) return null;
+    return client.createCredentials({ systemId, credentials, url: url || undefined });
   }
-  return client.replaceCredentials(existing.id, credentials);
+  const replaced = await client.replaceCredentials(existing.id, credentials);
+  if (url === undefined) return replaced;
+  return client.updateCredentials(existing.id, { url: url || null });
 }
 
 export async function clearOwnedCredentials(

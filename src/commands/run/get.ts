@@ -39,6 +39,7 @@ export function registerGetCommand(parent: Command, getContext: ContextFn): void
             toolId: run.toolId,
             status: run.status,
             error: run.error,
+            ...(run.metadata?.warnings?.length ? { warnings: run.metadata.warnings } : {}),
             toolPayload: full ? run.toolPayload : truncateField(run.toolPayload),
             data: full ? run.data : truncateField(run.data),
             requestSource: run.requestSource,

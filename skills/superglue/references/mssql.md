@@ -15,6 +15,8 @@
 
 Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
+`<<systemId_url>>` resolves to the selected credential's `url` override when one is set, else to the system `url`. Use it as the full connection string when each tenant has its own host; set the override with `sg system credentials set --url`.
+
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for database steps.
 
 ### Fields
@@ -224,7 +226,7 @@ Defaults are tuned for Azure SQL; on-prem servers usually need adjustments:
 - **Self-signed certificates** — on-prem servers rarely have CA-signed certs, so the default `trustServerCertificate=false` fails the TLS handshake. Add `?trustServerCertificate=true` (keeps encryption, skips CA validation).
 - **Old SQL Server versions** — SQL Server 2008/2008 R2 without TLS 1.2 patches cannot complete a modern TLS handshake. Use `?encrypt=false` as a last resort, preferably only over the Secure Gateway tunnel.
 - **Named instances** — use the `?instanceName=` query parameter (see URL Format above); remember SQL Browser (UDP 1434) is required for instance resolution and does not work through the Secure Gateway tunnel.
-- **Firewalled servers** — on-prem databases are typically not internet-reachable; configure the system with a Secure Gateway tunnel.
+- **Firewalled servers** — on-prem databases are typically not internet-reachable; configure the system with a Secure Gateway tunnel. Direct users to the setup guide at https://superglue.ai/docs/guides/secure-gateway/ — do not describe the setup flow from memory.
 
 ### Retry Behavior
 
