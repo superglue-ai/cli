@@ -26,11 +26,15 @@ function formatCredentialResponse({
   set,
 }: {
   systemId: string;
-  set?: Pick<CredentialSetSummary, "credentialKeys" | "missingRequiredCredentialKeys"> | null;
+  set?: Pick<
+    CredentialSetSummary,
+    "credentialKeys" | "missingRequiredCredentialKeys" | "url"
+  > | null;
 }) {
   const credentialKeys = set?.credentialKeys || [];
   return {
     systemId,
+    ...(set?.url ? { url: set.url } : {}),
     credentialKeys: credentialKeys.map((credential) => ({
       ...credential,
       placeholder: `<<${systemId}_${credential.key}>>`,
@@ -85,6 +89,10 @@ These commands manage the executing user's credentials for a system.
     .description("Set the current user's credentials for a system")
     .requiredOption("--system-id <id>", "System ID")
     .requiredOption("--credentials <json>", "Credentials JSON object")
+    .option(
+      "--url <url>",
+      "Base URL override for the credential; replaces the system url at execution time. Pass an empty string to clear.",
+    )
     .action(async (opts) => {
       const { client } = getContext();
       let parsedCredentials: Record<string, unknown>;
@@ -102,6 +110,7 @@ These commands manage the executing user's credentials for a system.
           client,
           systemId: opts.systemId,
           credentials: parsedCredentials,
+          url: opts.url,
         });
         spin.stop();
         if (isTableMode()) {

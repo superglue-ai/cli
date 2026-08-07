@@ -37,12 +37,17 @@ export function registerRunCommand(
     )
     .option("--include-step-results", "Include raw step results")
     .option("--include-config", "Include full tool config")
+    .option("--state-fixture <json>", "Seed sourceData.persistedState for this run only")
+    .option("--state-fixture-file <path>", "Seed state from a JSON file")
     .option("--timeout <ms>", "Per-request timeout in milliseconds (minimum 1000)")
     .addHelpText(
       "after",
       `
 Provide exactly one of: --tool, --draft, --config, or --config-file.
 Returns: { success, data, error? }
+
+--state-fixture seeds sourceData.persistedState in place of the tool's real state;
+a seeded run never saves state changes. Use 'sg tool state set' to set real state.
 
 Run 'sg skill' for payload syntax, variable references, and data selectors.
 `,
@@ -98,6 +103,34 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
         payload = fileResult.resolved;
       }
 
+      let stateFixture: Record<string, unknown> | undefined;
+      if (opts.stateFixture !== undefined || opts.stateFixtureFile !== undefined) {
+        if (opts.stateFixture !== undefined && opts.stateFixtureFile !== undefined) {
+          error("Only one of --state-fixture or --state-fixture-file can be used");
+          process.exit(1);
+        }
+        let parsedFixture: unknown;
+        try {
+          parsedFixture = JSON.parse(
+            opts.stateFixtureFile
+              ? fs.readFileSync(opts.stateFixtureFile, "utf-8")
+              : opts.stateFixture,
+          );
+        } catch (err: any) {
+          error(`Invalid state fixture JSON: ${err.message}`);
+          process.exit(1);
+        }
+        if (
+          parsedFixture === null ||
+          typeof parsedFixture !== "object" ||
+          Array.isArray(parsedFixture)
+        ) {
+          error("--state-fixture must be a plain JSON object");
+          process.exit(1);
+        }
+        stateFixture = parsedFixture as Record<string, unknown>;
+      }
+
       let result: any;
       const toolLabel = opts.tool || opts.draft || "inline-config";
       const traceId = crypto.randomUUID();
@@ -140,6 +173,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
             executionKind: options.executionKind,
             parentToolId: options.parentToolId,
             draftId: options.draftId,
+            stateFixture,
           });
           logSub.unsubscribe();
           spin.stop();
@@ -159,6 +193,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
             payload,
             includeStepResultData: opts.includeStepResults === true,
             options: { requestSource: RequestSource.CLI, traceId, timeout },
+            stateFixture,
           });
           logSub.unsubscribe();
           spin.stop();
@@ -202,6 +237,7 @@ Run 'sg skill' for payload syntax, variable references, and data selectors.
         success: result.success,
         data: result.data,
         ...(result.error ? { error: result.error } : {}),
+        ...(result.warnings?.length ? { warnings: result.warnings } : {}),
         ...(result.fileArtifacts && result.fileArtifacts.length > 0
           ? { fileArtifacts: result.fileArtifacts }
           : {}),

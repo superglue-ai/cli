@@ -29,6 +29,7 @@ export const PRESETS: Record<CLIPreset, PresetDef> = {
       "tool.build",
       "tool.edit",
       "tool.save",
+      "tool.state",
       "system.call",
       "system.credentials",
       "system.docs",
