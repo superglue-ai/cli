@@ -32,6 +32,10 @@ MCP authentication is separate from API/SDK/CLI setup. For MCP OAuth, dynamic cl
 
 Users can generate and manage API keys on the standalone **API Keys** page (`/api-keys`).
 
+Each key carries an access scope, set at creation and editable later. A scope is a surface plus an action: the surfaces are **API & CLI** (everything except MCP, including the agent and the CLI) and **MCP** (assistants connected over MCP), and the actions are **read**, **write**, and **execute**. Writing covers creating, changing, and deleting. Executing covers running tools and talking to the agent, so a key with only read and write cannot run anything. MCP requests are always tool calls, so that surface only takes execute. Keys created before scoping keep full access. A scope only narrows a key; it never grants more than the owner's role permissions. A scoped key cannot reach the API keys endpoints at all, so it can neither widen itself nor read another key's value. Full access is therefore its own choice at creation, not the result of selecting every surface: a key that holds every scope is still a scoped key and still cannot manage API keys. A request outside the scope returns 403.
+
+Two limits are worth stating plainly. Execute reaches the agent, and the agent's own tools create and edit systems, credentials, and roles, so an execute scope is not a run-only scope — only the owner's role permissions bound it. And scopes apply to API keys alone: an MCP client that connects through OAuth instead of a key is unscoped and carries the user's full authority.
+
 ## Interfaces
 
 - **Web app** — primary UI for building, testing, and managing tools and systems
@@ -76,7 +80,7 @@ The persistent left sidebar contains these top-level items:
 
 Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user email and menu items for **API Keys** (`/api-keys`), **Settings** (`/settings`, admin-only), **Switch organization**, and **Sign Out**. When billing is enabled, the sidebar also shows **Upgrade Plan** for non-enterprise organizations; it opens the in-app upgrade flow. There is no separate in-app Billing page.
 
-**API Keys** (`/api-keys`) is a standalone page with a simple own-key editor for superglue API keys used by API, SDK, CLI headless/API-key auth, webhook, and non-OAuth MCP clients. Org users can create, copy, and delete their own keys.
+**API Keys** (`/api-keys`) is a standalone page with a simple own-key editor for superglue API keys used by API, SDK, CLI headless/API-key auth, webhook, and non-OAuth MCP clients. Org users can create, copy, delete, and re-scope their own keys.
 
 **Settings** (`/settings`) is an admin-only standalone page with distinct sections:
 
