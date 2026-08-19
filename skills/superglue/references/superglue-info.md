@@ -64,19 +64,27 @@ If a customer's system requires IP allowlisting for firewall rules, security gro
 
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
 
+Brain contains projects, playbooks, artifacts, and uploaded files. Capabilities contains project-attachable systems and tools. Credentials, MCP servers, and schedules configure execution but are not project members. Projects group selected Brain items and capabilities for focused work without changing RBAC. The organization workspace is the virtual default containing all visible resources.
+
 The persistent left sidebar contains these top-level items:
 
-- **Agent** (`/`) — primary AI chat assistant for building and debugging tools and systems.
-- **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
-- **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
-- **Credentials** (`/credentials`) — manage the credentials you own for each system, and the credentials shared with you. Admins and members open it inside the normal app shell from the sidebar. API keys are not managed here.
-- **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs. Runs is a top-level sidebar item, not a Control Panel sub-item.
-- **Control Panel** (`/admin`) — expandable group for organization and account administration:
-  - **Overview** (`/admin`) — dashboard summary, including failed-run and schedule summaries.
+- **Agents** — primary AI chat assistant. Selecting it only expands or collapses the project-thread tree. `/` starts an empty workspace chat. Selecting a project expands or collapses its threads; its plus control opens a reusable empty project-scoped draft. Drafts appear as thread rows only after they persist. Selecting a persisted thread opens `/agents/{sessionId}`. Controls reveal older chats or projects in groups of three and collapse them again.
+- **Brain** — expandable group for context and focused work:
+  - **Projects** (`/projects`) — organization workspace and custom project folders.
+  - **Playbooks** (`/playbooks`, detail at `/playbooks/{playbookId}`) — reusable guidance for recurring work. Built-in and custom playbooks share one grid; built-ins are labeled and can be duplicated.
+  - **Artifacts** (`/artifacts`, detail at `/artifacts/{artifactId}`) — interactive outputs.
+  - **Files** (`/files`) — uploaded source material.
+- **Capabilities** — expandable group for connected and executable resources:
+  - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
+  - **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
+  - **Credentials** (`/credentials`) — manage the credentials you own for each system, and the credentials shared with you. Admins and members open it inside the normal app shell from the sidebar. API keys are not managed here.
+  - **MCP Servers** (`/mcp-servers`) — manage and export named MCP server endpoints. Use the MCP documentation for behavior, permissions, and client setup.
   - **Schedules** (`/admin?view=schedules`) — scheduled and recurring tool runs.
+- **Control Panel** (`/admin`) — expandable group for organization and account administration:
+  - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs.
+  - **Activity Tracker** (`/admin`) — organization activity summary for resource creation, shares, and tool runs.
   - **Access Rules** (`/admin/access`) — role and access-rule configuration; visible to admins on paid tiers. Use the access-rules reference for RBAC behavior, base roles, and personal roles.
   - **Organization** (`/organization`) — visible on paid tiers as a standalone page without tabs. It shows members, invitations, role assignment, and member-management actions; management actions are admin-gated.
-  - **MCP Servers** (`/admin?view=mcp-servers`) — manage and export named MCP server endpoints. Use the MCP documentation for behavior, permissions, and client setup.
 
 Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user email and menu items for **API Keys** (`/api-keys`), **Settings** (`/settings`, admin-only), **Switch organization**, and **Sign Out**. When billing is enabled, the sidebar also shows **Upgrade Plan** for non-enterprise organizations; it opens the in-app upgrade flow. There is no separate in-app Billing page.
 

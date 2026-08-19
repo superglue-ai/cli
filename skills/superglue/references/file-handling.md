@@ -34,30 +34,28 @@ Constraints:
 - Multi-file steps use bracket notation: `file::stepId["report.csv"].raw`
 - Loop iterations use numeric index: `file::stepId[0].raw`
 
-## Authentication
-
-N/A — file handling is a runtime behavior, not a protocol. Authentication is handled by the protocol skill that produces or consumes the file (http, sftp-smb, etc.).
-
 ## File Handling Runtime Details
 
 ### Detection Priority
 
-Every response is read as raw bytes. The runtime classifies it using this priority chain:
+Every HTTP response is read as bytes. It becomes a file when any condition applies:
 
 1. **Magic-byte detection** — known binary signatures (ZIP `PK\x03\x04`, PDF `%PDF`, GZIP `\x1f\x8b`, plus internal ZIP structure checks for Excel/DOCX/PPTX)
 2. **`Content-Disposition: attachment`** — `attachment` or `filename=` in this header forces file treatment
 3. **`application/octet-stream`** — explicit octet-stream MIME catches unlabeled binary payloads
-4. **25MB size fallback** — only when byte detection returned `RAW`, the response exceeds 25MB, and `Content-Type` is not text-like (`text/*`, `application/json`, `*+json`, `application/xml`)
+4. **Unlabeled RAW data** — detection returned `RAW` and the declared MIME type is not clearly text-like
+
+There is no size threshold in this decision.
 
 File server `get` operations always produce files regardless of detected type.
 
 ### Classification
 
-| Classification      | Types                             | Destination                                                    |
-| ------------------- | --------------------------------- | -------------------------------------------------------------- |
-| **Binary**          | PDF, Excel, DOCX, PPTX, ZIP, GZIP | `producedFiles` + `data` (extracted/parsed content)            |
-| **Structured text** | JSON, XML, CSV, YAML, HTML        | `data` only (parsed to JS objects)                             |
-| **RAW**             | Unrecognized                      | File if attachment/octet-stream/25MB fallback, else raw string |
+| Classification      | Types                                     | Destination                                         |
+| ------------------- | ----------------------------------------- | --------------------------------------------------- |
+| **Binary**          | PDF, Excel, DOCX, PPTX, ZIP, GZIP, BINARY | `producedFiles` + `data` (extracted/parsed content) |
+| **Structured text** | JSON, XML, CSV, YAML, HTML                | `data` only (parsed to JS objects)                  |
+| **RAW**             | Unrecognized                              | File or string according to headers and MIME rules  |
 
 Binary responses expose `stepFileKeys` and populate `sourceData.__files__`. Structured text responses only populate `sourceData.stepId.data`.
 
@@ -127,7 +125,7 @@ Available properties on each file object: `filename`, `contentType`, `size`, `ra
 sourceData.__files__.myStep.base64; // computes and returns base64 string on first access
 ```
 
-The base64 value is computed on first access and cached for subsequent reads. It will not appear in `Object.keys()` or `JSON.stringify()` output (non-enumerable). Throws if the file exceeds 500MB — use `.raw` for large files.
+The base64 value is computed on first access and cached for subsequent reads. It will not appear in `Object.keys()` or `JSON.stringify()` output (non-enumerable). Base64 access is limited to 375MB per file; use `.raw` for larger files.
 
 Prefer discovering aliases dynamically via `stepFileKeys`:
 
@@ -219,7 +217,7 @@ To make files downloadable from the tool's API response, set `outputFile: true` 
 }
 ```
 
-Only steps with `outputFile: true` have their files stored to S3 and returned as downloadable artifacts. Steps without the flag keep their files internal (for inter-step passing only).
+Only steps with `outputFile: true` expose their files as downloadable run output. Persistence is best-effort when file storage is configured. Steps without the flag keep their files internal.
 
 This works on any step type — transform steps, HTTP steps, SFTP/FTP steps. Just set `outputFile: true`.
 
