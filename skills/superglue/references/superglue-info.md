@@ -79,7 +79,7 @@ The persistent left sidebar contains these top-level items:
   - **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
   - **Credentials** (`/credentials`) — manage the credentials you own for each system, and the credentials shared with you. Admins and members open it inside the normal app shell from the sidebar. API keys are not managed here.
   - **MCP Servers** (`/mcp-servers`) — manage and export named MCP server endpoints. Use the MCP documentation for behavior, permissions, and client setup.
-  - **Schedules** (`/admin?view=schedules`) — scheduled and recurring tool runs.
+  - **Schedules** (`/schedules`) — scheduled and recurring tool runs.
 - **Control Panel** (`/admin`) — expandable group for organization and account administration:
   - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs.
   - **Activity Tracker** (`/admin`) — organization activity summary for resource creation, shares, and tool runs.
