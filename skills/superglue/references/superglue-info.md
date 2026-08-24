@@ -94,7 +94,7 @@ Below the navigation, the sidebar shows the current organization menu. Opening i
 
 - **Organization** — organization name and organization logo settings.
 - **Run Settings** — run preferences: draft/single-step run visibility, run result storage, member run visibility, and delete-all-runs.
-- **Notifications** — failure-alert channels for Slack and email. Slack setup opens `/settings/notifications/slack`; email setup opens `/settings/notifications/email`.
+- **Notifications** — run-alert channels for Slack and email (on failure, success, completion, or daily/weekly summaries). Slack setup opens `/settings/notifications/slack`; email setup opens `/settings/notifications/email`.
 
 ## Internals
 
