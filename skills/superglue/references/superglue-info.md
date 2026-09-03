@@ -64,16 +64,17 @@ If a customer's system requires IP allowlisting for firewall rules, security gro
 
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
 
-Brain contains projects, playbooks, artifacts, and uploaded files. Capabilities contains project-attachable systems and tools. Credentials, MCP servers, and schedules configure execution but are not project members. Projects group selected Brain items and capabilities for focused work without changing RBAC. The organization workspace is the virtual default containing all visible resources.
+Brain contains context-source setup, playbooks, artifacts, and file context. Capabilities contains project-attachable systems and tools. Credentials, MCP servers, and schedules configure execution but are not project members. Projects are managed separately and group selected context and capabilities without changing RBAC. The organization workspace is the virtual default containing all visible resources.
 
 The persistent left sidebar contains these top-level items:
 
-- **Agents** — primary AI chat assistant. Selecting it only expands or collapses the project-thread tree. `/` starts an empty workspace chat. Selecting a project expands or collapses its threads; its plus control opens a reusable empty project-scoped draft. Drafts appear as thread rows only after they persist. Selecting a persisted thread opens `/agents/{sessionId}`. Controls reveal older chats or projects in groups of three and collapse them again.
+- **Agents** — primary AI assistant. Selecting it only expands or collapses the project-session tree. `/` starts an empty workspace session. Selecting a project expands or collapses its sessions; its plus control opens a reusable empty project-scoped draft. Drafts appear as session rows only after they persist. Selecting a persisted session opens `/agents/{sessionId}`. Controls reveal older sessions or projects in groups of three and collapse them again.
+- **Projects** (`/projects`) — top-level page for the default project and custom project folders.
 - **Brain** — expandable group for context and focused work:
-  - **Projects** (`/projects`) — organization workspace and custom project folders.
+  - **Setup** (`/brain`) — context-source connections that use only the current user's personal credentials.
   - **Playbooks** (`/playbooks`, detail at `/playbooks/{playbookId}`) — reusable guidance for recurring work. Built-in and custom playbooks share one grid; built-ins are labeled and can be duplicated.
   - **Artifacts** (`/artifacts`, detail at `/artifacts/{artifactId}`) — interactive outputs.
-  - **Files** (`/files`) — uploaded source material.
+  - **File context** (`/files`) — uploaded source material.
 - **Capabilities** — expandable group for connected and executable resources:
   - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
   - **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
@@ -82,7 +83,7 @@ The persistent left sidebar contains these top-level items:
   - **Schedules** (`/schedules`) — scheduled and recurring tool runs.
 - **Control Panel** (`/admin`) — expandable group for organization and account administration:
   - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs.
-  - **Activity Tracker** (`/admin`) — organization activity summary for resource creation, shares, and tool runs.
+  - **Activity** (`/admin`) — organization activity summary for resource creation, shares, and tool runs.
   - **Access Rules** (`/admin/access`) — role and access-rule configuration; visible to admins on paid tiers. Use the access-rules reference for RBAC behavior, base roles, and personal roles.
   - **Organization** (`/organization`) — visible on paid tiers as a standalone page without tabs. It shows members, invitations, role assignment, and member-management actions; management actions are admin-gated.
 
