@@ -64,12 +64,12 @@ If a customer's system requires IP allowlisting for firewall rules, security gro
 
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
 
-Brain contains context-source setup, playbooks, artifacts, and file context. Capabilities contains project-attachable systems and tools. Credentials, MCP servers, and schedules configure execution but are not project members. Projects are managed separately and group selected context and capabilities without changing RBAC. The organization workspace is the virtual default containing all visible resources.
+Brain contains context-source setup, playbooks, artifacts, and file context. Capabilities contains project-attachable systems and tools. Credentials, MCP servers, and schedules configure execution but are not project members. Projects are managed separately and group selected context and capabilities without changing RBAC.
 
 The persistent left sidebar contains these top-level items:
 
-- **Agents** — primary AI assistant. Selecting it only expands or collapses the project-session tree. `/` starts an empty workspace session. Selecting a project expands or collapses its sessions; its plus control opens a reusable empty project-scoped draft. Drafts appear as session rows only after they persist. Selecting a persisted session opens `/agents/{sessionId}`. Controls reveal older sessions or projects in groups of three and collapse them again.
-- **Projects** (`/projects`) — top-level page for the default project and custom project folders.
+- **Agents** — expands the project and session tree. **New session** starts a session within a project or without one. `/` opens an unscoped session; saved sessions open `/agents/{sessionId}`. Archived projects and their sessions are hidden.
+- **Projects** (`/projects`, detail at `/projects/{projectId}`) — tasks, resources, and project sessions. The **New project** card creates directly; the top-right **Create project** button starts agent-assisted planning. Projects support sharing, archive, and deletion; resource permissions remain separate.
 - **Brain** — expandable group for context and focused work:
   - **Setup** (`/brain`) — context-source connections that use only the current user's personal credentials.
   - **Playbooks** (`/playbooks`, detail at `/playbooks/{playbookId}`) — reusable guidance for recurring work. Built-in and custom playbooks share one grid; built-ins are labeled and can be duplicated.
