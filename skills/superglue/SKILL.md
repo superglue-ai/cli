@@ -44,7 +44,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 **Authentication & Credentials**
 
 - Authentication must ALWAYS be explicitly configured — nothing is injected automatically in any protocol.
-- HTTP: include auth headers using `<<systemId_credentialKey>>` (e.g. `"Authorization": "Bearer <<my_api_access_token>>"`).
+- HTTP: include auth headers using `<<systemId_credentialKey>>` (e.g. `"Authorization": "Bearer <<my_api_access_token>>"`). `sg system find --id <id>` prints each secret's exact placeholder; `sg system call` rejects bare `<<credentialKey>>` placeholders before sending.
 - Databases/Redis/file servers: embed credential placeholders in the connection URL (e.g. `postgres://<<sys_user>>:<<sys_pass>>@host/db`).
 - OAuth: token refresh is automatic, but the header must still be explicit.
 
