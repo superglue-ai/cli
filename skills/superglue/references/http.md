@@ -87,6 +87,15 @@ XML responses (SOAP and other XML APIs) are auto-parsed to an object on `sourceD
 - Default headers: `Accept: */*`, Chrome-like `User-Agent`
 - HTTPS: `rejectUnauthorized: false` (accepts self-signed certs)
 
+### Tool Step Response Metadata
+
+Set `config.captureHttpResponse: true` on HTTP request steps that need response metadata. The default is off.
+Successful steps expose `sourceData.stepId.http.statusCode` and `sourceData.stepId.http.headers`; `.data` remains the response body.
+Loop results carry `.http` per item. Pagination exposes the final response's metadata; stop conditions retain per-page `response.headers`.
+Stored `stepResults` retain the metadata, including failed HTTP responses. No HTTP response means no `.http` field.
+Header names are lowercase; `set-cookie` values are arrays, and other values are strings.
+Steps without the option keep their existing envelopes and outputs.
+
 ### Body Resolution
 
 The runtime processes the body in this order:
