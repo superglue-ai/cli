@@ -46,7 +46,7 @@ Current configured role access and ownership grants are generally stored as `edi
 
 - `access_rule` — explicit admin/Access Rules edit.
 - `ownership` — authorization projection from the resource creator.
-- `share` — explicit user-to-user sharing through the app/agent sharing flow.
+- `share` — explicit sharing with an organization user or role.
 
 Ownership source of truth remains the tool/system row. Ownership grants are a permission projection and should be preserved by ordinary role edits.
 
@@ -82,24 +82,28 @@ Users can also have additional custom roles on top of their base role. Custom ro
 
 ## Personal Roles
 
-Personal roles are per-user containers for ownership, share, and explicit access-rule grants.
+Personal roles are per-user containers for ownership and user-targeted share grants.
 
 - Each user can have at most one personal role.
 - Ownership grants are added automatically when a user creates a tool or system.
 - Personal role grants are unioned with the user's other roles.
-- Managed via the Personal Roles tab in Access Rules and backend role APIs.
+- Ordinary role edits preserve personal roles and their ownership/share grants.
 
 ## Sharing Semantics
 
-V1 sharing targets organization users only. It does not share directly to base roles or custom roles.
+Sharing supports saved tools, systems, credentials, projects, playbooks, artifacts, and files.
 
-- Sharing writes `source: "share"` grants into the target user's personal role.
-- A user can grant only permissions up to their own effective access: viewer can grant viewer, editor can grant viewer or editor.
-- If the target already has the requested permission or stronger from any active grant, sharing is redundant and should be blocked.
-- If the target has viewer access and the acting user can grant editor, sharing can promote the user to editor through the personal `source: "share"` grant.
-- Sharing a tool also grants viewer access to required systems when the recipient lacks system access.
-- Tool sharing is atomic. If any selected user or required system grant cannot be applied, nothing is shared.
-- Normal users cannot unshare in V1. Admin cleanup should use Access Rules/admin grant management.
+- Targets are organization users or roles. The admin role and personal roles cannot be role targets.
+- User-targeted shares live on personal roles; role-targeted shares live on the selected role.
+- Sharing requires resource `editor` access. Direct shares grant `viewer` or `editor` through `source: "share"`.
+- Editors can update or remove direct shares. Removing one preserves ownership, access-rule grants, and access from other roles.
+- Credential sharing and revocation require the credential owner or an admin, even when another user has credential `editor`.
+- Recipients can remove their own direct share, including credential shares, without editor access.
+- Tool sharing grants missing system `viewer` access when the actor can pass it on. Otherwise, nothing is shared.
+- Tool sharing does not share credentials. Credential sharing also grants missing viewer access to its owning system.
+- Removing a tool or credential share does not remove the required-system shares it created.
+- Sharing systems or playbooks does not cascade to their tools, systems, or credentials.
+- Project sharing can include manageable current members when requested. It does not share future members or revoke member shares later.
 
 ## Auto-Grant On Resource Creation
 
