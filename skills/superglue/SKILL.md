@@ -214,7 +214,7 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------ |
 | `tools.writeTool` (superglue module; new id)     | `sg tool build --config '{...}'`               | CLI is not AI-powered — you provide the full JSON config           |
 | `tools.writeTool` (superglue/approved; saved id) | `sg tool edit --tool <id> --patches '[...]'`   | JSON Patch (RFC 6902). Use `--draft <id>` for drafts               |
-| `run_tool`                                       | `sg tool run --tool <id>` / `--draft <id>`     | Add `--include-step-results` to inspect per-step data              |
+| `tools.runTool`                                  | `sg tool run --tool <id>` / `--draft <id>`     | Add `--include-step-results` to inspect per-step data              |
 | `run_command` with `vfs` for `/org/tools/`       | `sg tool find --id <id>` / `sg tool find <q>`  | Full config with `--id`, compact search with a query string        |
 | `tools.writeSystem` (superglue module; new id)   | `sg system create --name "..." --url "..."`    | Use `--template <id>` when available                               |
 | `tools.writeSystem` (superglue/approved; saved)  | `sg system edit --id <id> ...`                 | Edits the system with that exact ID                                |
