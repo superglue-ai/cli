@@ -64,7 +64,7 @@ If a customer's system requires IP allowlisting for firewall rules, security gro
 
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
 
-Brain contains context-source setup, playbooks, artifacts, and file context. Capabilities contains project-attachable systems and tools. Credentials, MCP servers, and schedules configure execution but are not project members. Projects are managed separately and group selected context and capabilities without changing RBAC.
+Brain contains context-source setup, playbooks, artifacts, and files. Capabilities contains project-attachable systems and tools. Credentials, MCP servers, and schedules configure execution but are not project members. Projects are managed separately and group selected context and capabilities without changing RBAC.
 
 The persistent left sidebar contains these top-level items:
 
@@ -74,7 +74,7 @@ The persistent left sidebar contains these top-level items:
   - **Setup** (`/brain`) — context-source connections that use only the current user's personal credentials.
   - **Playbooks** (`/playbooks`, detail at `/playbooks/{playbookId}`) — reusable guidance for recurring work. Built-in and custom playbooks share one grid; built-ins are labeled and can be duplicated.
   - **Artifacts** (`/artifacts`, detail at `/artifacts/{artifactId}`) — interactive outputs.
-  - **File context** (`/files`) — uploaded source material.
+  - **Files** (`/files`) — uploaded source material.
 - **Capabilities** — expandable group for connected and executable resources:
   - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
   - **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
