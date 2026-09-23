@@ -25,6 +25,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 | `sg skill redis`          | Redis command syntax, connection URLs, key type handling                                             |
 | `sg skill mongodb`        | MongoDB connection URLs (mongodb:// / mongodb+srv://), CRUD operations, Extended JSON, aggregation   |
 | `sg skill sftp-smb`       | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                         |
+| `sg skill suitecloud`     | NetSuite SuiteCloud deploys: custom fields, record types, scripts; validate, preview, deploy         |
 | `sg skill file-handling`  | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
 | `sg skill access-rules`   | RBAC roles, resource grants, and tool/system permissions (enterprise only)                           |
 
