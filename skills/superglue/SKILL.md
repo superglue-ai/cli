@@ -274,7 +274,7 @@ sg system credentials clear --system-id my_api
 sg system call --url https://api.example.com/users --system-id my_api --method GET \
   --headers '{"Authorization":"Bearer <<my_api_access_token>>"}'
 sg system search-docs --system-id slack -k "send message channels"
-sg system oauth --system-id gmail --scopes "https://www.googleapis.com/auth/gmail.readonly"
+sg system oauth --system-id gmail --scopes "https://www.googleapis.com/auth/gmail.modify"
 sg system oauth --system-id my_api --grant-type client_credentials --scopes "read write"
 ```
 
