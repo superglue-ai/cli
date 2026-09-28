@@ -2,7 +2,17 @@
 
 ## Company
 
-superglue is an open-source, AI-native integration platform that builds and runs deterministic multi-step workflows ("tools") connecting APIs, databases, and file servers. AI generates tool configurations during building — execution is 100% deterministic JavaScript with no LLMs involved.
+superglue builds AI agents for enterprise implementations. The agents connect, migrate, and implement enterprise systems. They learn how systems work from the company's own knowledge and do the implementation work that otherwise needs human coordination and engineering.
+
+Main use cases:
+
+- **ERP implementation**: implement NetSuite, Sage Intacct, SAP, Business Central, or Acumatica. Agents map and migrate legacy data, configure the system, and keep data in sync after go-live.
+- **AI rollout**: connect ERP, CRM, databases, and internal systems to AI platforms such as Claude, with governed data access and tracking of data usage across the organization.
+- **Customer onboarding**: connect customer systems, import historical data, and run the implementation end to end.
+
+Agents build deterministic multi-step workflows ("tools") that connect APIs, databases, and file servers. AI generates tool configurations during building; saved tools execute deterministic JavaScript with no LLM calls.
+
+superglue runs on superglue Cloud (EU and US regions) or self-hosted on the customer's own infrastructure. It is SOC 2 Type II compliant and an official Sage Intacct Tech Marketplace Partner.
 
 Developed by superglue (Y Combinator W25), founded by Adina Görres and Stefan Faistenauer in 2025, based in Munich and San Francisco.
 
