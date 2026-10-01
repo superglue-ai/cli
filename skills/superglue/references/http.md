@@ -179,16 +179,16 @@ Set step-level `failureBehavior: "continue"` to keep the workflow running after 
 
 **Connection/server errors:**
 
-- Default 5 retries, configurable via `retries` on the step
-- Retries on fetch-level errors (network/DNS/abort except timeout) and on 5xx responses
-- Fixed delay between retries (default 1000ms, configurable via `retryDelay`)
+- Default 1 retry per request. Steps and direct system calls have no retry setting; schedule `options.retries` (0-3) applies to every request in the scheduled run
+- Retries on fetch-level connection failures (reset, TLS, DNS) and on 5xx responses. Other 4xx responses fail immediately
+- Fixed 1000ms delay between retries
 
 **Rate limiting (429):**
 
-- Counts against the same retry budget as 5xx/network errors
-- Respects `Retry-After` header (seconds or HTTP-date)
-- Without header: exponential backoff `10^n * 1000ms + jitter` (capped at 1hr per wait)
-- Total wait across all 429 retries capped at `MAX_RATE_LIMIT_WAIT_MS` (1hr)
+- Separate from the `retries` budget; applies even when `retries` is 0
+- Respects `Retry-After` header (seconds or HTTP-date) on the first retry
+- Otherwise exponential backoff `4^n * 1000ms + jitter` (4s, 16s, 64s, 256s, 1024s)
+- Fails once the total 429 wait would exceed `MAX_RATE_LIMIT_WAIT_MS` (1hr)
 
 **Timeouts:** Request timeout aborts the fetch and throws immediately — timeouts are not retried.
 
