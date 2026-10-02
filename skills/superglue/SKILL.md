@@ -232,7 +232,7 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | `tools.writeSchedule` (superglue/approved; id)   | `sg schedule edit --tool <id> --id <schedule>` | Updates, enables, or disables an existing schedule                 |
 | (no direct equivalent)                           | `sg login`, `sg update`, `sg skill`            | CLI-specific setup, updater, and this reference system             |
 
-Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`).
+Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`), and `setup_gateway` (the gateway install command is created in the web app).
 
 ### Command Reference
 
