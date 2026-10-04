@@ -78,7 +78,7 @@ Brain contains context-source setup, playbooks, artifacts, and files. Capabiliti
 
 The persistent left sidebar contains these top-level items:
 
-- **Agents** — expands the project and session tree. **New session** starts a session within a project or without one. `/` opens an unscoped session; saved sessions open `/agents/{sessionId}`. Archived projects and their sessions are hidden.
+- **Agents** — expands the project and session tree. **New session** starts a session within a project or without one. `/` opens an unscoped session; saved sessions open `/agents/{sessionId}`. Archived projects and their sessions are hidden. A briefing run appears here after the user opens it from the briefing email or **Last briefing**.
 - **Projects** (`/projects`, detail at `/projects/{projectId}`) — tasks, resources, and project sessions. The **New project** card creates directly; the top-right **Create project** button starts agent-assisted planning. Projects support sharing, archive, and deletion; resource permissions remain separate.
 - **Brain** — expandable group for context and focused work:
   - **Setup** (`/brain`) — context-source connections that use only the current user's personal credentials.
