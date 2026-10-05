@@ -28,7 +28,7 @@ If the user is asking general questions (not building):
 
 ## Cloud Usage Tiers
 
-- Cloud tiers are **Trial**, **Pro**, **Team**, and **Enterprise**; billing-enabled apps expose upgrades through the in-app **Upgrade Plan** button, not a separate Billing page.
+- Cloud tiers are **Trial**, **Pro**, **Team**, and **Enterprise**. Plan controls are described under Web App UI Layout.
 - **Trial** includes 1M input tokens and 100 runs lifetime; **Pro** is €59/$69 per month with 3M input tokens/user/month and 3,000 runs/user/month.
 - **Team** is €99/$119 per seat/month with 5M input tokens/user/month and 5,000 runs/user/month; Team includes organization management, activity tracking, and custom MCP servers.
 - **Enterprise** is custom-priced with unlimited usage limits by default, enterprise access controls, and self-hosting/on-prem options.
@@ -79,7 +79,6 @@ Brain contains context-source setup, playbooks, artifacts, and files. Capabiliti
 The persistent left sidebar contains these top-level items:
 
 - **Agents** — expands the project and session tree. **New session** starts a session within a project or without one. `/` opens an unscoped session; saved sessions open `/agents/{sessionId}`. Archived projects and their sessions are hidden. A briefing run appears here after the user opens it from the briefing email or **Last briefing**.
-- **Projects** (`/projects`, detail at `/projects/{projectId}`) — tasks, resources, and project sessions. The **New project** card creates directly; the top-right **Create project** button starts agent-assisted planning. Projects support sharing, archive, and deletion; resource permissions remain separate.
 - **Brain** — expandable group for context and focused work:
   - **Setup** (`/brain`) — context-source connections that use only the current user's personal credentials.
   - **Playbooks** (`/playbooks`, detail at `/playbooks/{playbookId}`) — reusable guidance for recurring work. Built-in and custom playbooks share one grid; built-ins are labeled and can be duplicated.
@@ -97,15 +96,20 @@ The persistent left sidebar contains these top-level items:
   - **Access Rules** (`/admin/access`) — role and access-rule configuration; visible to admins on paid tiers. Use the access-rules reference for RBAC behavior, base roles, and personal roles.
   - **Organization** (`/organization`) — visible on paid tiers as a standalone page without tabs. It shows members, invitations, role assignment, and member-management actions; management actions are admin-gated.
 
-Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user email and menu items for **API Keys** (`/api-keys`), **Settings** (`/settings`, admin-only), **Switch organization**, and **Sign Out**. When billing is enabled, the sidebar also shows **Upgrade Plan** for non-enterprise organizations; it opens the in-app upgrade flow. There is no separate in-app Billing page.
+The right panel's **Projects** tab is on every page and replaces a Projects page; `/projects` opens it. It lists projects, pinned first. Its **+** starts agent-assisted project planning; projects are created only through the agent. Project detail pages (`/projects/{projectId}`) have **Tasks** and **Resources** tabs. Projects support sharing, archive, and deletion; resource permissions remain separate.
+
+Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user and menu items for **API Keys** (`/api-keys`), **Switch organization**, and **Sign Out**. Admins see a separate **Settings** link (`/settings`) below it.
+
+When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the sidebar. Pro and Team organizations see **Manage Plan** in the organization menu, including a Stripe portal link for admins. Enterprise organizations see neither. There is no separate Billing page.
 
 **API Keys** (`/api-keys`) is a standalone page with a simple own-key editor for superglue API keys used by API, SDK, CLI headless/API-key auth, webhook, and non-OAuth MCP clients. Org users can create, copy, delete, and re-scope their own keys.
 
 **Settings** (`/settings`) is an admin-only standalone page with distinct sections:
 
-- **Organization** — organization name and organization logo settings.
+- **Organization** — organization name, logo, and the brand guidelines agents follow when creating artifacts.
 - **Run Settings** — run preferences: draft/single-step run visibility, run result storage, member run visibility, and delete-all-runs.
 - **Notifications** — run-alert channels for Slack and email (on failure, success, completion, or daily/weekly summaries). Slack setup opens `/settings/notifications/slack`; email setup opens `/settings/notifications/email`.
+- **Timeouts** — Enterprise only: organization-level execution, protocol, and connection timeouts.
 
 ## Internals
 
@@ -135,5 +139,8 @@ Steps are routed to execution strategies by protocol (first match wins):
 6. MongoDB → URL starts with `mongodb://` or `mongodb+srv://`
 7. FTP/SFTP → URL starts with `ftp://`, `ftps://`, or `sftp://`
 8. SMB → URL starts with `smb://`
+9. ODBC → URL starts with `odbc://`
+10. Gateway scripts → URL starts with `script://` (Secure Gateway tunnels only)
+11. NetSuite SuiteCloud → URL starts with `suitecloud://`
 
 All user-provided JS (data selectors, transforms, stop conditions) runs in an isolated Deno sandbox.
