@@ -360,11 +360,11 @@ Transform steps do NOT have `systemId`, `url`, `method`, `headers`, `body`, `que
 
 **Step behavior fields:**
 
-| Field             | Type    | Description                                          |
-| ----------------- | ------- | ---------------------------------------------------- |
-| `dataSelector`    | string  | JS function controlling step input and loop mode     |
-| `failureBehavior` | string  | `fail` (default) or `continue`                       |
-| `modify`          | boolean | Set `true` only when the step writes/updates/deletes |
+| Field             | Type    | Description                                                                                                       |
+| ----------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `dataSelector`    | string  | JS function controlling step input and loop mode                                                                  |
+| `failureBehavior` | string  | `fail` (default) or `continue`                                                                                    |
+| `modify`          | boolean | Defaults to `false`. Set `true` when the step writes, updates, or deletes live data or has transform side effects |
 
 ### Expression Syntax (`<<>>`)
 
@@ -645,7 +645,7 @@ curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API
 - **Regex literals in transforms** — `/.../ ` literals and complex escapes corrupt during serialization. Use `new RegExp()`, `.split()`, or `new URL()` instead
 - **Complex bodies inline** — for bodies built from multiple steps, use a preceding transform step rather than stuffing multi-statement logic into `<<>>` expressions
 - **Double-encoded JSON** — when the body contains nested/stringified JSON (e.g. LLM APIs), have `<<>>` expressions return a string via `JSON.stringify(...)`, and use a single expression for the whole body rather than mixing `<<>>` with static JSON
-- **POST for read-only ops** — GraphQL queries via POST should have `modify: false`. Don't rely on HTTP method alone
+- **Live-data writes** — Set `modify: true` for writes, updates, deletes, and transform side effects. Judge side effects, not HTTP method alone
 - **Saving without approval** — always present `sg tool run` results and ask before `sg tool save`
 - **Reserved key collisions** — payload inputs or step ids named after reserved/injected keys (see Naming Rules) are rejected at save time; pick a different name instead of retrying
 

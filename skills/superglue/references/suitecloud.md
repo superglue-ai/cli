@@ -25,12 +25,12 @@ sg system call --system-id netsuite \
 
 ### Fields
 
-| Field      | Required   | Notes                                                                                                    |
-| ---------- | ---------- | -------------------------------------------------------------------------------------------------------- |
-| `url`      | yes        | `suitecloud://<account>.app.netsuite.com`. No path, port, or credentials.                                |
-| `body`     | yes        | JSON string with `operation` and the operation's inputs                                                  |
-| `systemId` | yes        | The NetSuite system. Its OAuth sign-in is used for the login.                                            |
-| `modify`   | tool steps | `false` for reads, `true` for `deploy`. `deploy` changes the live account. `sg system call` has no flag. |
+| Field      | Required   | Notes                                                                                                       |
+| ---------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| `url`      | yes        | `suitecloud://<account>.app.netsuite.com`. No path, port, or credentials.                                   |
+| `body`     | yes        | JSON string with `operation` and the operation's inputs                                                     |
+| `systemId` | yes        | The NetSuite system. Its OAuth sign-in is used for the login.                                               |
+| `modify`   | tool steps | Defaults to `false`. Set `true` for `deploy`, which changes the live account. `sg system call` has no flag. |
 
 `<account>` is the account ID in host form: lowercase, with `_` written as `-` (`1234567_SB1` becomes `1234567-sb1`). It is the same prefix as the host of the system's REST URL.
 

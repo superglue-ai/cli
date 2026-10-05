@@ -264,7 +264,7 @@ When an HTTP step downloads a file (PDF, CSV, binary response), set `outputFile:
 - Putting pagination variables in the config but not setting a `pagination` block, or vice versa
 - Using `<<currentItem.id>>` — must use arrow function syntax: `<<(sourceData) => sourceData.currentItem.id>>`
 - Mixing multiple `<<>>` expressions in one body string when the API expects nested JSON — use a transform step instead
-- Setting `method: "POST"` for GraphQL queries without `modify: false` — POST that only reads should not be marked as modifying
+- Set `modify: true` for requests that write, update, or delete live data. Judge side effects, not HTTP method alone.
 
 ## Error Recovery
 

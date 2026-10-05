@@ -61,7 +61,7 @@ Same as HTTP — credentials are placed in headers using `<<systemId_credentialK
 
 ### Queries vs Mutations
 
-- **Queries** (read-only): set `modify: false` on the step (this is the default)
+- **Queries** (read-only): omit `modify`; it defaults to `false`.
 - **Mutations** (write): set `modify: true`
 
 Both use `method: "POST"` — do not rely on HTTP method to distinguish read vs write.
