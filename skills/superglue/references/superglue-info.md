@@ -78,7 +78,7 @@ Brain contains context-source setup, playbooks, artifacts, and files. Capabiliti
 
 The persistent left sidebar contains these top-level items:
 
-- **Agents** — expands the project and session tree. **New session** starts a session within a project or without one. `/` opens an unscoped session; saved sessions open `/agents/{sessionId}`. Archived projects and their sessions are hidden. A briefing run appears here after the user opens it from the briefing email or **Last briefing**.
+- The project switcher and session list — always visible at the top. The project switcher selects one project or **All projects**. The selection sets which sessions the list shows, whether the right panel shows a project plan, and which project new sessions start in. With a project selected, the list shows only that project's sessions. With **All projects**, the list shows all sessions, each labeled with its project, and new sessions start at the organization level without a project. Choosing an item in the switcher starts a new session there. The switcher footer has **New project**, which starts agent-assisted project planning; with a project selected, it also opens the project page, pins or unpins the project, and archives it. **New session** starts a session in the selected project. When a project is selected and the user opens a session from another project, the selection changes to that project. `/` opens a new session in the selected project; saved sessions open `/agents/{sessionId}`. Archived projects and their sessions are hidden. A briefing run appears here after the user opens it from the briefing email or **Last briefing**.
 - **Brain** — expandable group for context and focused work:
   - **Setup** (`/brain`) — context-source connections that use only the current user's personal credentials.
   - **Playbooks** (`/playbooks`, detail at `/playbooks/{playbookId}`) — reusable guidance for recurring work. Built-in and custom playbooks share one grid; built-ins are labeled and can be duplicated.
@@ -95,10 +95,14 @@ The persistent left sidebar contains these top-level items:
   - **Activity** (`/admin`) — organization activity summary for resource creation, shares, and tool runs.
   - **Access Rules** (`/admin/access`) — role and access-rule configuration; visible to admins on paid tiers. Use the access-rules reference for RBAC behavior, base roles, and personal roles.
   - **Organization** (`/organization`) — visible on paid tiers as a standalone page without tabs. It shows members, invitations, role assignment, and member-management actions; management actions are admin-gated.
+  - **API Keys** (`/api-keys`) — API key management.
+  - **Settings** (`/settings`) — organization settings; admin-only.
 
-The right panel's **Projects** tab is on every page and replaces a Projects page; `/projects` opens it. It lists projects, pinned first. Its **+** starts agent-assisted project planning; projects are created only through the agent. Project detail pages (`/projects/{projectId}`) have **Tasks** and **Resources** tabs. Projects support sharing, archive, and deletion; resource permissions remain separate.
+The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the project switcher starts agent-assisted project planning; projects are created only through the agent. Project detail pages (`/projects/{projectId}`) have **Tasks**, **Resources**, and **Sessions** tabs. Projects support sharing, archive, and deletion; resource permissions remain separate.
 
-Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user and menu items for **API Keys** (`/api-keys`), **Switch organization**, and **Sign Out**. Admins see a separate **Settings** link (`/settings`) below it.
+Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user and menu items for **Switch organization** and **Sign Out**.
+
+After onboarding, while no context source is connected, a banner at the top of every page except Brain offers to connect email. It appears once the user dismissed the first-session card or has more than one session. **Set up** opens **Brain > Setup** (`/brain`), and the close button hides the banner for 7 days in that browser. In the user's first session, once a project exists, a **Keep your projects up to date** card with Gmail, Outlook, and **Not now** follows the latest result.
 
 When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the sidebar. Pro and Team organizations see **Manage Plan** in the organization menu, including a Stripe portal link for admins. Enterprise organizations see neither. There is no separate Billing page.
 
