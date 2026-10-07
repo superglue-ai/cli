@@ -102,7 +102,7 @@ The right panel's **Project plan** tab shows the selected project's tasks; with 
 
 Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user and menu items for **Switch organization** and **Sign Out**.
 
-After onboarding, while no context source is connected, a banner at the top of every page except Brain offers to connect email. It appears once the user dismissed the first-session card or has more than one session. **Set up** opens **Brain > Setup** (`/brain`), and the close button hides the banner for 7 days in that browser. In the user's first session, once a project exists, a **Keep your projects up to date** card with Gmail, Outlook, and **Not now** follows the latest result.
+After onboarding, while no context source is connected, a banner at the top of every page except Brain offers to connect email. **Set up** opens **Brain > Setup** (`/brain`), and the close button hides the banner for 7 days in that browser.
 
 When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the sidebar. Pro and Team organizations see **Manage Plan** in the organization menu, including a Stripe portal link for admins. Enterprise organizations see neither. There is no separate Billing page.
 
