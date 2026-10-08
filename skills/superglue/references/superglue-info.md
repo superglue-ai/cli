@@ -22,16 +22,16 @@ Developed by superglue (Y Combinator W25), founded by Adina Görres and Stefan F
 
 If the user is asking general questions (not building):
 
-- Company/team/pricing → https://superglue.ai/
+- Company/team → https://superglue.ai/
 - Product/features → https://superglue.ai/docs/getting-started/introduction/
 - Open-source/code → https://github.com/superglue-ai/superglue
 
 ## Cloud Usage Tiers
 
 - Cloud tiers are **Trial**, **Pro**, **Team**, and **Enterprise**. Plan controls are described under Web App UI Layout.
-- **Trial** includes 1M input tokens and 100 runs lifetime; **Pro** is €59/$69 per month with 3M input tokens/user/month and 3,000 runs/user/month.
-- **Team** is €99/$119 per seat/month with 5M input tokens/user/month and 5,000 runs/user/month; Team includes organization management, activity tracking, and custom MCP servers.
-- **Enterprise** is custom-priced with unlimited usage limits by default, enterprise access controls, and self-hosting/on-prem options.
+- **Trial** includes 1M input tokens and 100 runs lifetime; **Pro** includes 3M input tokens/user/month and 3,000 runs/user/month.
+- **Team** includes 5M input tokens/user/month and 5,000 runs/user/month; Team includes organization management, activity tracking, and custom MCP servers.
+- **Enterprise** has unlimited usage limits by default, enterprise access controls, and self-hosting/on-prem options.
 - These cloud tier details do not apply to self-hosted or enterprise deployment setups.
 
 ## Authentication
@@ -104,7 +104,7 @@ Below the navigation, the sidebar shows the current organization menu. Opening i
 
 After onboarding, while no context source is connected, a banner at the top of every page except Brain offers to connect email. **Set up** opens **Brain > Setup** (`/brain`), and the close button hides the banner for 7 days in that browser.
 
-When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the sidebar. Pro and Team organizations see **Manage Plan** in the organization menu, including a Stripe portal link for admins. Enterprise organizations see neither. There is no separate Billing page.
+When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the sidebar, which opens a 15-minute call booking page. The app shows no pricing. For Pro and Team organizations, admins see **Manage Plan** in the organization menu, which opens the Stripe portal. Enterprise organizations see neither. Do not quote prices. For pricing questions, point users to **Upgrade Plan** to book a call. There is no separate Billing page.
 
 **API Keys** (`/api-keys`) is a standalone page with a simple own-key editor for superglue API keys used by API, SDK, CLI headless/API-key auth, webhook, and non-OAuth MCP clients. Org users can create, copy, delete, and re-scope their own keys.
 
