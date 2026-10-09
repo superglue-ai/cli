@@ -101,11 +101,11 @@ Verify with `sg whoami` or `sg system list` — should return authenticated cont
 
 Set via `SUPERGLUE_CLI_PRESET` env var or `config.json` as `"preset"`. Legacy `sg init --preset` still writes this value for existing scripts.
 
-| Preset    | Description                                                                                    |
-| --------- | ---------------------------------------------------------------------------------------------- |
-| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing                             |
-| `builder` | Runner + build/edit/save tools, call systems, manage MCP servers and schedules. No system CRUD |
-| `admin`   | Full access (default)                                                                          |
+| Preset    | Description                                                                                                    |
+| --------- | -------------------------------------------------------------------------------------------------------------- |
+| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing                                             |
+| `builder` | Runner + build/edit/save tools, call systems, manage MCP servers, schedules, and project tasks. No system CRUD |
+| `admin`   | Full access (default)                                                                                          |
 
 Blocked commands print a clear error showing the current preset and how to change it.
 
@@ -203,6 +203,25 @@ Optional flags:
 - `--retries <n>` and `--timeout <ms>` set request options.
 - `--clear-webhook` removes the webhook/tool-chain success action during edit.
 
+### Managing Project Tasks
+
+Projects group tasks in four status columns: `not_started`, `in_progress`, `waiting`, and `done`. Task order is per column. `--position` is the 0-based index in the column: `0` is the top, and values past the end place the task last.
+
+```bash
+sg project list
+sg project task list --project <projectId>
+sg project task create --project <projectId> --name "Map customer fields"
+sg project task create --project <projectId> --name "Fix blockers" --position 0
+sg project task edit --project <projectId> --id <taskId> --position 0
+sg project task edit --project <projectId> --id <taskId> --status done
+```
+
+- `sg project task list` returns tasks in board order with each task's `position`. Add `--full` for descriptions and attachments.
+- A new task, or a status change without `--position`, goes to the end of its column. Other edits keep the order.
+- `sg project task edit` changes only the given fields. `--clear-due-date` and `--unassign` clear those fields.
+- `--resource-refs` replaces the attachment list. Task attachments also join the project.
+- Tasks cannot be deleted from the CLI. Archived projects reject task writes.
+
 ---
 
 ## Reference
@@ -230,6 +249,9 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | `tools.writeMcpServer` (superglue/approved)      | `sg mcp edit --id <id> ...`                    | Edits name, auth mode, description, or selected tool IDs           |
 | `tools.writeSchedule` (superglue module; new)    | `sg schedule create --tool <id> --cron <expr>` | Creates a cron schedule for a saved tool                           |
 | `tools.writeSchedule` (superglue/approved; id)   | `sg schedule edit --tool <id> --id <schedule>` | Updates, enables, or disables an existing schedule                 |
+| `run_command` with `vfs` for `/projects/`        | `sg project list` / `sg project task list`     | Tasks are listed in board order with `position`                    |
+| `tools.writeTask` (superglue module; no id)      | `sg project task create --project <id>`        | Same fields; `--position` places the task in its column            |
+| `tools.writeTask` (superglue module; id)         | `sg project task edit --project <p> --id <t>`  | Updates only the given fields, including `--position`              |
 | (no direct equivalent)                           | `sg login`, `sg update`, `sg skill`            | CLI-specific setup, updater, and this reference system             |
 
 Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`), and `setup_gateway` (the gateway install command is created in the web app).
@@ -289,6 +311,16 @@ sg mcp create --name sales-tools --tools get_customer,create_invoice --auth-mode
 sg mcp edit --id <serverId> --add-tool another_tool
 sg mcp edit --id <serverId> --remove-tool old_tool
 sg mcp edit --id <serverId> --auth-mode creator_api_key
+```
+
+**Project commands:**
+
+```bash
+sg project list --include-archived
+sg project task list --project crm-migration --status in_progress
+sg project task create --project crm-migration --name "Await credentials" --status waiting --due-date 2026-11-01
+sg project task edit --project crm-migration --id await-credentials --status in_progress --position 0
+sg project task edit --project crm-migration --id await-credentials --description-file notes.md --unassign
 ```
 
 **Run commands:**
