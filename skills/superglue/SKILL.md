@@ -44,10 +44,10 @@ Read these on demand — they are authoritative for their topic and kept in sync
 
 **Authentication & Credentials**
 
-- Authentication must ALWAYS be explicitly configured — nothing is injected automatically in any protocol.
-- HTTP: include auth headers using `<<systemId_credentialKey>>` (e.g. `"Authorization": "Bearer <<my_api_access_token>>"`). `sg system find --id <id>` prints each secret's exact placeholder; `sg system call` rejects bare `<<credentialKey>>` placeholders before sending.
+- `sg system call --system-id <id> --url <url>` selects your credential (starred, then your oldest, then a shared one), refreshes OAuth tokens, and adds the `Authorization` header for `oauth2`, `basic_auth`, and `api_key` systems. The output reports `credential` and `auth`; `auth.applied: "unavailable"` names what is missing. Pass `--credential-id` to use a specific credential. `--url` is the absolute URL, or `<<systemId_url>>` plus the path for tenant-specific hosts.
+- Pass `--headers` with `<<systemId_credentialKey>>` placeholders only when the API expects another header or a query parameter; that replaces the default header. `sg system find --id <id>` prints each secret's exact placeholder; `sg system call` rejects bare `<<credentialKey>>` placeholders before sending.
+- Saved tool steps inject nothing: put the auth header or connection string in the step config.
 - Databases/Redis/file servers: embed credential placeholders in the connection URL (e.g. `postgres://<<sys_user>>:<<sys_pass>>@host/db`).
-- OAuth: token refresh is automatic, but the header must still be explicit.
 
 **Saving tools**
 
@@ -240,7 +240,7 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | `tools.writeSystem` (superglue/approved; saved)  | `sg system edit --id <id> ...`                 | Edits the system with that exact ID                                |
 | `run_command` with `vfs` for `/org/systems/`     | `sg system find <query>` / `--id <id>`         | Returns secret-key presence and the system URL                     |
 | Credentials VFS / saved credentials              | `sg system credentials get/set/clear`          | Manage the current user's credentials for a system                 |
-| `tools.callSystem`                               | `sg system call --url "..." --system-id <id>`  | Authenticated ad-hoc calls for testing / schema introspection      |
+| `tools.callSystem`                               | `sg system call --system-id <id> --url <url>`  | Ad-hoc calls; credential and auth header are added server-side     |
 | `run_command search`                             | `sg system search-docs --system-id <id> -k`    | Targeted keyword search over ingested system docs                  |
 | `authenticate_oauth`                             | `sg system oauth --system-id <id> [--scopes]`  | Opens browser flow. Supports `--grant-type client_credentials` too |
 | `run_command` with `vfs` for `/org/runs/`        | `sg run list` / `sg run get <runId>`           | Filter `list` by `--tool`, `--status`, `--source`, `--limit`       |
@@ -293,8 +293,8 @@ sg system find --id my_api
 sg system credentials get --system-id my_api
 sg system credentials set --system-id my_api --credentials '{"api_key":"sk-xxx"}'
 sg system credentials clear --system-id my_api
-sg system call --url https://api.example.com/users --system-id my_api --method GET \
-  --headers '{"Authorization":"Bearer <<my_api_access_token>>"}'
+sg system call --system-id my_api --url "<<my_api_url>>/users"
+sg system call --system-id my_api --url https://api.example.com/users --headers '{"X-API-Key":"<<my_api_api_key>>"}'
 sg system search-docs --system-id slack -k "send message channels"
 sg system oauth --system-id gmail --scopes "https://www.googleapis.com/auth/gmail.modify"
 sg system oauth --system-id my_api --grant-type client_credentials --scopes "read write"
@@ -552,7 +552,7 @@ System id="stripe", selected credential has secret named: api_key
 → Available as: <<stripe_api_key>>
 ```
 
-**Auth header patterns:**
+**Auth header patterns for tool steps** (`sg system call` adds the Bearer or Basic header itself):
 
 ```json
 {"Authorization": "Bearer <<stripe_api_key>>"}
