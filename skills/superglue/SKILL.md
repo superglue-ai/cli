@@ -44,7 +44,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 
 **Authentication & Credentials**
 
-- `sg system call --system-id <id> --url <url>` selects your credential (starred, then your oldest, then a shared one), refreshes OAuth tokens, and adds the `Authorization` header for `oauth2`, `basic_auth`, and `api_key` systems. The output reports `credential` and `auth`; `auth.applied: "unavailable"` names what is missing. Pass `--credential-id` to use a specific credential. `--url` is the absolute URL, or `<<systemId_url>>` plus the path for tenant-specific hosts.
+- `sg system call --system-id <id> --url <url>` selects your credential (your starred one, otherwise the accessible one you have held longest, owned or shared), refreshes OAuth tokens, and adds the `Authorization` header for `oauth2`, `basic_auth`, and `api_key` systems. The output reports `credential` and `auth`; `auth.applied: "unavailable"` names what is missing. Pass `--credential-id` to use a specific credential. `--url` is the absolute URL, or `<<systemId_url>>` plus the path for tenant-specific hosts.
 - Pass `--headers` with `<<systemId_credentialKey>>` placeholders only when the API expects another header or a query parameter; that replaces the default header. `sg system find --id <id>` prints each secret's exact placeholder; `sg system call` rejects bare `<<credentialKey>>` placeholders before sending.
 - Saved tool steps inject nothing: put the auth header or connection string in the step config.
 - Databases/Redis/file servers: embed credential placeholders in the connection URL (e.g. `postgres://<<sys_user>>:<<sys_pass>>@host/db`).
