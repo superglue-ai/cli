@@ -40,16 +40,34 @@ The step logs in with the system's NetSuite OAuth token, the same one the REST s
 
 ## Operations
 
-| Operation       | Inputs                                                      | Result                                                                     |
-| --------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `listObjects`   | optional `objectTypes` (array), `scriptIdContains`          | Custom objects in the account: type and script ID                          |
-| `importObjects` | `objectType`, `scriptIds` (array)                           | `files`: map of `Objects/<scriptid>.xml` to XML, plus `data.failedImports` |
-| `validate`      | `files`                                                     | NetSuite's validation of the project. Changes nothing.                     |
-| `preview`       | `files`                                                     | The changes a deploy would make. Changes nothing.                          |
-| `deploy`        | `files`, step `modify: true`                                | Applies the project to the account                                         |
-| `callRestlet`   | `scriptId`, `deployId`, optional `method`, `params`, `body` | The JSON response of the RESTlet                                           |
+| Operation       | Inputs                                                      | Result                                                                             |
+| --------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `listObjects`   | optional `objectTypes` (array), `scriptIdContains`          | Custom objects in the account: type and script ID                                  |
+| `importObjects` | `objectType`, `scriptIds` (array)                           | `files`: object XML and referenced SuiteScript source; `data` holds import results |
+| `listFiles`     | optional `folderPath` (default `/SuiteScripts`)             | `data`: array of File Cabinet paths                                                |
+| `importFiles`   | `filePaths` (array of File Cabinet paths)                   | `files`: project paths to UTF-8 text; `data.results`: per-file status              |
+| `validate`      | `files`                                                     | NetSuite's validation of the project. Changes nothing.                             |
+| `preview`       | `files`                                                     | The changes a deploy would make. Changes nothing.                                  |
+| `deploy`        | `files`, step `modify: true`                                | Applies the project to the account                                                 |
+| `callRestlet`   | `scriptId`, `deployId`, optional `method`, `params`, `body` | The JSON response of the RESTlet                                                   |
 
 A failed operation fails the step with NetSuite's error messages. `importObjects` succeeds as long as NetSuite answers: each object that could not be exported is listed in `data.failedImports` with NetSuite's message, and `files` holds only the exported ones. Objects locked by an installed bundle or SuiteApp fail with "You cannot download the XML file for this object because it is locked", and some workflows fail with "Inconsistent workflow data". `listObjects` does not show which objects are locked; `appId` is `null` for them too. When an import returns no files, pick another object of the same type.
+
+`importObjects` also imports each object's `<scriptfile>` reference under `FileCabinet/SuiteScripts/`. Check `data.successfulImports[].referencedFileImportResult.failedImports` for missing source files. Module dependencies inside JavaScript are not imported automatically; retrieve them with `importFiles`.
+
+### Reading existing scripts
+
+Use `listFiles` and `importFiles` to inspect existing source without deploying a RESTlet. Paths are case-sensitive File Cabinet paths, not project paths:
+
+```json
+{ "operation": "listFiles", "folderPath": "/SuiteScripts" }
+```
+
+```json
+{ "operation": "importFiles", "filePaths": ["/SuiteScripts/example.js"] }
+```
+
+The imported source is at `files["FileCabinet/SuiteScripts/example.js"]`. Imports return UTF-8 text; invalid UTF-8 fails the step. Supported roots are `/SuiteScripts`, `/Templates/E-mail Templates`, `/Templates/Marketing Templates`, and `/Web Site Hosting Files`. SuiteApp files cannot be imported. Check every `data.results[]` entry: `loaded: false` includes the failure in `message`, even when the operation succeeds.
 
 ## Project Files
 
