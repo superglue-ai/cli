@@ -40,7 +40,7 @@ Constraints:
 
 Every HTTP response is read as bytes. It becomes a file when any condition applies:
 
-1. **Magic-byte detection** — known binary signatures (ZIP `PK\x03\x04`, PDF `%PDF`, GZIP `\x1f\x8b`, plus internal ZIP structure checks for Excel/DOCX/PPTX)
+1. **Magic-byte detection** — known binary signatures (ZIP `PK\x03\x04`, PDF `%PDF`, GZIP `\x1f\x8b`, plus internal ZIP structure checks for Excel/DOCX/PPTX and compound-file checks for QuickBooks portable company files (QBM))
 2. **`Content-Disposition: attachment`** — `attachment` or `filename=` in this header forces file treatment
 3. **`application/octet-stream`** — explicit octet-stream MIME catches unlabeled binary payloads
 4. **Unlabeled RAW data** — detection returned `RAW` and the declared MIME type is not clearly text-like
@@ -54,6 +54,7 @@ File server `get` operations always produce files regardless of detected type.
 | Classification      | Types                                     | Destination                                         |
 | ------------------- | ----------------------------------------- | --------------------------------------------------- |
 | **Binary**          | PDF, Excel, DOCX, PPTX, ZIP, GZIP, BINARY | `producedFiles` + `data` (extracted/parsed content) |
+| **QuickBooks**      | QBM                                       | `producedFiles` only; no extracted content          |
 | **Structured text** | JSON, XML, CSV, YAML, HTML                | `data` only (parsed to JS objects)                  |
 | **RAW**             | Unrecognized                              | File or string according to headers and MIME rules  |
 

@@ -52,6 +52,8 @@ Two limits are worth stating plainly. Execute reaches the agent, and the agent's
 - **TypeScript/Python SDK** — https://superglue.ai/docs/sdk/overview/
 - **REST API** — https://superglue.ai/docs/api/
 - **MCP Server** — https://superglue.ai/docs/mcp/using-the-mcp/
+- **Outlook add-in** — superglue in a side panel next to the open email. Install it as a custom add-in from the web app URL plus `/outlook/manifest.xml`.
+- **Microsoft Teams app** — available when the deployment has a Teams bot. Users chat with superglue, approve agent actions in cards, and mention @superglue in project channels. A Teams administrator uploads the app package from the web app URL plus `/teams/superglue-teams.zip`. Each user connects in a personal chat with superglue or under **Brain** → **Setup**.
 - **CLI** — `npm install -g @superglue/cli` — https://superglue.ai/docs/getting-started/cli-skills/
 
 ### Webhook Triggers
