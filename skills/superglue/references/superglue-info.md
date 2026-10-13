@@ -113,7 +113,8 @@ When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the s
 **Settings** (`/settings`) is a standalone page with distinct sections. Every user sees **Appearance** and **Agent memory**; the other sections are admin-only:
 
 - **Appearance** — light, dark, or system theme.
-- **Organization** — organization name, logo, and the brand guidelines agents follow when creating artifacts.
+- **Organization** — organization name.
+- **Design system** (`/settings/design-system`) — the brand every artifact follows: colors, fonts, logos, guidelines, HTML, Word, and PowerPoint templates, reference documents, and an import from the company website.
 - **Run settings** — run preferences: draft/single-step run visibility, run result storage, member run visibility, and delete-all-runs.
 - **Notifications** — run-alert channels for Slack and email (on failure, success, completion, or daily/weekly summaries). Slack setup opens `/settings/notifications/slack`; email setup opens `/settings/notifications/email`.
 - **Agent memory** (`/settings#settings-memory`) — every user adds, edits, and deletes their personal and organization memory notes; admins also turn agent memory on or off.
