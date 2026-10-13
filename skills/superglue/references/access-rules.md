@@ -75,7 +75,7 @@ Assigned roles can add access but cannot remove access granted by another role.
 
 Every user has exactly one base role:
 
-- **`admin`** — full access to everything. The admin role is immutable and has wildcard `editor` grants.
+- **`admin`** — built-in editor access to resources except credentials. Credentials require ownership or explicit grants. New organizations give admins no credential wildcard. Credential grants are editable. Name and description cannot be changed. Cannot be deleted.
 - **`member`** — default for org team members. New organizations seed it with wildcard `editor` grants for tools and systems. Access-rule grants can be narrowed. Name and description cannot be changed. Cannot be deleted.
 - **`service_account`** — API-only users that admins create through `/v1/service-accounts`. Starts with no grants; only its grants are editable. Users cannot be switched to or from it. Service accounts can run granted tools and manage their own credential sets, but cannot log in, use MCP, or read runs.
 
