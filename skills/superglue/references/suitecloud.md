@@ -1,6 +1,6 @@
 # SuiteCloud
 
-The `suitecloud://` protocol changes NetSuite account structure: custom fields, custom record types, custom lists, forms, workflows, saved searches, roles, and scripts. The NetSuite REST API and SuiteScript cannot create these. It deploys SuiteCloud projects (SDF) to the account. Use it on the NetSuite system, next to its HTTP steps.
+The `suitecloud://` protocol changes NetSuite account structure: custom fields, custom record types, custom lists, forms, workflows, saved searches, roles, scripts, and dashboards. The NetSuite REST API cannot create these. It deploys SuiteCloud projects (SDF) to the account. Use it on the NetSuite system, next to its HTTP steps.
 
 ## Step Configuration
 
@@ -25,12 +25,12 @@ sg system call --system-id netsuite \
 
 ### Fields
 
-| Field      | Required   | Notes                                                                                                       |
-| ---------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| `url`      | yes        | `suitecloud://<account>.app.netsuite.com`. No path, port, or credentials.                                   |
-| `body`     | yes        | JSON string with `operation` and the operation's inputs                                                     |
-| `systemId` | yes        | The NetSuite system. Its OAuth sign-in is used for the login.                                               |
-| `modify`   | tool steps | Defaults to `false`. Set `true` for `deploy`, which changes the live account. `sg system call` has no flag. |
+| Field      | Required   | Notes                                                                                                                                           |
+| ---------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`      | yes        | `suitecloud://<account>.app.netsuite.com`. No path, port, or credentials.                                                                       |
+| `body`     | yes        | JSON string with `operation` and the operation's inputs                                                                                         |
+| `systemId` | yes        | The NetSuite system. Its OAuth sign-in is used for the login.                                                                                   |
+| `modify`   | tool steps | Defaults to `false`. Set `true` for `deploy`, `callRestlet`, and `cleanupScripts`, which change the live account. `sg system call` has no flag. |
 
 `<account>` is the account ID in host form: lowercase, with `_` written as `-` (`1234567_SB1` becomes `1234567-sb1`). It is the same prefix as the host of the system's REST URL.
 
@@ -40,16 +40,17 @@ The step logs in with the system's NetSuite OAuth token, the same one the REST s
 
 ## Operations
 
-| Operation       | Inputs                                                      | Result                                                                             |
-| --------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `listObjects`   | optional `objectTypes` (array), `scriptIdContains`          | Custom objects in the account: type and script ID                                  |
-| `importObjects` | `objectType`, `scriptIds` (array)                           | `files`: object XML and referenced SuiteScript source; `data` holds import results |
-| `listFiles`     | optional `folderPath` (default `/SuiteScripts`)             | `data`: array of File Cabinet paths                                                |
-| `importFiles`   | `filePaths` (array of File Cabinet paths)                   | `files`: project paths to UTF-8 text; `data.results`: per-file status              |
-| `validate`      | `files`                                                     | NetSuite's validation of the project. Changes nothing.                             |
-| `preview`       | `files`                                                     | The changes a deploy would make. Changes nothing.                                  |
-| `deploy`        | `files`, step `modify: true`                                | Applies the project to the account                                                 |
-| `callRestlet`   | `scriptId`, `deployId`, optional `method`, `params`, `body` | The JSON response of the RESTlet                                                   |
+| Operation        | Inputs                                                      | Result                                                                                     |
+| ---------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `listObjects`    | optional `objectTypes` (array), `scriptIdContains`          | Custom objects in the account: type and script ID                                          |
+| `importObjects`  | `objectType`, `scriptIds` (array)                           | `files`: object XML and referenced SuiteScript source; `data` holds import results         |
+| `listFiles`      | optional `folderPath` (default `/SuiteScripts`)             | `data`: array of File Cabinet paths                                                        |
+| `importFiles`    | `filePaths` (array of File Cabinet paths)                   | `files`: project paths to UTF-8 text; `data.results`: per-file status                      |
+| `validate`       | `files`                                                     | NetSuite's validation of the project. Changes nothing.                                     |
+| `preview`        | `files`                                                     | The changes a deploy would make. Changes nothing.                                          |
+| `deploy`         | `files`, step `modify: true`                                | Applies the project to the account                                                         |
+| `callRestlet`    | `scriptId`, `deployId`, optional `method`, `params`, `body` | The JSON response of the RESTlet                                                           |
+| `cleanupScripts` | `scriptIds` (array of `customscript_` IDs, at most 50)      | Per script: deleted deployments, `inactive`, and what needs the UI (see Temporary Scripts) |
 
 A failed operation fails the step with NetSuite's error messages. `importObjects` succeeds as long as NetSuite answers: each object that could not be exported is listed in `data.failedImports` with NetSuite's message, and `files` holds only the exported ones. Objects locked by an installed bundle or SuiteApp fail with "You cannot download the XML file for this object because it is locked", and some workflows fail with "Inconsistent workflow data". `listObjects` does not show which objects are locked; `appId` is `null` for them too. When an import returns no files, pick another object of the same type.
 
@@ -68,6 +69,8 @@ Use `listFiles` and `importFiles` to inspect existing source without deploying a
 ```
 
 The imported source is at `files["FileCabinet/SuiteScripts/example.js"]`. Imports return UTF-8 text; invalid UTF-8 fails the step. Supported roots are `/SuiteScripts`, `/Templates/E-mail Templates`, `/Templates/Marketing Templates`, and `/Web Site Hosting Files`. SuiteApp files cannot be imported. Check every `data.results[]` entry: `loaded: false` includes the failure in `message`, even when the operation succeeds.
+
+The `importObjects` request field is `objectType`, not `type`. The returned `files` is a path-to-content map, not an array.
 
 ## Project Files
 
@@ -178,18 +181,102 @@ Conditions (`initcondition`) have a required `type`, an optional `formula`, and 
 
 Oracle's example deploys three files together: the workflow, the custom list it uses (`customlist_approvalstatuses`), and the transaction body field that uses the list (`custbody_approvalstatus`).
 
+## Temporary Scripts
+
+Scripts that only do one job, such as a RESTlet that reads a preference or creates a saved search, must not stay in the client's account.
+
+1. Give every temporary script a `customscript_` ID and its file a name with the same task prefix, and add both to the task's change log.
+2. Deploy, call, and check the result. Do not deploy the same project again after cleanup: a deploy re-creates the deployments that cleanup deleted and reactivates the script.
+3. Run `cleanupScripts` with every temporary script ID at the end of the task (in a saved tool, on a step with `modify: true`):
+
+```json
+{
+  "operation": "cleanupScripts",
+  "scriptIds": ["customscript_sg_prefs", "customscript_sg_search_builder"]
+}
+```
+
+`cleanupScripts` deploys superglue's own cleanup RESTlet (`customscript_superglue_cleanup`). For each listed script that the connected user owns, it deletes every deployment and inactivates the script. Scripts owned by another user come back as `skipped`, unknown IDs as `notFound`. Scripts that did not fit in the RESTlet's governance budget come back as `notProcessed`; run `cleanupScripts` again for them. The helper then deletes its own deployment and every helper deployment older than 15 minutes, and inactivates itself. `helper.remainingDeployments` can list the deployments of other cleanup runs from the last 15 minutes; they are not left by your task, so do not report them. Run one cleanup at a time; an overlapping run redeploys the helper once and retries. Give the step a timeout of at least 120 seconds: a cleanup that is cut off can leave the helper active until the next cleanup. When the helper call fails, superglue sets the helper inactive and reports it under `recovery`. superglue reads the result back with SuiteQL, and the step fails when a script still has a deployment or is still active.
+
+NetSuite allows no API to delete a script record: SuiteScript `record.delete` fails with `RECORD_CANNOT_BE_CREATED_OR_DELETED`, and REST has no script record type. A script file cannot be deleted while a script record uses it. After cleanup, the scripts cannot run, but the inactive script records and their files stay. Report each entry of `manualRemoval` to the user with the UI path: Customization > Scripting > Scripts (filter Inactive) > Edit > Delete, then the file in Documents > Files > File Cabinet > SuiteScripts. The helper's own record is reused on the next cleanup.
+
+## Saved Searches
+
+SDF exports a saved search as a system-generated `definition` that cannot be edited, so do not write a `savedsearch` object by hand. Create the search with SuiteScript in a temporary RESTlet:
+
+```javascript
+const s = search.create({
+  type: search.Type.INVOICE,
+  id: "customsearch_sg_open_invoices",
+  title: "SG Open Invoices",
+  filters: [["mainline", "is", "T"], "AND", ["status", "anyof", "CustInvc:A"]],
+  columns: ["tranid", "entity", "trandate", "amount"],
+});
+const internalId = s.save();
+```
+
+`id` sets the script ID that dashboards and other objects reference. `search.delete({ id })` removes a search. Remove the RESTlet with `cleanupScripts` afterwards.
+
+## Dashboards
+
+A role's dashboard is a `publisheddashboard` object. Import one from the account with `importObjects` as the pattern. The structure that deployed:
+
+```xml
+<publisheddashboard scriptid="custpubdashboard_sg_ar">
+  <center>BASIC</center>
+  <locknewbar>F</locknewbar>
+  <lockshortcuts>F</lockshortcuts>
+  <name>SG AR Dashboard</name>
+  <roles>
+    <role>
+      <role>[scriptid=customrole_sg_ar_clerk]</role>
+    </role>
+  </roles>
+  <dashboards>
+    <dashboard>
+      <centertab>BASICCENTERHOMEHOME</centertab>
+      <layout>TWO_COLUMN</layout>
+      <mode>UNLOCKED</mode>
+      <leftcolumn>
+        <settings>
+          <isminimized>F</isminimized>
+        </settings>
+      </leftcolumn>
+      <centercolumn>
+        <customsearch>
+          <allowinlineediting>F</allowinlineediting>
+          <backgroundtype>GLOBAL_BACKGROUND</backgroundtype>
+          <charttheme>GLOBAL_THEME</charttheme>
+          <drilldown>NEW_PAGE</drilldown>
+          <isminimized>F</isminimized>
+          <resultssize>10</resultssize>
+          <savedsearch>[scriptid=customsearch_sg_open_invoices]</savedsearch>
+        </customsearch>
+      </centercolumn>
+    </dashboard>
+  </dashboards>
+</publisheddashboard>
+```
+
+- `roles` lists the roles that get the dashboard. `center` and `centertab` must match the role's center type, such as `BASIC` with `BASICCENTERHOMEHOME`.
+- Portlets in a column: `customsearch` (a saved search), `keyperformanceindicators`, `kpimeter`, `kpireport`, `trendgraph`, `list`, `reminders`, `quicksearch`, `tasklinks`, `recentrecords`, `settings`, and `customportlet` (a portlet script deployment, `[scriptid=<script>.<deployment>]`).
+- A `reminders` portlet needs at least one `reminder`, and each reminder can need a feature in the manifest (`EVENTSTORESPOND` needs `CRM`).
+- Declare a saved search that already exists in the account under `<dependencies><objects>` in the manifest. Validation names missing optional features such as `EXTREMELIST` (for `allowinlineediting`), `SUBSIDIARIES`, and `WEBSERVICES`; declare them `required="false"`.
+- After the deploy, import the dashboard and compare it with what you sent.
+
 ## Preferences and Other SuiteScript-Only Changes
 
 Some changes need SuiteScript that runs inside NetSuite, for example company and accounting preferences (`N/config`). A deploy cannot make these changes, but it can install the script that does:
 
 1. Deploy a RESTlet with a `suitecloud://` deploy. The project needs the script file under `FileCabinet/SuiteScripts/` and a `restlet` object under `Objects/`. The deployment `status` is `TESTING` by default, which runs the script for the script owner and the specified audience. `RELEASED` runs it for all specified audience members. The audience fields include `allroles`, `audslctrole`, and `allemployees`. Deploy with `status` `TESTING` and `allemployees` `T` first and call it; switch to `RELEASED` with an explicit audience after it works. NetSuite can drop audience flags on the first deploy of a script, so import the script object after the deploy and check the stored deployment before you call it. Import an existing RESTlet with `importObjects` and use it as the pattern.
-2. Call the RESTlet with the `callRestlet` operation and the script ID and deployment ID from the project, for example `customscript_sg_prefs` and `customdeploy_sg_prefs`. `method` selects the RESTlet entry point: `POST` (default) and `PUT` send `body` as JSON; `GET` and `DELETE` send `params` as query parameters and take no `body`. `params` is an object of string, number, or boolean values and is added to the URL for every method. An empty or `null` response means the RESTlet has no entry point for that method. A RESTlet has 5,000 governance units per call. NetSuite stops the script with `SSS_USAGE_LIMIT_EXCEEDED` when they run out, so keep each call small and check `runtime.getCurrentScript().getRemainingUsage()` in loops.
+2. Call the RESTlet with the `callRestlet` operation (in a saved tool, on a step with `modify: true`) and the script ID and deployment ID from the project, for example `customscript_sg_prefs` and `customdeploy_sg_prefs`. `method` selects the RESTlet entry point: `POST` (default) and `PUT` send `body` as JSON; `GET` and `DELETE` send `params` as query parameters and take no `body`. `params` is an object of string, number, or boolean values and is added to the URL for every method. An empty or `null` response means the RESTlet has no entry point for that method. A RESTlet has 5,000 governance units per call. NetSuite stops the script with `SSS_USAGE_LIMIT_EXCEEDED` when they run out, so keep each call small and check `runtime.getCurrentScript().getRemainingUsage()` in loops.
 
-Read the current value before you change it, and tell the user when a setting cannot be undone.
+Read config values with `getValue`; `getText` on a config record fails with `SSS_INVALID_API_USAGE`. Read the current value before you change it, and tell the user when a setting cannot be undone. Remove the RESTlet with `cleanupScripts` when the work is done.
 
 ## Common Pitfalls
 
-- A deploy adds and updates objects. It never deletes them. Removing an object needs the NetSuite UI.
+- A deploy adds and updates objects. It never deletes them. Removing an object needs the NetSuite UI; scripts get as far as `cleanupScripts` takes them.
+- A deploy overwrites a File Cabinet file at the same path. Run `listFiles` first and choose new file names.
 - Some changes cannot be undone, for example enabling a feature or changing a field's type after data exists. Tell the user before the deploy.
 - The file name and the `scriptid` attribute must match, and the prefix must fit the object type.
 - A script object needs `name`, `scriptfile`, and `scriptdeployments`. `scriptfile` must be a `.js` file, written as `[/SuiteScripts/<file>.js]`. Each `scriptdeployment` needs `status`; server script deployments also need `title`, which client script deployments ignore. Script IDs start with `customscript_` and deployment IDs with `customdeploy_`. Oracle's RESTlet example: https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_160514060027.html
@@ -201,9 +288,11 @@ Read the current value before you change it, and tell the user when a setting ca
 ## Error Recovery
 
 1. **"SuiteCloud needs the NetSuite OAuth sign-in"**: the system has no OAuth token. The user connects NetSuite with OAuth first. Link the setup guide https://superglue.ai/docs/guides/netsuite-suitecloud/ and stop.
-2. **401 or "Invalid login attempt"**: the token has expired or the sign-in lacks a scope. NetSuite refresh tokens last seven days, so the user reconnects NetSuite in superglue. If the `restlets` scope is missing, the user reconnects after the scope was added. NetSuite records the failure detail in the Login Audit Trail under **Setup > Users/Roles > User Management > View Login Audit Trail**.
+2. **401 or "Invalid login attempt"**: the token has expired or the sign-in lacks a scope. How long a sign-in lasts depends on the integration record; the user reconnects NetSuite in superglue. If the `restlets` scope is missing, the user reconnects after the scope was added. NetSuite records the failure detail in the Login Audit Trail under **Setup > Users/Roles > User Management > View Login Audit Trail**.
 3. **Validation errors**: read each message. "The manifest must define the X feature as required" means add `<feature required="true">X</feature>` to `manifest.xml`. For other errors, compare the XML with an imported object of the same type.
 4. **Permission errors on validate, preview, or deploy**: report NetSuite's message to the user verbatim.
 5. **`INSUFFICIENT_PERMISSION` from `callRestlet`**: the deployment's audience does not include the connected user and role. Import the script object to see the stored `status` and audience, then redeploy with `status` `TESTING` and `allemployees` `T`.
 6. **429, `CONCURRENCY_LIMIT_EXCEEDED`, or `SSS_REQUEST_LIMIT_EXCEEDED`**: the account's concurrency limit is in use. NetSuite allows 15 concurrent requests by default, shared by REST, SOAP, and RESTlets, and rejects extra requests instead of queuing them. Run NetSuite steps one after another and retry after a short wait.
 7. **`SSS_USAGE_LIMIT_EXCEEDED` from `callRestlet`**: the RESTlet used its 5,000 governance units. Split the work into smaller calls.
+8. **`SSS_INVALID_SCRIPTLET_ID` or "You are not allowed to navigate directly to this page" from `callRestlet`**: the deployment was deleted or the script is inactive, for example after `cleanupScripts`. Deploy the project again only when the script is still needed.
+9. **`cleanupScripts` fails with "did not finish"**: the error holds the report, including the helper's state. Run `cleanupScripts` once more with the same IDs: a second run is safe. A leftover helper deployment cannot run, because the helper is inactive, and a later cleanup deletes it after 15 minutes. When a script still keeps a deployment or stays active, report it to the user. Do not deploy that script's project again.

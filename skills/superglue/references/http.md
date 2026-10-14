@@ -171,7 +171,7 @@ XML responses are parsed into a JSON tree with ALL tag names normalized to UPPER
 
 ### Error Detection
 
-Non-2xx responses throw with method, URL, response body preview (1000 chars), masked config, and retry count. Any response with status in the 2xx range is treated as success and returned to the step as-is — the runtime does not scan successful response bodies for error fields, so APIs that return HTTP 200 with `{ "error": "..." }` must be handled by your transform or by setting a `stopCondition`/assertion at the step level.
+Non-2xx responses fail with `HTTP <status>: <response body>`. The runtime keeps up to 64 KB of the body and marks the cut when it is longer. A request with an Authorization or Cookie header that is redirected through a sign-in URL (such as a `login` path or a `ReturnUrl` parameter) and ends on a 2xx HTML page fails with `Redirected to the sign-in page <url>`: the server did not accept the credentials. Any other response with status in the 2xx range is treated as success and returned to the step as-is — the runtime does not scan successful response bodies for error fields, so APIs that return HTTP 200 with `{ "error": "..." }` must be handled by your transform or by setting a `stopCondition`/assertion at the step level.
 
 Set step-level `failureBehavior: "continue"` to keep the workflow running after a non-2xx failure. The failure remains in `stepResults`.
 
@@ -179,13 +179,14 @@ Set step-level `failureBehavior: "continue"` to keep the workflow running after 
 
 **Connection/server errors:**
 
-- Default 1 retry per request. Steps and direct system calls have no retry setting; schedule `options.retries` (0-3) applies to every request in the scheduled run
-- Retries on fetch-level connection failures (reset, TLS, DNS) and on 5xx responses. Other 4xx responses fail immediately
+- Default 1 retry per request. Steps and direct system calls have no retry setting; schedule `options.retries` (0-3) sets the retry count for every request in the scheduled run, for the failures below
+- Retries on fetch-level connection failures (reset, TLS, DNS), on 5xx responses to GET, HEAD, and OPTIONS, and on 503 for every method. A 5xx other than 503 on POST, PUT, PATCH, or DELETE fails immediately, because the server can have applied the request. Other 4xx responses fail immediately
 - Fixed 1000ms delay between retries
 
 **Rate limiting (429):**
 
 - Separate from the `retries` budget; applies even when `retries` is 0
+- A 429 whose body reports `API Login Limit` (an Acumatica licence session limit) is not retried and fails immediately
 - Respects `Retry-After` header (seconds or HTTP-date) on the first retry
 - Otherwise exponential backoff `4^n * 1000ms + jitter` (4s, 16s, 64s, 256s, 1024s)
 - Fails once the total 429 wait would exceed `MAX_RATE_LIMIT_WAIT_MS` (1hr)
@@ -249,7 +250,7 @@ pagination: {
 - Non-array response: stop after first request
 - Max 500 requests (vs 1000 max with a stopCondition)
 
-**Paginated step results:** all pages merge into a single result. Access via `sourceData.stepId.data` — it is NOT an array of per-page results. Do not call `.map()` on a paginated step result. Returns single object if one result, array if multiple (unwrapped from single-element array).
+**Paginated step results:** all pages merge into a single result. Access via `sourceData.stepId.data` — it is NOT an array of per-page results. Do not call `.map()` on a paginated step result. Returns single object if one result, array if multiple (unwrapped from single-element array). The same unwrapping applies to every request step result, paginated or not. `sg system call` returns the response body unchanged.
 
 ### File Output
 
