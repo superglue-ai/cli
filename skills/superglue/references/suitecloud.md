@@ -194,6 +194,7 @@ Read the current value before you change it, and tell the user when a setting ca
 - The file name and the `scriptid` attribute must match, and the prefix must fit the object type.
 - A script object needs `name`, `scriptfile`, and `scriptdeployments`. `scriptfile` must be a `.js` file, written as `[/SuiteScripts/<file>.js]`. Each `scriptdeployment` needs `status`; server script deployments also need `title`, which client script deployments ignore. Script IDs start with `customscript_` and deployment IDs with `customdeploy_`. Oracle's RESTlet example: https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_160514060027.html
 - Preferences such as accounting preferences are not project objects. A deploy cannot set them. Use the RESTlet route above.
+- A passed validation does not prove that a script runs. Call the deployment to check it.
 - Deploy to a sandbox account first when the user has one.
 - A sandbox refresh removes the sign-in. The user reconnects NetSuite in superglue after each refresh.
 
