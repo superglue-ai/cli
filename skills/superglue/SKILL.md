@@ -233,11 +233,11 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | Web agent tool                                   | CLI command                                    | Notes                                                              |
 | ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------ |
 | `tools.writeTool` (superglue module; new id)     | `sg tool build --config '{...}'`               | CLI is not AI-powered — you provide the full JSON config           |
-| `tools.writeTool` (superglue/approved; saved id) | `sg tool edit --tool <id> --patches '[...]'`   | JSON Patch (RFC 6902). Use `--draft <id>` for drafts               |
+| `tools.writeTool` (superglue; saved id)          | `sg tool edit --tool <id> --patches '[...]'`   | JSON Patch (RFC 6902). Use `--draft <id>` for drafts               |
 | `tools.runTool`                                  | `sg tool run --tool <id>` / `--draft <id>`     | Add `--include-step-results` to inspect per-step data              |
 | `run_command` with `vfs` for `/org/tools/`       | `sg tool find --id <id>` / `sg tool find <q>`  | Full config with `--id`, compact search with a query string        |
 | `tools.writeSystem` (superglue module; new id)   | `sg system create --name "..." --url "..."`    | Use `--template <id>` when available                               |
-| `tools.writeSystem` (superglue/approved; saved)  | `sg system edit --id <id> ...`                 | Edits the system with that exact ID                                |
+| `tools.writeSystem` (superglue; saved)           | `sg system edit --id <id> ...`                 | Edits the system with that exact ID                                |
 | `run_command` with `vfs` for `/org/systems/`     | `sg system find <query>` / `--id <id>`         | Returns secret-key presence and the system URL                     |
 | Credentials VFS / saved credentials              | `sg system credentials get/set/clear`          | Manage the current user's credentials for a system                 |
 | `tools.callSystem`                               | `sg system call --system-id <id> --url <url>`  | Ad-hoc calls; credential and auth header are added server-side     |
@@ -246,9 +246,9 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | `run_command` with `vfs` for `/org/runs/`        | `sg run list` / `sg run get <runId>`           | Filter `list` by `--tool`, `--status`, `--source`, `--limit`       |
 | `run_command` with `vfs` for `/org/mcp-servers/` | `sg mcp list` / `sg mcp find --id <id>`        | Returns endpoint, auth mode, selected tool IDs, and client config  |
 | `tools.writeMcpServer` (superglue module; new)   | `sg mcp create --name <n> --tool <id>`         | Creates a named MCP endpoint for selected saved tools              |
-| `tools.writeMcpServer` (superglue/approved)      | `sg mcp edit --id <id> ...`                    | Edits name, auth mode, description, or selected tool IDs           |
+| `tools.writeMcpServer` (superglue)               | `sg mcp edit --id <id> ...`                    | Edits name, auth mode, description, or selected tool IDs           |
 | `tools.writeSchedule` (superglue module; new)    | `sg schedule create --tool <id> --cron <expr>` | Creates a cron schedule for a saved tool                           |
-| `tools.writeSchedule` (superglue/approved; id)   | `sg schedule edit --tool <id> --id <schedule>` | Updates, enables, or disables an existing schedule                 |
+| `tools.writeSchedule` (superglue; id)            | `sg schedule edit --tool <id> --id <schedule>` | Updates, enables, or disables an existing schedule                 |
 | `run_command` with `vfs` for `/projects/`        | `sg project list` / `sg project task list`     | Tasks are listed in board order with `position`                    |
 | `tools.writeTask` (superglue module; no id)      | `sg project task create --project <id>`        | Same fields; `--position` places the task in its column            |
 | `tools.writeTask` (superglue module; id)         | `sg project task edit --project <p> --id <t>`  | Updates only the given fields, including `--position`              |
