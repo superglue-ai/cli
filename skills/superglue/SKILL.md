@@ -214,11 +214,16 @@ sg project task create --project <projectId> --name "Map customer fields"
 sg project task create --project <projectId> --name "Fix blockers" --position 0
 sg project task edit --project <projectId> --id <taskId> --position 0
 sg project task edit --project <projectId> --id <taskId> --status done
+sg project label list --project <projectId>
+sg project label create --project <projectId> --name "Blocked" --color "#ef4444"
+sg project task edit --project <projectId> --id <taskId> --labels blocked
 ```
 
 - `sg project task list` returns tasks in board order with each task's `position`. Add `--full` for descriptions and attachments.
 - A new task, or a status change without `--position`, goes to the end of its column. Other edits keep the order.
-- `sg project task edit` changes only the given fields. `--clear-due-date` and `--unassign` clear those fields.
+- `sg project task edit` changes only the given fields. `--clear-due-date`, `--unassign`, and `--clear-labels` clear those fields.
+- Labels belong to one project. `--labels` takes comma-separated label IDs from `sg project label list` and replaces the task's labels. `sg project task list --label <ids>` returns tasks with any of those labels.
+- `sg project label create` derives the label ID from the name; without `--color` it picks the first unused palette color. `sg project label edit` renames or recolors a label and keeps its ID. `sg project label delete` removes the label from every task; the agent module cannot delete labels.
 - `--resource-refs` replaces the attachment list. Task attachments also join the project.
 - Tasks cannot be deleted from the CLI. Archived projects reject task writes.
 
@@ -252,6 +257,7 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | `run_command` with `vfs` for `/projects/`        | `sg project list` / `sg project task list`     | Tasks are listed in board order with `position`                    |
 | `tools.writeTask` (superglue module; no id)      | `sg project task create --project <id>`        | Same fields; `--position` places the task in its column            |
 | `tools.writeTask` (superglue module; id)         | `sg project task edit --project <p> --id <t>`  | Updates only the given fields, including `--position`              |
+| `tools.writeProjectLabel` (superglue module)     | `sg project label create` / `label edit`       | Same fields; `sg project label delete` has no module equivalent    |
 | (no direct equivalent)                           | `sg login`, `sg update`, `sg skill`            | CLI-specific setup, updater, and this reference system             |
 
 Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`), and `setup_gateway` (the gateway install command is created in the web app).
@@ -321,6 +327,8 @@ sg project task list --project crm-migration --status in_progress
 sg project task create --project crm-migration --name "Await credentials" --status waiting --due-date 2026-11-01
 sg project task edit --project crm-migration --id await-credentials --status in_progress --position 0
 sg project task edit --project crm-migration --id await-credentials --description-file notes.md --unassign
+sg project task list --project crm-migration --label blocked,backend
+sg project label edit --project crm-migration --id blocked --color "#f97316"
 ```
 
 **Run commands:**

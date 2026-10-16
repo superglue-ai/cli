@@ -100,7 +100,7 @@ The persistent left sidebar contains these top-level items:
   - **API Keys** (`/api-keys`) — API key management.
   - **Settings** (`/settings`) — appearance and agent memory notes for every user; organization settings for admins.
 
-The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the project switcher starts agent-assisted project planning; projects are created only through the agent. Project detail pages (`/projects/{projectId}`) have **Tasks**, **Resources**, and **Sessions** tabs. Projects support sharing, archive, and deletion; resource permissions remain separate.
+The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the project switcher starts agent-assisted project planning; projects are created only through the agent. Project detail pages (`/projects/{projectId}`) have **Tasks**, **Resources**, and **Sessions** tabs. **Tasks** filters by label and assignee; each project has its own task labels. Projects support sharing, archive, and deletion; resource permissions remain separate.
 
 Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user's name and email, lists the user's organizations and pending invitations, and contains **Sign Out**. Selecting an organization switches to it.
 
