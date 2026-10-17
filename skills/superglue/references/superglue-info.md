@@ -44,11 +44,11 @@ Users can generate and manage API keys on the standalone **API Keys** page (`/ap
 
 Each key carries an access scope, set at creation and editable later. A scope is a surface plus an action: the surfaces are **API & CLI** (everything except MCP, including the agent and the CLI) and **MCP** (assistants connected over MCP), and the actions are **read**, **write**, and **execute**. Writing covers creating, changing, and deleting. Executing covers running tools and talking to the agent, so a key with only read and write cannot run anything. MCP requests are always tool calls, so that surface only takes execute. Keys created before scoping keep full access. A scope only narrows a key; it never grants more than the owner's role permissions. A scoped key cannot reach the API keys endpoints at all, so it can neither widen itself nor read another key's value. Full access is therefore its own choice at creation, not the result of selecting every surface: a key that holds every scope is still a scoped key and still cannot manage API keys. A request outside the scope returns 403.
 
-Two limits are worth stating plainly. Execute reaches the agent, and the agent's own tools create and edit systems, credentials, and roles, so an execute scope is not a run-only scope — only the owner's role permissions bound it. And scopes apply to API keys alone: an MCP client that connects through OAuth instead of a key is unscoped and carries the user's full authority.
+Two limits are worth stating plainly. Execute reaches the agent, and the agent's own tools create and edit connections, tools, and roles, so an execute scope is not a run-only scope — only the owner's role permissions bound it. And scopes apply to API keys alone: an MCP client that connects through OAuth instead of a key is unscoped and carries the user's full authority.
 
 ## Interfaces
 
-- **Web app** — primary UI for building, testing, and managing tools and systems
+- **Web app** — primary UI for building, testing, and managing tools and connections
 - **TypeScript/Python SDK** — https://superglue.ai/docs/sdk/overview/
 - **REST API** — https://superglue.ai/docs/api/
 - **MCP Server** — https://superglue.ai/docs/mcp/using-the-mcp/
@@ -76,7 +76,7 @@ If a customer's system requires IP allowlisting for firewall rules, security gro
 
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
 
-Brain contains context-source setup, playbooks, artifacts, and files. Capabilities contains project-attachable systems and tools. Credentials, MCP servers, and schedules configure execution but are not project members. Projects are managed separately and group selected context and capabilities without changing RBAC.
+Brain contains context-source setup, playbooks, artifacts, and files. Capabilities contains tools, connections, MCP servers, and schedules; tools are project-attachable, the others configure execution. A system is only the system ID that groups connections and tool steps. Projects are managed separately and group selected context and capabilities without changing RBAC.
 
 The persistent left sidebar contains these top-level items:
 
@@ -88,8 +88,7 @@ The persistent left sidebar contains these top-level items:
   - **Files** (`/files`) — uploaded source material.
 - **Capabilities** — expandable group for connected and executable resources:
   - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
-  - **Systems** (`/systems`, detail at `/systems/{systemId}`) — connected external systems with credentials and documentation.
-  - **Credentials** (`/credentials`) — manage the credentials you own for each system, and the credentials shared with you. Admins and members open it inside the normal app shell from the sidebar. API keys are not managed here.
+  - **Connections** (`/connections`, detail at `/connections/{connectionId}`) — connections to external services, grouped by system id, with secret status per connection; yours and the ones shared with you. A system ID is a namespace derived from existing connections; no system record is created. API keys are not managed here.
   - **MCP Servers** (`/mcp-servers`) — manage and export named MCP server endpoints. Use the MCP documentation for behavior, permissions, and client setup.
   - **Schedules** (`/schedules`) — scheduled and recurring tool runs.
 - **Control Panel** (`/admin`) — expandable group for organization and account administration:

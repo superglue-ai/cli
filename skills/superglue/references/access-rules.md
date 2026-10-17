@@ -1,13 +1,13 @@
 # Access Rules (RBAC)
 
-On superglue, roles define active resource grants for tools and systems. Users can have multiple roles. Roles and access rules are only available on enterprise organizations.
+On superglue, roles define active resource grants for tools, credentials, playbooks, artifacts, files, and projects. Systems are not a resource: a system id is a plain string on connections and tool steps. Users can have multiple roles. Roles and access rules are only available on enterprise organizations.
 
 ## Data Model
 
 ```typescript
 interface ResourceGrant {
   roleId: string;
-  resourceRef: "tool:<encodedId>" | "system:<encodedId>" | "tool:*" | "system:*";
+  resourceRef: "<kind>:<encodedId>" | "<kind>:*"; // kind: tool | credential | playbook | artifact | file | project
   permissions: Array<"viewer" | "editor">;
   source: "access_rule" | "ownership" | "share";
   grantedByUserId?: string;
@@ -28,10 +28,8 @@ Only active grants where `revokedAt` is empty contribute to access. `editor` imp
 
 ## Resource Refs
 
-- `tool:<encodedToolId>` — one specific tool.
-- `system:<encodedSystemId>` — one specific system.
-- `tool:*` — every current and future tool.
-- `system:*` — every current and future system.
+- `<kind>:<encodedId>` — one specific resource, for example `tool:<toolId>` or `credential:<connectionId>`.
+- `<kind>:*` — every current and future resource of that kind.
 
 Resource ids are URL-encoded inside `resourceRef`; use shared helpers rather than hand-building refs.
 
@@ -48,26 +46,25 @@ Current configured role access and ownership grants are generally stored as `edi
 - `ownership` — authorization projection from the resource creator.
 - `share` — explicit sharing with an organization user or role.
 
-Ownership source of truth remains the tool/system row. Ownership grants are a permission projection and should be preserved by ordinary role edits.
+Ownership source of truth remains the resource row. Ownership grants are a permission projection and should be preserved by ordinary role edits.
 
 ## Visibility and Execution Surfaces
 
 - **Tools** — list/detail, agent views, VFS, REST detail, and tool history use tool `viewer`.
-- **Systems** — list/detail, agent views, VFS, docs, credentials, and `sg system call` use system `viewer`.
-- **Execution** — running a tool requires tool `viewer` plus system `viewer` for every referenced system.
-- **Editing** — updating tools/systems requires `editor`.
-- **Runs** — visible only when the user has tool `viewer` and system `viewer` for every captured system.
+- **Connections** — usable with credential `viewer`; changing secrets, name, url, auth, or tunnel requires credential `editor`. System IDs and system knowledge are metadata, not access-controlled resources. `sg system call` needs an accessible connection only when the request uses secrets or the connection url.
+- **Execution** — running a tool requires tool `viewer` plus an accessible connection for every referenced system id: an explicit credentials id, the user's starred default, or their longest-held accessible connection.
+- **Editing** — updating a tool requires tool `editor`.
+- **Runs** — visible with tool `viewer`, limited to the member's own runs when the organization setting "members see only own runs" is on (the default). Admins see all runs.
 - **Schedules** — visibility follows current tool behavior; editing requires tool `editor`.
-- **MCP** — config shows configured tools; runtime registration uses tool `viewer`, and execution still checks referenced systems.
+- **MCP** — config shows configured tools; runtime registration uses tool `viewer`, and execution still needs a connection for every referenced system id.
 
 ## Multi-Role Semantics
 
 Users can have multiple roles. Resolution is union:
 
-| Layer   | Semantics                                                                  |
-| ------- | -------------------------------------------------------------------------- |
-| Tools   | If any active grant targets a tool, that grant's permission is effective   |
-| Systems | If any active grant targets a system, that grant's permission is effective |
+| Layer        | Semantics                                                                      |
+| ------------ | ------------------------------------------------------------------------------ |
+| Any resource | If any active grant targets the resource, that grant's permission is effective |
 
 Assigned roles can add access but cannot remove access granted by another role.
 
@@ -76,7 +73,7 @@ Assigned roles can add access but cannot remove access granted by another role.
 Every user has exactly one base role:
 
 - **`admin`** — built-in editor access to resources except credentials. Credentials require ownership or explicit grants. New organizations give admins no credential wildcard. Credential grants are editable. Name and description cannot be changed. Cannot be deleted.
-- **`member`** — default for org team members. New organizations seed it with wildcard `editor` grants for tools and systems. Access-rule grants can be narrowed. Name and description cannot be changed. Cannot be deleted.
+- **`member`** — default for org team members. New organizations seed it with a wildcard `editor` grant for tools. Access-rule grants can be narrowed. Name and description cannot be changed. Cannot be deleted.
 - **`service_account`** — API-only users that admins create through `/v1/service-accounts`. Starts with no grants; only its grants are editable. Users cannot be switched to or from it. Service accounts can run granted tools and manage their own credential sets, but cannot log in, use MCP, or read runs.
 
 Users can also have additional custom roles on top of their base role. Custom roles are fully editable and can be created/deleted.
@@ -86,31 +83,29 @@ Users can also have additional custom roles on top of their base role. Custom ro
 Personal roles are per-user containers for ownership and user-targeted share grants.
 
 - Each user can have at most one personal role.
-- Ownership grants are added automatically when a user creates a tool or system.
+- Ownership grants are added automatically when a user creates a tool, connection, playbook, artifact, file, or project.
 - Personal role grants are unioned with the user's other roles.
 - Ordinary role edits preserve personal roles and their ownership/share grants.
 
 ## Sharing Semantics
 
-Sharing supports saved tools, systems, credentials, projects, playbooks, artifacts, and files.
+Sharing supports saved tools, connections, projects, playbooks, artifacts, and files.
 
 - Targets are organization users or roles. The admin role and personal roles cannot be role targets.
 - User-targeted shares live on personal roles; role-targeted shares live on the selected role.
 - Sharing requires resource `editor` access. Direct shares grant `viewer` or `editor` through `source: "share"`.
 - Editors can update or remove direct shares. Removing one preserves ownership, access-rule grants, and access from other roles.
-- Credential sharing and revocation require the credential owner or an admin, even when another user has credential `editor`.
-- Recipients can remove their own direct share, including credential shares, without editor access.
-- Tool sharing grants missing system `viewer` access when the actor can pass it on. Otherwise, nothing is shared.
-- Tool sharing does not share credentials. Credential sharing also grants missing viewer access to its owning system.
-- Removing a tool or credential share does not remove the required-system shares it created.
-- Sharing systems or playbooks does not cascade to their tools, systems, or credentials.
+- Connection sharing and revocation require the connection owner or an admin, even when another user has connection `editor`.
+- Recipients can remove their own direct share, including connection shares, without editor access.
+- Sharing a tool shares only the tool. The recipient still needs a connection for every system id it references.
+- Sharing playbooks does not cascade to their tools or connections.
 - Project sharing can include manageable current members when requested. It does not share future members or revoke member shares later.
 
 ## Auto-Grant On Resource Creation
 
-When a user creates a new tool or system, the backend automatically grants ownership access to the creator's personal role:
+When a user creates a new resource, the backend automatically grants ownership access to the creator's personal role:
 
 - New tool created -> `ownership` grant on `tool:<toolId>` with `editor`.
-- New system created -> `ownership` grant on `system:<systemId>` with `editor`.
+- New connection created -> `ownership` grant on `credential:<connectionId>` with `editor`.
 
 This only affects the creator's personal role, not base roles or additional custom roles.

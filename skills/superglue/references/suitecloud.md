@@ -36,7 +36,7 @@ sg system call --system-id netsuite \
 
 ### Login
 
-The step logs in with the system's NetSuite OAuth token, the same one the REST steps use. It runs as the user and role that connected NetSuite. The role needs the permissions **Log in using OAuth 2.0 Access Tokens**, **REST Web Services**, and **SuiteCloud Development Framework**; the standard Developer role has them. The integration record needs **REST Web Services** and **RESTlets** checked, and the sign-in needs the scopes `rest_webservices` and `restlets`. Nothing else is stored on the credential.
+The step logs in with the connection's NetSuite OAuth token, the same one the REST steps use. It runs as the user and role that connected NetSuite. The role needs the permissions **Log in using OAuth 2.0 Access Tokens**, **REST Web Services**, and **SuiteCloud Development Framework**; the standard Developer role has them. The integration record needs **REST Web Services** and **RESTlets** checked, and the sign-in needs the scopes `rest_webservices` and `restlets`. Nothing else is stored on the connection.
 
 ## Operations
 

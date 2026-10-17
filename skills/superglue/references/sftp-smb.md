@@ -13,9 +13,9 @@ FTP, SFTP, and SMB share an identical operation interface. Only the URL protocol
 }
 ```
 
-Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
+Configure the connection URL based on the selected connection's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
-`<<systemId_url>>` resolves to the selected credential's `url` override when one is set, else to the system `url`. Use it as the full connection string when each tenant has its own host; set the override with `sg system credentials set --url`.
+`<<systemId_url>>` resolves to the selected connection's `url`. Use it as the full connection string when each tenant has its own host; set it with `sg system connection set --url`.
 
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for file server steps.
 
@@ -63,11 +63,11 @@ Credentials are embedded in the connection URL using `<<systemId_credentialKey>>
 sftp://<<my_server_username>>:<<my_server_password>>@host/path
 ```
 
-**SFTP private key auth:** use `credentials.privateKey` and `credentials.passphrase` on the system instead of URL password placeholders. Store the private key as a credential on the system.
+**SFTP private key auth:** store `privateKey` and `passphrase` as secrets on the connection instead of URL password placeholders.
 
 **SMB domain auth:** use `domain\user` format in the URL, or store `domain` as a system credential.
 
-Only store connection credentials on the system: `host`, `port`, `username`, `password`, `privateKey`, `passphrase`, `domain` (SMB), `home_dir`. Paths and share names belong in the URL, not in credentials.
+Store these secrets on the connection: `host`, `port`, `username`, `password`, `privateKey`, `passphrase`, `domain` (SMB), `home_dir`. Paths and share names belong in the URL, not in credentials.
 
 ## File Server Runtime Details
 
@@ -158,6 +158,6 @@ When a file server step fails and the cause is not obvious:
 3. **Check path resolution** — if you get "file not found", verify the path is relative to the URL base path, not an absolute filesystem path. Use `list` on the parent directory to see what files exist.
 4. **Check permissions** — permission denied errors mean the user account lacks read/write access to the target path. Verify with the user that the account has the required grants.
 5. **Check protocol-specific issues:**
-   - **SFTP**: if the error mentions authentication, verify whether the server expects password or private key auth. If using private key, ensure `privateKey` and `passphrase` are stored as secrets in the credential.
+   - **SFTP**: if the error mentions authentication, verify whether the server expects password or private key auth. If using private key, ensure `privateKey` and `passphrase` are stored as secrets on the connection.
    - **FTP/FTPS**: if the connection fails, try switching between `ftp://` and `ftps://` — some servers require TLS, others don't support it.
    - **SMB**: verify the share name is correct (first path segment). If using domain auth, ensure the domain is included in the URL or stored as a secret. Check that the SMB port (445) is accessible.

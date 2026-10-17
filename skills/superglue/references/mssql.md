@@ -13,9 +13,9 @@
 }
 ```
 
-Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
+Configure the connection URL based on the selected connection's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
-`<<systemId_url>>` resolves to the selected credential's `url` override when one is set, else to the system `url`. Use it as the full connection string when each tenant has its own host; set the override with `sg system credentials set --url`.
+`<<systemId_url>>` resolves to the selected connection's `url`. Use it as the full connection string when each tenant has its own host; set it with `sg system connection set --url`.
 
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for database steps.
 
@@ -95,7 +95,7 @@ mssql://<<my_db_user>>:<<my_db_password>>@<<my_db_host>>:<<my_db_port>>/<<my_db_
 
 ### Windows Authentication (NTLM)
 
-For on-prem SQL Servers that only accept Windows domain logins (no SQL auth), add secrets with these names to the credential:
+For on-prem SQL Servers that only accept Windows domain logins (no SQL auth), add secrets with these names to the connection:
 
 | Secret Name | Required | Notes                                                 |
 | ----------- | -------- | ----------------------------------------------------- |
@@ -113,7 +113,7 @@ Alternatively, pass the domain as a `?domain=CORP` query parameter on the URL �
 
 ### Azure Active Directory Authentication
 
-For Azure AD auth, add secrets with the following names to the credential alongside the standard connection fields:
+For Azure AD auth, add secrets with the following names to the connection alongside the standard connection fields:
 
 **Entra ID User + Password** — authenticates as an Azure AD user. Requires an Azure app registration.
 

@@ -96,11 +96,7 @@ Note the `cursorPath` and `stopCondition` must account for the GraphQL `data` wr
 
 ### Schema Discovery
 
-Superglue automatically introspects GraphQL schemas during documentation fetching. When a system URL contains "graphql", introspection is the first strategy tried — the full schema is fetched and stored as system documentation.
-
-Use `sg system search-docs` to query the stored schema for types, fields, and arguments before building tools. This is more reliable than manual introspection and works even when the API has introspection disabled for external callers.
-
-If the schema is not available via `sg system search-docs` (e.g. the system was created without a GraphQL URL, or introspection was blocked), test manually with `sg system call`:
+Use saved schemas or provider documentation when available. When the schema is unknown, probe the endpoint with `sg system call`:
 
 ```json
 { "query": "{ __typename }" }
@@ -126,6 +122,6 @@ When a GraphQL step fails:
 
 1. **Check GraphQL-level errors** — even 200 responses can contain `errors` in the response body. Check `sourceData.stepId.data.errors` for field-level or validation errors.
 2. **Verify the endpoint works** — use `sg system call` with `{ "query": "{ __typename }" }` to confirm connectivity and auth before debugging the query itself.
-3. **Check schema compatibility** — fields, types, and arguments change between API versions. Use `sg system search-docs` to check the auto-introspected schema first. If unavailable, use targeted `__type` queries or web search to verify the current schema.
+3. **Check schema compatibility** — fields, types, and arguments change between API versions. Check saved schemas, provider documentation, or targeted `__type` queries against the current API version.
 4. **Verify variables match the query signature** — GraphQL type mismatches (e.g. passing a string where `ID!` is expected) cause validation errors. Check that variable types in the query match what you're passing.
 5. **Check for auth scope issues** — some GraphQL APIs return partial data with `null` fields and errors when the token lacks required scopes for specific fields.

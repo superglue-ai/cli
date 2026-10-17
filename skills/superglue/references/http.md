@@ -259,7 +259,7 @@ When an HTTP step downloads a file (PDF, CSV, binary response), set `outputFile:
 ## Common Pitfalls
 
 - Hardcoding base URLs instead of using `<<systemId_url>>`.
-- Wrong slash at the `<<systemId_url>>` join. The placeholder resolves to the selected credential's `url` override when set, else the system's `url`, exactly as stored — it may or may not end in `/`. Read the `url` shown by `sg system find` and write the path so there is exactly one `/` between base and path: against a base with no trailing slash, `<<systemId_url>>crm/v3/...` becomes a broken host (`https://api.hubapi.comcrm/...`) that silently hits the wrong server; against a base ending in `/`, a leading `/` produces `//`.
+- Wrong slash at the `<<systemId_url>>` join. The placeholder resolves to the selected connection's `url`, exactly as stored — it may or may not end in `/`. Read `url` from `sg system connection get --system-id <systemId>` and write the path so there is exactly one `/` between base and path: against a base with no trailing slash, `<<systemId_url>>crm/v3/...` becomes a broken host (`https://api.hubapi.comcrm/...`) that silently hits the wrong server; against a base ending in `/`, a leading `/` produces `//`.
 - Forgetting auth headers entirely — nothing is injected automatically, including for OAuth systems (only token refresh is automatic)
 - Forgetting `outputFile: true` on steps that download files the user wants
 - Putting pagination variables in the config but not setting a `pagination` block, or vice versa
@@ -273,8 +273,8 @@ When an HTTP step fails and the cause is not immediately clear:
 
 1. **Isolate endpoint vs system-level issues** — use `sg system call` to test a different endpoint on the same system. If multiple endpoints fail, the issue is likely global authentication or system configuration. If only one fails, the issue is endpoint-specific (wrong URL, missing params, incorrect method or authentication scopes).
 
-2. **Check credential scopes and system-side configuration** — a 403 or empty response often means the API key or OAuth token lacks required scopes, or the resource is restricted server-side. Use `sg system search-docs` or a web search to look up required scopes/permissions for the endpoint.
+2. **Check credential scopes and system-side configuration** — a 403 or empty response often means the API key or OAuth token lacks required scopes, or the resource is restricted server-side. Consult provider documentation or web search for the endpoint’s required scopes and permissions.
 
-3. **Verify request shape against API docs** — use `sg system search-docs` and web search to confirm the endpoint URL, required headers, query parameters, body format, and expected method. APIs change across versions. Search for the error message and the endpoint in docs and online.
+3. **Verify request shape against API docs** — consult provider documentation and web search to confirm the endpoint URL, required headers, query parameters, body format, and expected method. APIs change across versions. Search for the error message and the endpoint in docs and online.
 
 4. **Check for rate limiting** — 429 errors are retried automatically with backoff, but persistent 429s may mean the API key has hit a quota. Check API dashboard or docs for rate limit details.

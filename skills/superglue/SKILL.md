@@ -27,7 +27,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 | `sg skill sftp-smb`       | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                         |
 | `sg skill suitecloud`     | NetSuite SuiteCloud deploys: custom fields, record types, scripts; validate, preview, deploy         |
 | `sg skill file-handling`  | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
-| `sg skill access-rules`   | RBAC roles, resource grants, and tool/system permissions (enterprise only)                           |
+| `sg skill access-rules`   | RBAC roles, resource grants, and tool/credential permissions (enterprise only)                       |
 
 ## CRITICAL RULES — READ FIRST
 
@@ -40,7 +40,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 **Calling systems and running tools**
 
 1. ALWAYS pull the relevant system context using `sg system find` before calling system endpoints and before building tools.
-2. Use `sg system search-docs` for a targeted keyword search of system docs when unsure how a system works.
+2. Consult provider documentation when an API or service behavior is unclear.
 
 **Authentication & Credentials**
 
@@ -101,11 +101,11 @@ Verify with `sg whoami` or `sg system list` — should return authenticated cont
 
 Set via `SUPERGLUE_CLI_PRESET` env var or `config.json` as `"preset"`. Legacy `sg init --preset` still writes this value for existing scripts.
 
-| Preset    | Description                                                                                                    |
-| --------- | -------------------------------------------------------------------------------------------------------------- |
-| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing                                             |
-| `builder` | Runner + build/edit/save tools, call systems, manage MCP servers, schedules, and project tasks. No system CRUD |
-| `admin`   | Full access (default)                                                                                          |
+| Preset    | Description                                                                                                 |
+| --------- | ----------------------------------------------------------------------------------------------------------- |
+| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing                                          |
+| `builder` | Runner + build/edit/save tools, call systems, manage connections, MCP servers, schedules, and project tasks |
+| `admin`   | Full access (default)                                                                                       |
 
 Blocked commands print a clear error showing the current preset and how to change it.
 
@@ -125,8 +125,8 @@ Blocked commands print a clear error showing the current preset and how to chang
 ### Building a Tool
 
 1. **Load relevant protocol references** via `sg skill <topic>` based on the systems involved (http, postgres, graphql, etc.)
-2. Use `sg system find` for every involved system — note the available secret names and the system URL
-3. Use `sg system search-docs` for each system — look up endpoints, auth patterns, pagination, response structure
+2. Use `sg system find` for every involved system — note the available secret names and the connection URL
+3. Consult provider documentation for endpoints, authentication, pagination, and response structure.
 4. Use `sg system call` to test 1-2 primary endpoints — verify response structure and field names before building
 5. Call `sg tool build --config '{...}'` with the full tool config (see Reference → Tool Config Schema)
 6. Test with `sg tool run --draft <draftId>`. Use `--include-step-results` to inspect raw step data
@@ -141,14 +141,22 @@ Blocked commands print a clear error showing the current preset and how to chang
 4. Apply with `sg tool edit --tool <toolId> --patches '[...]'` (or `--draft <draftId>` for drafts)
 5. Re-run to verify behavior
 
-### Creating/Editing a System
+### Connecting a System
 
-1. Search for an existing system first: `sg system find <query>`
-2. If creating: `sg system create --name "..." --url "..." --credentials '{...}'`. Prefer `--template <id>` when one exists — it auto-fills URL and OAuth config
-3. For OAuth: `sg system oauth --system-id <id> [--scopes "..."]` opens a browser flow. User approves → tokens saved automatically
-4. For non-OAuth secrets: `sg system credentials set --system-id <id> --credentials '{...}'`
+Systems are derived: a connection namespace is derived from existing connections. There is no system record to create or edit; you create and edit your connection.
+
+Removed commands (`sg system create`, `edit`, `credentials`, and `search-docs`) return a deprecation error with `sg update` and replacement guidance. Removed system API endpoints return HTTP 410 with the same guidance. Run `sg update`, then use connection commands; use `sg system find --id <id>` for system knowledge. Legacy `/credentials` API aliases remain available with deprecation headers.
+
+1. Read the relevant tool's namespace first, then inspect existing namespaces with `sg system find <query>` and the connections you can access under one with `sg system connection list --system-id <id>`. Reuse that exact id, even when other users' connections are hidden. For a new namespace, use the template id, not its display name. Without a template, choose a descriptive id. Keep account labels in connection names; separate namespaces when tools need distinct services or environments.
+2. Save your connection under the id: `sg system connection set --system-id <id> --url "..." --credentials '{...}' --authentication '{"type":"api_key"}'`. `--authentication` or `--oauth-app-id` is required when creating a connection; use `{"type":"none"}` for unauthenticated systems. Use the saved connection's returned `systemId` in later commands, tool steps, and placeholders.
+3. For OAuth: discover reusable apps with `sg system oauth-apps [--system-id <id>]` and link one with `--oauth-app-id <id>`. When several apps fit, ask the user which one to use. A new client ID and secret creates a reusable org app automatically, including default scopes. Otherwise add the client config with `--authentication '{"type":"oauth2",...}'`, then `sg system oauth --system-id <id> [--scopes "..."]` opens a browser flow. Omit `--scopes` to use saved connection scopes. Supply it to replace the set, including more or fewer scopes; `--scopes ""` requests none. Overrides are saved on the connection and do not change app defaults. User approves → tokens saved to your connection
+4. For private systems: `--tunnel-id <id>` binds a Secure Gateway tunnel to the connection
 5. Verify connectivity with `sg system call`
-6. For updates: `sg system edit --id <id>` with the fields to change
+6. For updates: re-run `sg system connection set --system-id <id>` with the fields to change. When the namespace holds several connections, pass `--connection-id <id>` from `sg system connection list` to `set`, `clear`, `oauth`, and `call`; without it, `set` and `oauth` target your default or oldest owned connection
+
+A connection linked to an OAuth app uses the app's client ID, client secret, and token URL; app secret rotations reach every linked connection. Other authentication fields are copied on selection and stay connection-specific; scope edits remain local. Changing the client ID or token URL detaches the connection and requires its own client secret; `--oauth-app-id ""` also detaches and must be sent together with the connection's own client secret. Changing client settings retains tokens and supplemental secrets; authorize again afterward. Managed secrets stay hidden and restricted to approved provider endpoints.
+
+When selecting an OAuth app on an existing non-OAuth connection, also pass `--authentication '{"type":"oauth2"}'`. An app-only update to a non-OAuth connection returns a validation error.
 
 ### Running a Tool (Ad-hoc)
 
@@ -235,32 +243,30 @@ sg project task edit --project <projectId> --id <taskId> --labels blocked
 
 Agents familiar with the web agent (its native tools and the `superglue` node module used inside `run_command`) can map them directly to CLI commands:
 
-| Web agent tool                                   | CLI command                                    | Notes                                                              |
-| ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------ |
-| `tools.writeTool` (superglue module; new id)     | `sg tool build --config '{...}'`               | CLI is not AI-powered — you provide the full JSON config           |
-| `tools.writeTool` (superglue; saved id)          | `sg tool edit --tool <id> --patches '[...]'`   | JSON Patch (RFC 6902). Use `--draft <id>` for drafts               |
-| `tools.runTool`                                  | `sg tool run --tool <id>` / `--draft <id>`     | Add `--include-step-results` to inspect per-step data              |
-| `run_command` with `vfs` for `/org/tools/`       | `sg tool find --id <id>` / `sg tool find <q>`  | Full config with `--id`, compact search with a query string        |
-| `tools.writeSystem` (superglue module; new id)   | `sg system create --name "..." --url "..."`    | Use `--template <id>` when available                               |
-| `tools.writeSystem` (superglue; saved)           | `sg system edit --id <id> ...`                 | Edits the system with that exact ID                                |
-| `run_command` with `vfs` for `/org/systems/`     | `sg system find <query>` / `--id <id>`         | Returns secret-key presence and the system URL                     |
-| Credentials VFS / saved credentials              | `sg system credentials get/set/clear`          | Manage the current user's credentials for a system                 |
-| `tools.callSystem`                               | `sg system call --system-id <id> --url <url>`  | Ad-hoc calls; credential and auth header are added server-side     |
-| `run_command search`                             | `sg system search-docs --system-id <id> -k`    | Targeted keyword search over ingested system docs                  |
-| `authenticate_oauth`                             | `sg system oauth --system-id <id> [--scopes]`  | Opens browser flow. Supports `--grant-type client_credentials` too |
-| `run_command` with `vfs` for `/org/runs/`        | `sg run list` / `sg run get <runId>`           | Filter `list` by `--tool`, `--status`, `--source`, `--limit`       |
-| `run_command` with `vfs` for `/org/mcp-servers/` | `sg mcp list` / `sg mcp find --id <id>`        | Returns endpoint, auth mode, selected tool IDs, and client config  |
-| `tools.writeMcpServer` (superglue module; new)   | `sg mcp create --name <n> --tool <id>`         | Creates a named MCP endpoint for selected saved tools              |
-| `tools.writeMcpServer` (superglue)               | `sg mcp edit --id <id> ...`                    | Edits name, auth mode, description, or selected tool IDs           |
-| `tools.writeSchedule` (superglue module; new)    | `sg schedule create --tool <id> --cron <expr>` | Creates a cron schedule for a saved tool                           |
-| `tools.writeSchedule` (superglue; id)            | `sg schedule edit --tool <id> --id <schedule>` | Updates, enables, or disables an existing schedule                 |
-| `run_command` with `vfs` for `/projects/`        | `sg project list` / `sg project task list`     | Tasks are listed in board order with `position`                    |
-| `tools.writeTask` (superglue module; no id)      | `sg project task create --project <id>`        | Same fields; `--position` places the task in its column            |
-| `tools.writeTask` (superglue module; id)         | `sg project task edit --project <p> --id <t>`  | Updates only the given fields, including `--position`              |
-| `tools.writeProjectLabel` (superglue module)     | `sg project label create` / `label edit`       | Same fields; `sg project label delete` has no module equivalent    |
-| (no direct equivalent)                           | `sg login`, `sg update`, `sg skill`            | CLI-specific setup, updater, and this reference system             |
+| Web agent tool                                   | CLI command                                      | Notes                                                                                                    |
+| ------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `tools.writeTool` (superglue module; new id)     | `sg tool build --config '{...}'`                 | CLI is not AI-powered — you provide the full JSON config                                                 |
+| `tools.writeTool` (superglue; saved id)          | `sg tool edit --tool <id> --patches '[...]'`     | JSON Patch (RFC 6902). Use `--draft <id>` for drafts                                                     |
+| `tools.runTool`                                  | `sg tool run --tool <id>` / `--draft <id>`       | Add `--include-step-results` to inspect per-step data                                                    |
+| `run_command` with `vfs` for `/org/tools/`       | `sg tool find --id <id>` / `sg tool find <q>`    | Full config with `--id`, compact search with a query string                                              |
+| `tools.writeConnection`                          | `sg system connection set --system-id <id>`      | Creates or updates your connection under its namespace                                                   |
+| `run_command` with `vfs` for `/org/connections/` | `sg system find <query>` / `--id <id>`           | Returns your connection's secret names, url, and auth type                                               |
+| `/org/connections/<id>.json`                     | `sg system connection list/get/set/clear`        | Manage your connection; `--connection-id` targets a specific one                                         |
+| `tools.callSystem`                               | `sg system call --system-id <id> --url <url>`    | Ad-hoc calls; connection and auth header are added server-side; `--connection-id` matches `credentialId` |
+| `create_connection`                              | `sg system connection set` and `sg system oauth` | Saves configuration and secrets, then opens OAuth when needed                                            |
+| `run_command` with `vfs` for `/org/runs/`        | `sg run list` / `sg run get <runId>`             | Filter `list` by `--tool`, `--status`, `--source`, `--limit`                                             |
+| `run_command` with `vfs` for `/org/mcp-servers/` | `sg mcp list` / `sg mcp find --id <id>`          | Returns endpoint, auth mode, selected tool IDs, and client config                                        |
+| `tools.writeMcpServer` (superglue module; new)   | `sg mcp create --name <n> --tool <id>`           | Creates a named MCP endpoint for selected saved tools                                                    |
+| `tools.writeMcpServer` (superglue)               | `sg mcp edit --id <id> ...`                      | Edits name, auth mode, description, or selected tool IDs                                                 |
+| `tools.writeSchedule` (superglue module; new)    | `sg schedule create --tool <id> --cron <expr>`   | Creates a cron schedule for a saved tool                                                                 |
+| `tools.writeSchedule` (superglue; id)            | `sg schedule edit --tool <id> --id <schedule>`   | Updates, enables, or disables an existing schedule                                                       |
+| `run_command` with `vfs` for `/projects/`        | `sg project list` / `sg project task list`       | Tasks are listed in board order with `position`                                                          |
+| `tools.writeTask` (superglue module; no id)      | `sg project task create --project <id>`          | Same fields; `--position` places the task in its column                                                  |
+| `tools.writeTask` (superglue module; id)         | `sg project task edit --project <p> --id <t>`    | Updates only the given fields, including `--position`                                                    |
+| `tools.writeProjectLabel` (superglue module)     | `sg project label create` / `label edit`         | Same fields; `sg project label delete` has no module equivalent                                          |
+| (no direct equivalent)                           | `sg login`, `sg update`, `sg skill`              | CLI-specific setup, updater, and this reference system                                                   |
 
-Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `authenticate_oauth`'s dedicated MCP `authenticate` tool (CLI uses `sg system oauth`), and `setup_gateway` (the gateway install command is created in the web app).
+Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `create_connection`'s secure input form (CLI accepts secrets through connection commands), and `setup_gateway` (the gateway install command is created in the web app).
 
 ### Command Reference
 
@@ -290,18 +296,17 @@ sg tool find --id my-tool --fields instruction,inputSchema  # only selected top-
 **System commands:**
 
 ```bash
-sg system create --name "My API" --url https://api.example.com --credentials '{"api_key":"sk-xxx"}'
-sg system create --name "Slack" --template slack
-sg system edit --id my_api --credentials '{...}'
+sg system connection set --system-id my_api --url https://api.example.com --credentials '{"api_key":"sk-xxx"}' --authentication '{"type":"api_key"}'
+sg system connection set --system-id slack --credentials '{}' --authentication '{"type":"oauth2"}'   # template id as system id
 sg system list
 sg system find slack
 sg system find --id my_api
-sg system credentials get --system-id my_api
-sg system credentials set --system-id my_api --credentials '{"api_key":"sk-xxx"}'
-sg system credentials clear --system-id my_api
+sg system connection list --system-id my_api
+sg system connection get --system-id my_api
+sg system connection set --system-id my_api --credentials '{"api_key":"sk-xxx"}'
+sg system connection clear --system-id my_api
 sg system call --system-id my_api --url "<<my_api_url>>/users"
 sg system call --system-id my_api --url https://api.example.com/users --headers '{"X-API-Key":"<<my_api_api_key>>"}'
-sg system search-docs --system-id slack -k "send message channels"
 sg system oauth --system-id gmail --scopes "https://www.googleapis.com/auth/gmail.modify"
 sg system oauth --system-id my_api --grant-type client_credentials --scopes "read write"
 ```
@@ -551,12 +556,12 @@ For each step in order:
 
 All user-provided JS runs in an isolated Deno sandbox.
 
-### Credentials and Systems
+### Connections and placeholders
 
-Secrets are referenced by name as `<<systemId_credentialKey>>` and resolved from the selected credential at execution time. You MUST explicitly reference them:
+Secrets are referenced by name as `<<systemId_credentialKey>>` and resolved from the selected connection at execution time. You MUST explicitly reference them:
 
 ```
-System id="stripe", selected credential has secret named: api_key
+System id="stripe", selected connection has secret named: api_key
 → Available as: <<stripe_api_key>>
 ```
 
@@ -571,39 +576,35 @@ System id="stripe", selected credential has secret named: api_key
 
 Basic auth auto-encodes: if the value after `Basic ` isn't already base64, the engine encodes it.
 
-**System URL variables** — use these instead of hardcoding base URLs. They resolve the URL of the exact referenced system ID:
+**Connection URL variables** — use these instead of hardcoding base URLs. They resolve the URL of the selected connection for the exact referenced system ID:
 
 ```json
 { "url": "<<salesforce_url>>/services/data/v58.0/sobjects/Account" }
 ```
 
-`<<systemId_url>>` resolves to the selected credential's `url` override when one is set, else to the system `url`. Set an override with `sg system credentials set --system-id <id> --credentials '{...}' --url <url>` when each tenant has its own host; pass an empty string to clear it.
+`<<systemId_url>>` resolves to the selected connection's `url`. Set it with `sg system connection set --system-id <id> --credentials '{...}' --url <url>` when each tenant has its own host; pass an empty string to clear it.
 
 **Credential lifecycle:**
 
 - Pass all secret values via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
-- Use `sg system credentials set --system-id <id> --credentials '{...}'` to save secrets in the current API-key user's credential
-- Use `sg system credentials get --system-id <id>` to inspect the current user's secret names and whether each has a non-empty value; secret values are never returned
+- Use `sg system connection set --system-id <id> --credentials '{...}'` to save secrets on the current API-key user's connection
+- Use `sg system connection get --system-id <id>` to inspect the current user's secret names and whether each has a non-empty value; secret values are never returned
 - OAuth tokens (`access_token`, `refresh_token`) auto-refresh before each step execution
 - Non-sensitive fields (`client_id`, `auth_url`, `token_url`) can be submitted alongside secrets in the same `--credentials` JSON
 
-**System IDs:** lowercase letters, numbers, underscores only — no hyphens. Used for credential namespacing.
+**System IDs:** a system ID groups connections and resolves tool steps and placeholders. Use existing IDs exactly as written, including case; a tool can reference an ID that no connection uses yet, so create a connection with that exact ID. For a new ID, use the matching template's `id`, such as `hubspot`; otherwise use lowercase letters, digits, and underscores, such as `acme_billing`. The server saves IDs as sent and does not correct them. Do not rename a working system ID to match a template.
 
-**Templates:** auto-populate endpoints and OAuth config. `sg system find` lists available templates.
+**Templates:** matched by system id (or connection url) and supply display and OAuth defaults. `sg system find --id <id>` shows the matched template.
 
 - **Preconfigured OAuth** (no user `client_id`/`client_secret` needed): slack, salesforce, asana, notion, airtable, jira, confluence
 - **Common OAuth templates:** gmail, googleDrive, googleCalendar, googleSheets, slack, salesforce, github, jira, confluence, notion, airtable, hubspot, shopify, dropbox, zoom, microsoft
 
-**Custom OAuth (no template):** must include `client_id`, `client_secret`, `auth_url`, `token_url` in credentials at create time — or add later with `sg system edit`:
+**Custom OAuth (no template):** put the client config on your connection's authentication:
 
 ```bash
-sg system create --name "My API" --url https://api.example.com \
-  --credentials '{"client_id":"...","client_secret":"...","auth_url":"https://example.com/oauth/authorize","token_url":"https://example.com/oauth/token"}'
+sg system connection set --system-id my_api --url https://api.example.com --credentials '{}' \
+  --authentication '{"type":"oauth2","clientId":"...","clientSecret":"...","authUrl":"https://example.com/oauth/authorize","tokenUrl":"https://example.com/oauth/token"}'
 ```
-
-**Tags:** do not add tags by default. Add tags only when the user explicitly requests them or when existing systems show a clear tag or grouping convention that applies. Reuse exact existing tag values; do not invent new tags. Tags are metadata only. Tools and credentials always reference the exact system ID.
-
-**System-specific instructions:** systems may include `specificInstructions` from the user (visible in `sg system find` output). Follow them when present — they override general patterns.
 
 ### Tool Editing (JSON Patch)
 
@@ -672,13 +673,13 @@ curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API
 
 ## Common Pitfalls
 
-- **Guessing API endpoints** — always verify with `sg system search-docs` or `sg system call` first
+- **Guessing API endpoints** — verify against provider documentation, then check uncertain request shapes with `sg system call`
 - **`systemId` in the wrong place** — it belongs inside `step.config.systemId`, not on the step object
 - **`<<(sourceData) => sourceData.payload.X>>`** — payload fields are at root level of `sourceData`, not under `.payload`
 - **`<<currentItem.id>>`** — must use arrow function syntax: `<<(sourceData) => sourceData.currentItem.id>>`
 - **Hardcoded pagination params** — use `<<page>>`, `<<offset>>`, `<<cursor>>`, `<<limit>>`
-- **Missing auth headers** — credentials are never automatically included in any protocol, including for OAuth systems (only token refresh is automatic)
-- **Hardcoded base URLs** — prefer system URL variables (`<<systemId_url>>`) so tools follow the referenced system's configured URL
+- **Missing auth headers** — credentials are never automatically included in any protocol, including for OAuth connections (only token refresh is automatic)
+- **Hardcoded base URLs** — prefer connection URL variables (`<<systemId_url>>`) so tools follow the selected connection's URL
 - **Empty `instruction`** — never leave the tool-level `instruction` blank
 - **Adding `outputSchema` unsolicited** — only add when the user explicitly requests a specific response structure
 - **Multi-line `outputTransform`** — must be a single-line JS string (no literal newlines or tabs)
@@ -706,7 +707,7 @@ For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, MongoDB, Gra
 3. Use `sg system find --id <systemId>` to verify the stored secret names match what the step references
 4. For HTTP: run `sg skill http` and follow the error recovery section (endpoint vs system isolation, credential scopes, rate limiting)
 5. For databases: run `sg skill postgres` or `sg skill mssql` — SSL/TLS and schema issues are common causes
-6. Use `sg system search-docs` and web search to verify the current API shape. APIs change across versions
+6. Consult provider documentation and web search to verify the current API shape. APIs change across versions
 
 ### Authentication failures
 
@@ -715,11 +716,11 @@ For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, MongoDB, Gra
 3. For custom OAuth: verify `client_id`, `client_secret`, `auth_url`, `token_url` are all present. Confirm the redirect URI is registered on the provider's OAuth app
 4. Check scopes — 403 / empty responses often mean the token lacks required scopes
 
-### System creation fails
+### Connection save fails
 
-1. Check for an existing system with the same ID — use `sg system edit` to update instead
-2. Ensure `id` uses only lowercase letters, numbers, and underscores (no hyphens)
-3. For templated systems, verify the template ID is correct (`sg system find` lists available templates)
+1. Check for an existing connection under the id with `sg system connection get --system-id <id>`; `set` updates it in place
+2. Ensure the id uses only lowercase letters, numbers, underscores, and hyphens
+3. For templated systems, use the template id as the system id so the template applies
 
 ### Data selector / transform returns wrong data
 

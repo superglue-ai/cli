@@ -13,7 +13,7 @@
 
 Configure the connection URL based on the selected credential's secrets — use `sg system find` to inspect the available secret names and reference them accordingly.
 
-`<<systemId_url>>` resolves to the selected credential's `url` override when one is set, else to the system `url`. Use it as the full connection string when each tenant has its own host; set the override with `sg system credentials set --url`.
+`<<systemId_url>>` resolves to the selected connection's `url`. Use it as the full connection string when each tenant has its own host; set it with `sg system connection set --url`.
 
 `method`, `headers`, `queryParams`, and `pagination` are HTTP-only fields — omit them for database steps.
 
