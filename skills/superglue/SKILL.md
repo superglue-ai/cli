@@ -253,7 +253,7 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | `run_command` with `vfs` for `/org/connections/` | `sg system find <query>` / `--id <id>`           | Returns your connection's secret names, url, and auth type                                               |
 | `/org/connections/<id>.json`                     | `sg system connection list/get/set/clear`        | Manage your connection; `--connection-id` targets a specific one                                         |
 | `tools.callSystem`                               | `sg system call --system-id <id> --url <url>`    | Ad-hoc calls; connection and auth header are added server-side; `--connection-id` matches `credentialId` |
-| `create_connection`                              | `sg system connection set` and `sg system oauth` | Saves configuration and secrets, then opens OAuth when needed                                            |
+| `connect`                                        | `sg system connection set` and `sg system oauth` | Saves configuration and secrets, then opens OAuth when needed                                            |
 | `run_command` with `vfs` for `/org/runs/`        | `sg run list` / `sg run get <runId>`             | Filter `list` by `--tool`, `--status`, `--source`, `--limit`                                             |
 | `run_command` with `vfs` for `/org/mcp-servers/` | `sg mcp list` / `sg mcp find --id <id>`          | Returns endpoint, auth mode, selected tool IDs, and client config                                        |
 | `tools.writeMcpServer` (superglue module; new)   | `sg mcp create --name <n> --tool <id>`           | Creates a named MCP endpoint for selected saved tools                                                    |
@@ -266,7 +266,7 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | `tools.writeProjectLabel` (superglue module)     | `sg project label create` / `label edit`         | Same fields; `sg project label delete` has no module equivalent                                          |
 | (no direct equivalent)                           | `sg login`, `sg update`, `sg skill`              | CLI-specific setup, updater, and this reference system                                                   |
 
-Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `create_connection`'s secure input form (CLI accepts secrets through connection commands), and `setup_gateway` (the gateway install command is created in the web app).
+Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `connect`'s secure input form (CLI accepts secrets through connection commands), and `setup_gateway` (the gateway install command is created in the web app).
 
 ### Command Reference
 
