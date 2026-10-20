@@ -31,6 +31,7 @@ Constraints:
 
 - Bare `file::<key>` without a suffix is invalid and causes a runtime error
 - File references resolve only in body/content fields, not in headers, query params, or URLs
+- `.raw` must be the whole field value; embedding it inside a string fails. `.base64` and `.extracted` can appear inside strings
 - Multi-file steps use bracket notation: `file::stepId["report.csv"].raw`
 - Loop iterations use numeric index: `file::stepId[0].raw`
 

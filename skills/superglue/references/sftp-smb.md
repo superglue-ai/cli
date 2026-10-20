@@ -65,9 +65,9 @@ sftp://<<my_server_username>>:<<my_server_password>>@host/path
 
 **SFTP private key auth:** store `privateKey` and `passphrase` as secrets on the connection instead of URL password placeholders.
 
-**SMB domain auth:** use `domain\user` format in the URL, or store `domain` as a system credential.
+**SMB domain auth:** use `domain\user` format in the URL, or store `domain` as a connection secret.
 
-Store these secrets on the connection: `host`, `port`, `username`, `password`, `privateKey`, `passphrase`, `domain` (SMB), `home_dir`. Paths and share names belong in the URL, not in credentials.
+Secrets on the connection (`--credentials`): `username`, `password`, `privateKey`, `passphrase`, `domain` (SMB). `host`, `port`, `path`, and `homeDirectory` belong in the URL or in `--authentication` `config` with type `connection_string`, never in secrets.
 
 ## File Server Runtime Details
 
