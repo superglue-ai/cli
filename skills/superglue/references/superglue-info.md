@@ -76,7 +76,7 @@ If a customer's system requires IP allowlisting for firewall rules, security gro
 
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
 
-Brain contains context-source setup, playbooks, artifacts, and files. Capabilities contains tools, connections, MCP servers, and schedules; tools are project-attachable, the others configure execution. A system is only the system ID that groups connections and tool steps. Projects are managed separately and group selected context and capabilities without changing RBAC.
+Brain contains context-source setup, playbooks, artifacts, and files. Capabilities contains tools, connections, MCP servers, and schedules; tools are project-attachable, the others configure execution. A system is only the system ID that groups connections and tool steps. Projects are managed separately and group selected context and capabilities. People with project access get the same access to its attached resources.
 
 The persistent left sidebar contains these top-level items:
 
@@ -99,7 +99,7 @@ The persistent left sidebar contains these top-level items:
   - **API Keys** (`/api-keys`) — API key management.
   - **Settings** (`/settings`) — appearance and agent memory notes for every user; organization settings for admins.
 
-The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the project switcher starts agent-assisted project planning; projects are created only through the agent. Project detail pages (`/projects/{projectId}`) have **Tasks**, **Resources**, and **Sessions** tabs. **Tasks** filters by label and assignee; each project has its own task labels. Projects support sharing, archive, and deletion; resource permissions remain separate.
+The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the project switcher starts agent-assisted project planning; projects are created only through the agent. Project detail pages (`/projects/{projectId}`) have **Tasks**, **Resources**, and **Sessions** tabs. **Tasks** filters by label and assignee; each project has its own task labels. Projects support sharing, archive, and deletion; people with project access get the same access to its attached resources.
 
 Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user's name and email, lists the user's organizations and pending invitations, and contains **Sign Out**. Selecting an organization switches to it.
 

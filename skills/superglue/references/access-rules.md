@@ -9,7 +9,7 @@ interface ResourceGrant {
   roleId: string;
   resourceRef: "<kind>:<encodedId>" | "<kind>:*"; // kind: tool | credential | playbook | artifact | file | project
   permissions: Array<"viewer" | "editor">;
-  source: "access_rule" | "ownership" | "share";
+  source: "access_rule" | "ownership" | "share" | "project"; // project: computed from project access, never stored
   grantedByUserId?: string;
   revokedAt?: Date;
   revokedByUserId?: string;
@@ -99,7 +99,7 @@ Sharing supports saved tools, connections, projects, playbooks, artifacts, and f
 - Recipients can remove their own direct share, including connection shares, without editor access.
 - Sharing a tool shares only the tool. The recipient still needs a connection for every system id it references.
 - Sharing playbooks does not cascade to their tools or connections.
-- Project sharing can include manageable current members when requested. It does not share future members or revoke member shares later.
+- Access to a project gives the same access (viewer or editor) to every resource attached to it. Removing the resource from the project, removing the project access, or archiving the project removes that access. Anyone with access to a project, including viewers, can attach a resource they can share. Project editors and people who can share a resource can remove it from the project.
 
 ## Auto-Grant On Resource Creation
 
