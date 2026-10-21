@@ -1,13 +1,13 @@
 # Access Rules (RBAC)
 
-On superglue, roles define active resource grants for tools, credentials, playbooks, artifacts, files, and projects. Systems are not a resource: a system id is a plain string on connections and tool steps. Users can have multiple roles. Roles and access rules are only available on enterprise organizations.
+On superglue, roles define active resource grants for tools, credentials, playbooks, files, and projects. Files include uploads and agent-written HTML documents and spreadsheets. Systems are not a resource: a system id is a plain string on connections and tool steps. Users can have multiple roles. Roles and access rules are only available on enterprise organizations.
 
 ## Data Model
 
 ```typescript
 interface ResourceGrant {
   roleId: string;
-  resourceRef: "<kind>:<encodedId>" | "<kind>:*"; // kind: tool | credential | playbook | artifact | file | project
+  resourceRef: "<kind>:<encodedId>" | "<kind>:*"; // kind: tool | credential | playbook | file | project
   permissions: Array<"viewer" | "editor">;
   source: "access_rule" | "ownership" | "share" | "project"; // project: computed from project access, never stored
   grantedByUserId?: string;
@@ -83,13 +83,13 @@ Users can also have additional custom roles on top of their base role. Custom ro
 Personal roles are per-user containers for ownership and user-targeted share grants.
 
 - Each user can have at most one personal role.
-- Ownership grants are added automatically when a user creates a tool, connection, playbook, artifact, file, or project.
+- Ownership grants are added automatically when a user creates a tool, connection, playbook, file, or project.
 - Personal role grants are unioned with the user's other roles.
 - Ordinary role edits preserve personal roles and their ownership/share grants.
 
 ## Sharing Semantics
 
-Sharing supports saved tools, connections, projects, playbooks, artifacts, and files.
+Sharing supports saved tools, connections, projects, playbooks, and files.
 
 - Targets are organization users or roles. The admin role and personal roles cannot be role targets.
 - User-targeted shares live on personal roles; role-targeted shares live on the selected role.
@@ -99,7 +99,7 @@ Sharing supports saved tools, connections, projects, playbooks, artifacts, and f
 - Recipients can remove their own direct share, including connection shares, without editor access.
 - Sharing a tool shares only the tool. The recipient still needs a connection for every system id it references.
 - Sharing playbooks does not cascade to their tools or connections.
-- Access to a project gives the same access (viewer or editor) to every resource attached to it. Removing the resource from the project, removing the project access, or archiving the project removes that access. Anyone with access to a project, including viewers, can attach a resource they can share. Project editors and people who can share a resource can remove it from the project.
+- Access to a project gives the same access (viewer or editor) to every file and tool linked to it. Removing the file or tool from the project, removing the project access, or archiving the project removes that access. Anyone with access to a project, including viewers, can link a file or tool they can share. Project editors and people who can share a file or tool can remove it from the project. Playbooks and connections are never shared through projects.
 
 ## Auto-Grant On Resource Creation
 

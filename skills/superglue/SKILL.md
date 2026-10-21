@@ -229,12 +229,12 @@ sg project label create --project <projectId> --name "Blocked" --color "#ef4444"
 sg project task edit --project <projectId> --id <taskId> --labels blocked
 ```
 
-- `sg project task list` returns tasks in board order with each task's `position`. Add `--full` for descriptions and attachments.
+- `sg project task list` returns tasks in board order with each task's `position`. Add `--full` for descriptions.
 - A new task, or a status change without `--position`, goes to the end of its column. Other edits keep the order.
 - `sg project task edit` changes only the given fields. `--clear-due-date`, `--unassign`, and `--clear-labels` clear those fields.
 - Labels belong to one project. `--labels` takes comma-separated label IDs from `sg project label list` and replaces the task's labels. `sg project task list --label <ids>` returns tasks with any of those labels.
 - `sg project label create` derives the label ID from the name; without `--color` it picks the first unused palette color. `sg project label edit` renames or recolors a label and keeps its ID. `sg project label delete` removes the label from every task; the agent module cannot delete labels.
-- `--resource-refs` replaces the attachment list. Task attachments also join the project.
+- Tasks have no attachments. Name the files a task needs in its description; files link to projects only.
 - Tasks cannot be deleted from the CLI. Archived projects reject task writes.
 
 ---

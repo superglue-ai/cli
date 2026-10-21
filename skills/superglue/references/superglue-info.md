@@ -76,16 +76,12 @@ If a customer's system requires IP allowlisting for firewall rules, security gro
 
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
 
-Brain contains context-source setup, playbooks, artifacts, and files. Capabilities contains tools, connections, MCP servers, and schedules; tools are project-attachable, the others configure execution. A system is only the system ID that groups connections and tool steps. Projects are managed separately and group selected context and capabilities. People with project access get the same access to its attached resources.
+Brain contains context-source setup, project folders, playbooks, and files. Files include uploads and the artifacts and spreadsheets that agents write; a file can belong to several projects. Capabilities contains tools, connections, MCP servers, and schedules; tools can be linked to projects, the others configure execution. A system is only the system ID that groups connections and tool steps. Projects are managed separately; a project links brain files and tools, and people with project access get the same access to them; playbooks are org-wide.
 
 The persistent left sidebar contains these top-level items:
 
-- The project switcher and session list — always visible at the top. The project switcher selects one project or **All projects**. The selection sets which sessions the list shows, whether the right panel shows a project plan, and which project new sessions start in. With a project selected, the list shows only that project's sessions. With **All projects**, the list shows all sessions, each labeled with its project, and new sessions start at the organization level without a project. Choosing an item in the switcher starts a new session there. The switcher footer has **New project**, which starts agent-assisted project planning; with a project selected, it also opens the project page, pins or unpins the project, and archives it. **New session** starts a session in the selected project. When a project is selected and the user opens a session from another project, the selection changes to that project. `/` opens a new session in the selected project; saved sessions open `/agents/{sessionId}`. Archived projects and their sessions are hidden. A briefing run appears here after the user opens it from the briefing email or **View last briefing**.
-- **Brain** — expandable group for context and focused work:
-  - **Setup** (`/brain`) — context-source connections that use only the current user's personal credentials.
-  - **Playbooks** (`/playbooks`, detail at `/playbooks/{playbookId}`) — reusable guidance for recurring work. Built-in and custom playbooks share one grid; built-ins are labeled and can be duplicated.
-  - **Artifacts** (`/artifacts`, detail at `/artifacts/{artifactId}`) — interactive outputs.
-  - **Files** (`/files`) — uploaded source material.
+- The project switcher and session list — always visible at the top. The switcher selects one project or **All projects**, which scopes the session list and new sessions; `/` starts a session and `/agents/{sessionId}` opens a saved one. New projects are planned with the agent.
+- **Brain** (`/brain`) — a file drive: the managed **Documentation** (system documentation and scraped pages) and **Playbooks** folders, one folder per project (`/brain/projects/{projectId}`), and files in no project. Files open at `/brain/files/{fileId}` and playbooks at `/brain/playbooks/{playbookId}`. Users upload files and drag them onto project folders to link them. **Setup** (`/brain/setup`) connects context sources with the user's own credentials.
 - **Capabilities** — expandable group for connected and executable resources:
   - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
   - **Connections** (`/connections`, detail at `/connections/{connectionId}`) — connections to external services, grouped by system id, with secret status per connection; yours and the ones shared with you. A system ID is a namespace derived from existing connections; no system record is created. API keys are not managed here.
@@ -99,11 +95,11 @@ The persistent left sidebar contains these top-level items:
   - **API Keys** (`/api-keys`) — API key management.
   - **Settings** (`/settings`) — appearance and agent memory notes for every user; organization settings for admins.
 
-The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the project switcher starts agent-assisted project planning; projects are created only through the agent. Project detail pages (`/projects/{projectId}`) have **Tasks**, **Resources**, and **Sessions** tabs. **Tasks** filters by label and assignee; each project has its own task labels. Projects support sharing, archive, and deletion; people with project access get the same access to its attached resources.
+The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the project switcher starts agent-assisted project planning; projects are created only through the agent. A project's page is its Brain folder (`/brain/projects/{projectId}`), with **Files** (the default) and **Tasks** tabs. **Tasks** filters by label and assignee; each project has its own task labels. Projects support sharing, archive, and deletion; people with project access get the same access to its linked files.
 
 Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user's name and email, lists the user's organizations and pending invitations, and contains **Sign Out**. Selecting an organization switches to it.
 
-After onboarding, while no context source is connected, a banner at the top of every page except Brain offers to connect email. **Set up** opens **Brain > Setup** (`/brain`), and the close button hides the banner for 7 days in that browser.
+While a brain setup step is open, a banner at the top of **Brain** links to **Brain > Setup** (`/brain/setup`), and the close button hides it for 7 days in that browser.
 
 When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the sidebar, which opens a 15-minute call booking page. The app shows no pricing. For Pro and Team organizations, admins see **Manage Plan** in the organization menu, which opens the Stripe portal. Enterprise organizations see neither. Do not quote prices. For pricing questions, point users to **Upgrade Plan** to book a call. There is no separate Billing page.
 
@@ -113,7 +109,7 @@ When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the s
 
 - **Appearance** — light, dark, or system theme.
 - **Organization** — organization name.
-- **Design system** (`/settings/design-system`) — the brand every artifact follows: colors, fonts, logos, guidelines, HTML, Word, and PowerPoint templates, reference documents, and an import from the company website.
+- **Design system** (`/settings/design-system`) — the brand every document follows: colors, fonts, logos, guidelines, HTML, Word, and PowerPoint templates, reference documents, and an import from the company website.
 - **Run settings** — run preferences: draft/single-step run visibility, run result storage, member run visibility, and delete-all-runs.
 - **Notifications** — run-alert channels for Slack and email (on failure, success, completion, or daily/weekly summaries). Slack setup opens `/settings/notifications/slack`; email setup opens `/settings/notifications/email`.
 - **Agent memory** (`/settings#settings-memory`) — every user adds, edits, and deletes their personal and organization memory notes; admins also turn agent memory on or off.
