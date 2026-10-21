@@ -26,7 +26,7 @@ GraphQL APIs use HTTP POST under the hood. This skill covers the GraphQL-specifi
 | `method`   | yes      | Always `POST`                                          |
 | `headers`  | yes      | Must include `Content-Type: application/json` and auth |
 | `body`     | yes      | JSON string with `query` and optional `variables`      |
-| `systemId` | no       | Links system credentials and URL                       |
+| `systemId` | no       | Resolves connection secrets and URL                    |
 
 ### Body Format
 

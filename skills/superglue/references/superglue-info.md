@@ -124,7 +124,7 @@ When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the s
 1. **Validate** tool structure (id, steps array, URLs on request steps)
 2. **For each step in order:**
    a. Build aggregated data: `{ ...originalPayload, ...previousStepResults }`
-   b. Resolve system credentials (refresh OAuth if needed), namespace as `systemId_key`
+   b. Resolve connection secrets (refresh OAuth if needed), namespace as `systemId_secretName`
    c. Run `dataSelector` → object means single execution, array means loop
    d. For each item: merge `currentItem` into input and execute
    e. Wrap result: `{ currentItem, data, success }`

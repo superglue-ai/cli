@@ -21,11 +21,11 @@ Configure the connection URL based on the selected connection's secrets — use 
 
 ### Fields
 
-| Field      | Required | Notes                                                          |
-| ---------- | -------- | -------------------------------------------------------------- |
-| `url`      | yes      | Connection string with `<<credential>>` placeholders           |
-| `body`     | yes      | JSON: single operation object or array for batch               |
-| `systemId` | no       | Links system credentials for `<<systemId_credKey>>` resolution |
+| Field      | Required | Notes                                                    |
+| ---------- | -------- | -------------------------------------------------------- |
+| `url`      | yes      | Connection string with `<<credential>>` placeholders     |
+| `body`     | yes      | JSON: single operation object or array for batch         |
+| `systemId` | no       | Resolves connection secrets as `<<systemId_secretName>>` |
 
 ### URL Formats
 

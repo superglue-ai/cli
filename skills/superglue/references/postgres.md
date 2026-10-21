@@ -19,11 +19,11 @@ Configure the connection URL based on the selected credential's secrets — use 
 
 ### Fields
 
-| Field      | Required | Notes                                                          |
-| ---------- | -------- | -------------------------------------------------------------- |
-| `url`      | yes      | Connection string with `<<credential>>` placeholders           |
-| `body`     | yes      | JSON string with `query` and optional `params`                 |
-| `systemId` | no       | Links system credentials for `<<systemId_credKey>>` resolution |
+| Field      | Required | Notes                                                    |
+| ---------- | -------- | -------------------------------------------------------- |
+| `url`      | yes      | Connection string with `<<credential>>` placeholders     |
+| `body`     | yes      | JSON string with `query` and optional `params`           |
+| `systemId` | no       | Resolves connection secrets as `<<systemId_secretName>>` |
 
 ### URL Format
 

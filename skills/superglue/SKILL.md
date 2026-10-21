@@ -385,16 +385,16 @@ Attach files with repeatable `--file key=path`. Reference in payloads with `file
 
 **Request step fields** (HTTP, Postgres, MSSQL, Redis, MongoDB, FTP/SFTP, SMB) — see protocol-specific references for full details:
 
-| Field         | Type   | Description                                                              |
-| ------------- | ------ | ------------------------------------------------------------------------ |
-| `type`        | string | `"request"` (default, can be omitted)                                    |
-| `systemId`    | string | Optional. Links system credentials for `<<systemId_credKey>>` resolution |
-| `url`         | string | Full URL with `<<variable>>` placeholders. Required.                     |
-| `method`      | string | HTTP method (HTTP only)                                                  |
-| `headers`     | object | HTTP headers with credential placeholders (HTTP only)                    |
-| `queryParams` | object | URL query parameters (HTTP only)                                         |
-| `body`        | string | Request body / DB query / Redis command / file operation                 |
-| `pagination`  | object | Auto-pagination config (HTTP only, see `sg skill http`)                  |
+| Field         | Type   | Description                                                        |
+| ------------- | ------ | ------------------------------------------------------------------ |
+| `type`        | string | `"request"` (default, can be omitted)                              |
+| `systemId`    | string | Optional. Resolves connection secrets as `<<systemId_secretName>>` |
+| `url`         | string | Full URL with `<<variable>>` placeholders. Required.               |
+| `method`      | string | HTTP method (HTTP only)                                            |
+| `headers`     | object | HTTP headers with credential placeholders (HTTP only)              |
+| `queryParams` | object | URL query parameters (HTTP only)                                   |
+| `body`        | string | Request body / DB query / Redis command / file operation           |
+| `pagination`  | object | Auto-pagination config (HTTP only, see `sg skill http`)            |
 
 **Transform step fields:**
 
@@ -423,8 +423,8 @@ All step config fields (url, headers, body, queryParams) support `<<expression>>
 <<userId>>             payload inputs
 <<currentItem>>        whole current loop item
 <<page>> <<offset>> <<cursor>> <<limit>> <<pageSize>>   pagination variables
-<<systemId_api_key>>   system credentials (namespaced: systemId_credKey)
-<<systemId_url>>       system base URLs (namespaced: systemId_url)
+<<systemId_api_key>>   connection secrets (namespaced: systemId_secretName)
+<<systemId_url>>       connection base URLs (namespaced: systemId_url)
 <<sg_auth_email>>      email of the user triggering this run (in scheduled runs: the schedule creator)
 <<sg_auth_jwt>>        short-lived signed JWT proving the identity of the user triggering this run; receivers verify it against superglue's outbound JWKS endpoint (/api/auth/outbound-jwks on the web app origin)
 ```
@@ -485,7 +485,7 @@ sourceData = {
 - State gives at-least-once execution with progress tracking, never exactly-once: crashes, concurrent-run conflicts, and state resets all cause re-processing, which re-executes side effects. Steps that write to external systems MUST be replay-safe — upsert by a stable external id or pass an idempotency key — or duplicates will land in the target system.
 - Keep set-valued keys bounded (e.g. keep only the most recent ~1,000 ids): an unbounded set eventually exceeds the 64KB value limit, which rejects the tool's entire state write on every run.
 - Never copy credential values into state — state is stored unencrypted and readable by anyone with read access to the tool.
-- Inspect current state via `sg tool state get <toolId>` (values matching known system credentials are masked); reset it via `sg tool state reset <toolId>`. A reset wins over in-flight runs: their updates to pre-reset keys are discarded as conflicts; only keys they newly add are kept.
+- Inspect current state via `sg tool state get <toolId>` (values matching known connection secrets are masked); reset it via `sg tool state reset <toolId>`. A reset wins over in-flight runs: their updates to pre-reset keys are discarded as conflicts; only keys they newly add are kept.
 - Set state deliberately via `sg tool state set <toolId> --state '<json>'` (or `--state-file`) — a full replace, subject to the same key and size limits. To test warm-state behavior without touching real state, pass `--state-fixture '<json>'` (or `--state-fixture-file`) to `sg tool run`: it seeds `sourceData.persistedState` for that run and the run never saves state changes. Side effects still execute, including `tool:` chain webhooks — a chained tool runs for real against its own real state.
 
 ### Naming Rules — Avoiding Key Collisions
@@ -495,7 +495,7 @@ Everything in `sourceData` shares ONE flat namespace. Saving a tool rejects payl
 - `__files__`, `currentItem`, `persistedState`, `sg_auth_email`, `sg_auth_jwt` — injected by the runtime
 - `page`, `offset`, `cursor`, `limit`, `pageSize` — rejected only when the tool has a paginated step, because they would shadow the live pagination counters; on non-paginated tools they are allowed but discouraged (a later edit that adds pagination will force a rename)
 - the tool's own step ids — the step result overwrites a same-named payload key
-- anything starting with `<systemId>_` for a system the tool uses — the entire prefix is reserved for namespaced credentials (`<systemId>_<credKey>`, `<systemId>_url`), even names that don't match an existing credential, because credentials added to the system later would silently shadow the input
+- anything starting with `<systemId>_` for a system the tool uses — the entire prefix is reserved for namespaced secrets (`<systemId>_<secretName>`, `<systemId>_url`), even names that don't match an existing secret, because secrets added to a connection later would silently shadow the input
 
 Safe naming: payload inputs get specific, domain-flavored names (`customerId`, `reportMonth`, `maxResults` — prefer `maxResults` over `limit` even on non-paginated tools, and never prefix an input with a referenced system's id); step ids are verb-prefixed camelCase (`fetchUsers`) and distinct from every payload key. If the user asks for an input named like a reserved key, use a safe alternative and explain why.
 
