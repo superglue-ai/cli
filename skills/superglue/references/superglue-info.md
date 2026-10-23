@@ -81,7 +81,7 @@ Brain contains context-source setup, project folders, playbooks, and files. File
 The persistent left sidebar contains these top-level items:
 
 - The project switcher and session list — always visible at the top. The switcher selects one project or **All projects**, which scopes the session list and new sessions; `/` starts a session and `/agents/{sessionId}` opens a saved one. New projects are planned with the agent.
-- **Brain** (`/brain`) — a file drive: the managed **Documentation** (system documentation and scraped pages) and **Playbooks** folders, one folder per project (`/brain/projects/{projectId}`), and files in no project. Files open at `/brain/files/{fileId}` and playbooks at `/brain/playbooks/{playbookId}`. Users upload files and drag them onto project folders to link them. **Setup** (`/brain/setup`) connects context sources with the user's own credentials.
+- **Brain** (`/brain`) — a file drive: the managed **Documentation** (system documentation and scraped pages) and **Playbooks** folders, one folder per project (`/brain/projects/{projectId}`), and files in no project. Files open at `/brain/files/{fileId}` and playbooks at `/brain/playbooks/{playbookId}`. Users upload files and drag them onto project folders to link them. **Setup** on Brain pages opens a dialog that connects context sources with the user's own credentials.
 - **Capabilities** — expandable group for connected and executable resources:
   - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
   - **Connections** (`/connections`, detail at `/connections/{connectionId}`) — connections to external services, grouped by system id, with secret status per connection; yours and the ones shared with you. A system ID is a namespace derived from existing connections; no system record is created. API keys are not managed here.
@@ -95,11 +95,11 @@ The persistent left sidebar contains these top-level items:
   - **API Keys** (`/api-keys`) — API key management.
   - **Settings** (`/settings`) — appearance and agent memory notes for every user; organization settings for admins.
 
-The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the project switcher starts agent-assisted project planning; projects are created only through the agent. A project's page is its Brain folder (`/brain/projects/{projectId}`), with **Files** (the default) and **Tasks** tabs. **Tasks** filters by label and assignee; each project has its own task labels. Projects support sharing, archive, and deletion; people with project access get the same access to its linked files.
+The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the project switcher starts agent-assisted project planning; projects are created only through the agent. A project's page is its Brain folder (`/brain/projects/{projectId}`), showing the project brief, a status box with task progress and **Open plan**, and the project's **Files**. **Open plan** shows every task on a board or table and filters by label and assignee; each project has its own task labels. Projects support sharing, archive, and deletion; people with project access get the same access to its linked files.
 
 Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user's name and email, lists the user's organizations and pending invitations, and contains **Sign Out**. Selecting an organization switches to it.
 
-While a brain setup step is open, a banner at the top of **Brain** links to **Brain > Setup** (`/brain/setup`), and the close button hides it for 7 days in that browser.
+While a brain setup step is open, the **Set up brain** button on Brain pages shows the progress and opens the setup dialog.
 
 When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the sidebar, which opens a 15-minute call booking page. The app shows no pricing. For Pro and Team organizations, admins see **Manage Plan** in the organization menu, which opens the Stripe portal. Enterprise organizations see neither. Do not quote prices. For pricing questions, point users to **Upgrade Plan** to book a call. There is no separate Billing page.
 
