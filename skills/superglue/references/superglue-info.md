@@ -30,7 +30,7 @@ If the user is asking general questions (not building):
 
 - Cloud tiers are **Trial**, **Pro**, **Team**, and **Enterprise**. Plan controls are described under Web App UI Layout.
 - **Trial** includes 1M input tokens and 100 runs lifetime; **Pro** includes 3M input tokens/user/month and 3,000 runs/user/month.
-- **Team** includes 5M input tokens/user/month and 5,000 runs/user/month; Team includes organization management, activity tracking, and custom MCP servers.
+- **Team** includes 5M input tokens/user/month and 5,000 runs/user/month; Team includes organization management and custom MCP servers.
 - **Enterprise** has unlimited usage limits by default, enterprise access controls, and self-hosting/on-prem options.
 - These cloud tier details do not apply to self-hosted or enterprise deployment setups.
 
@@ -86,9 +86,9 @@ The persistent left sidebar contains these top-level items:
   - **Connections** (`/connections`, detail at `/connections/{connectionId}`) — connections to external services, grouped by system id, with secret status per connection; yours and the ones shared with you. A system ID is a namespace derived from existing connections; no system record is created. API keys are not managed here.
   - **MCP Servers** (`/mcp-servers`) — manage and export named MCP server endpoints. Use the MCP documentation for behavior, permissions, and client setup.
   - **Schedules** (`/schedules`) — scheduled and recurring tool runs.
-- **Control Panel** (`/admin`) — expandable group for organization and account administration:
+- **Control Panel** — expandable group for organization and account administration:
   - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs.
-  - **Activity** (`/admin`) — organization activity summary for resource creation, shares, and tool runs; admin-only and requires Team or Enterprise.
+  - **Usage** (`/usage`) — Compute hours for a chosen date range, per day, per project, and per session; admins also see hours per person.
   - **Access Rules** (`/admin/access`) — role and access-rule configuration; admin-only and requires Enterprise. Use the access-rules reference for RBAC behavior, base roles, and personal roles.
   - **Organization** (`/organization`) — a standalone page without tabs that requires Team or Enterprise. It shows members, invitations, role assignment, and member-management actions; management actions are admin-gated.
   - **API Keys** (`/api-keys`) — API key management.
