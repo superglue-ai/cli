@@ -76,14 +76,14 @@ Join the path to the connection URL with exactly one `/`. Put the file content i
 
 | Field         | Required | Notes                                                                                        |
 | ------------- | -------- | -------------------------------------------------------------------------------------------- |
-| `subject`     | yes      | Subject line, at most 998 characters.                                                        |
+| `subject`     | yes      | Subject line.                                                                                |
 | `html`        | yes      | HTML body.                                                                                   |
 | `text`        | no       | Plain-text body for mail clients that do not show HTML.                                      |
 | `to`          | no       | Array of member email addresses. Defaults to the key owner.                                  |
 | `cc`          | no       | Array of member email addresses.                                                             |
 | `attachments` | no       | Array of `{ filename, content, encoding?, contentType? }`. `encoding` is `utf8` or `base64`. |
 
-A successful send returns `200` with `{ success: true, replyTo, to, cc, attachments }`. Each user can send 60 emails per hour through the endpoint.
+A successful send returns `200` with `{ success: true, message, replyTo, to, cc, attachments }`. Each user can send 60 emails per hour through the endpoint.
 
 ## Errors
 
