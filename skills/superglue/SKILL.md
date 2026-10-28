@@ -13,21 +13,22 @@ For protocol-specific details (HTTP, databases, Redis, file servers, GraphQL), f
 
 Read these on demand — they are authoritative for their topic and kept in sync with the web agent's skill references.
 
-| `sg skill` command        | When to read                                                                                         |
-| ------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `sg skill superglue-info` | Company info, interfaces (SDK, REST API, MCP, Web), web UI layout, execution pipeline, internals     |
-| `sg skill integration`    | Deploying tools — SDK (TS/Python) usage, REST API calls, webhook triggers, retry patterns            |
-| `sg skill http`           | HTTP step configuration, auth patterns, file uploads, response handling, pagination, error detection |
-| `sg skill graphql`        | GraphQL step config, schema introspection, error recovery                                            |
-| `sg skill postgres`       | PostgreSQL connection URLs, SSL/TLS handling, schema introspection, parameterized queries            |
-| `sg skill mssql`          | MSSQL / Azure SQL connection URLs, schema introspection, parameterized queries                       |
-| `sg skill odbc`           | ODBC connections (SAP ASE / Sybase via FreeTDS), driver config, positional `?` params                |
-| `sg skill redis`          | Redis command syntax, connection URLs, key type handling                                             |
-| `sg skill mongodb`        | MongoDB connection URLs (mongodb:// / mongodb+srv://), CRUD operations, Extended JSON, aggregation   |
-| `sg skill sftp-smb`       | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                         |
-| `sg skill suitecloud`     | NetSuite SuiteCloud deploys: custom fields, record types, scripts; validate, preview, deploy         |
-| `sg skill file-handling`  | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
-| `sg skill access-rules`   | RBAC roles, resource grants, and tool/credential permissions (enterprise only)                       |
+| `sg skill` command         | When to read                                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `sg skill superglue-info`  | Company info, interfaces (SDK, REST API, MCP, Web), web UI layout, execution pipeline, internals     |
+| `sg skill integration`     | Deploying tools — SDK (TS/Python) usage, REST API calls, webhook triggers, retry patterns            |
+| `sg skill http`            | HTTP step configuration, auth patterns, file uploads, response handling, pagination, error detection |
+| `sg skill graphql`         | GraphQL step config, schema introspection, error recovery                                            |
+| `sg skill postgres`        | PostgreSQL connection URLs, SSL/TLS handling, schema introspection, parameterized queries            |
+| `sg skill mssql`           | MSSQL / Azure SQL connection URLs, schema introspection, parameterized queries                       |
+| `sg skill odbc`            | ODBC connections (SAP ASE / Sybase via FreeTDS), driver config, positional `?` params                |
+| `sg skill redis`           | Redis command syntax, connection URLs, key type handling                                             |
+| `sg skill mongodb`         | MongoDB connection URLs (mongodb:// / mongodb+srv://), CRUD operations, Extended JSON, aggregation   |
+| `sg skill sftp-smb`        | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                         |
+| `sg skill suitecloud`      | NetSuite SuiteCloud deploys: custom fields, record types, scripts; validate, preview, deploy         |
+| `sg skill file-handling`   | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
+| `sg skill access-rules`    | RBAC roles, resource grants, and tool/credential permissions (enterprise only)                       |
+| `sg skill superglue-email` | Custom report and notification emails with attachments through superglue's email service             |
 
 ## CRITICAL RULES — READ FIRST
 
