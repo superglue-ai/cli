@@ -1,6 +1,6 @@
 ---
 name: superglue
-description: "Build, test, deploy and integrate superglue tools via the sg CLI and superglue SDKs. IMPORTANT — you MUST invoke this skill and read the full reference BEFORE running ANY sg command or writing ANY superglue SDK/REST/webhook integration code. Before using the sg CLI, first check that it is installed (run sg --version; if not found, install with npm install -g @superglue/cli), then verify either that it is configured with sg login or, for headless/API-key auth, that SUPERGLUE_API_KEY and SUPERGLUE_API_ENDPOINT environment variables are set. If not, guide the user through setup first. After reading SKILL.md, also run `sg skill <topic>` for the specific protocols and topics involved."
+description: "Build, test, deploy, and integrate superglue tools with the sg CLI and superglue SDKs. Load before running any sg command or writing superglue SDK, REST, or webhook integration code, then run `sg skill <topic>` for the protocols and topics involved."
 ---
 
 # superglue CLI (`sg`) — Agent Reference
@@ -30,7 +30,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 | `sg skill access-rules`    | RBAC roles, resource grants, and tool/credential permissions (enterprise only)                       |
 | `sg skill superglue-email` | Custom report and notification emails with attachments through superglue's email service             |
 
-## CRITICAL RULES — READ FIRST
+## Before You Start
 
 **Pre-requisites for using the CLI**
 
@@ -40,7 +40,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 
 **Calling systems and running tools**
 
-1. ALWAYS pull the relevant system context using `sg system find` before calling system endpoints and before building tools.
+1. Pull the relevant system context with `sg system find` before calling system endpoints and before building tools.
 2. Consult provider documentation when an API or service behavior is unclear.
 
 **Authentication & Credentials**
@@ -146,8 +146,6 @@ Blocked commands print a clear error showing the current preset and how to chang
 
 Systems are derived: a connection namespace is derived from existing connections. There is no system record to create or edit; you create and edit your connection.
 
-Removed commands (`sg system create`, `edit`, `credentials`, and `search-docs`) return a deprecation error with `sg update` and replacement guidance. Removed system API endpoints return HTTP 410 with the same guidance. Run `sg update`, then use connection commands; use `sg system find --id <id>` for system knowledge. Legacy `/credentials` API aliases remain available with deprecation headers.
-
 Match accessible owned and shared connections to the requested account, tenant, and environment, even across different system IDs. Respect an explicit connection choice or request for separate access. Otherwise, prefer suitable existing access; ask only when the account or connection choice is unclear. Defaults apply within one system ID and do not establish authentication or suitability.
 
 1. Read the relevant tool's namespace first, then inspect existing namespaces with `sg system find <query>`. List accessible connections in each candidate namespace with `sg system connection list --system-id <id>`. Reuse an existing id for the same logical service; preserve IDs referenced by saved tools. For a new namespace, use the template id, not its display name. Without a template, choose a descriptive id. Keep account labels in connection names; separate namespaces when tools need distinct services or environments.
@@ -157,7 +155,7 @@ Match accessible owned and shared connections to the requested account, tenant, 
 5. Verify connectivity with `sg system call`
 6. For updates: re-run `sg system connection set --system-id <id>` with the fields to change. When the namespace holds several connections, pass `--connection-id <id>` from `sg system connection list` to `set`, `clear`, `oauth`, and `call`; without it, `set` and `oauth` target your default or oldest owned connection
 
-A connection linked to an OAuth app uses the app's client ID, client secret, and token URL; app secret rotations reach every linked connection. Other authentication fields are copied on selection and stay connection-specific; scope edits remain local. Changing the client ID or token URL detaches the connection and requires its own client secret; `--oauth-app-id ""` also detaches and must be sent together with the connection's own client secret. Changing client settings retains tokens and supplemental secrets; authorize again afterward. Managed secrets stay hidden and restricted to approved provider endpoints. Every org member can use any organization OAuth app; its creator and administrators edit it. Client credentials connections keep their own client ID and secret and never take `--oauth-app-id`.
+A connection linked to an OAuth app uses the app's client ID, client secret, and token URL; app secret rotations reach every linked connection. Other authentication fields are copied on selection and stay connection-specific; scope edits remain local. Changing the client ID or token URL detaches the connection and requires its own client secret; `--oauth-app-id ""` also detaches and must be sent together with the connection's own client secret. Linking, switching, or detaching an app, or changing the client ID, deletes the connection's OAuth tokens; authorize again afterward. Other authentication changes keep tokens and supplemental secrets. Managed secrets stay hidden and restricted to approved provider endpoints. Every org member can use any organization OAuth app; its creator and administrators edit it. Client credentials connections keep their own client ID and secret and never take `--oauth-app-id`.
 
 When selecting an OAuth app on an existing non-OAuth connection, also pass `--authentication '{"type":"oauth2"}'`. An app-only update to a non-OAuth connection returns a validation error.
 
@@ -448,7 +446,7 @@ Object/array return values are `JSON.stringify`'d automatically when spliced int
 
 ```javascript
 sourceData = {
-  // Payload fields at ROOT level (NEVER use sourceData.payload.*)
+  // Payload fields at root level, not under sourceData.payload
   userId: "123",
   date: "2024-01-15",
 
@@ -483,7 +481,7 @@ sourceData = {
 - Batch continuation: process a large import in manageable batches and save the next cursor, so each scheduled run continues where the previous run stopped.
 - Polling-based change detection: poll an API on a schedule, compare its version or fingerprint with the previous result, and trigger follow-up work only when it changes. This is useful when the provider lacks the required webhook.
 - Incremental syncs and dedupe: store a timestamp or cursor for new records, or a bounded set such as `persistedState.seenIds`.
-- State gives at-least-once execution with progress tracking, never exactly-once: crashes, concurrent-run conflicts, and state resets all cause re-processing, which re-executes side effects. Steps that write to external systems MUST be replay-safe — upsert by a stable external id or pass an idempotency key — or duplicates will land in the target system.
+- State gives at-least-once execution with progress tracking, never exactly-once: crashes, concurrent-run conflicts, and state resets all cause re-processing, which re-executes side effects. Steps that write to external systems must be replay-safe — upsert by a stable external id or pass an idempotency key — or duplicates will land in the target system.
 - Keep set-valued keys bounded (e.g. keep only the most recent ~1,000 ids): an unbounded set eventually exceeds the 64KB value limit, which rejects the tool's entire state write on every run.
 - Never copy credential values into state — state is stored unencrypted and readable by anyone with read access to the tool.
 - Inspect current state via `sg tool state get <toolId>` (values matching known connection secrets are masked); reset it via `sg tool state reset <toolId>`. A reset wins over in-flight runs: their updates to pre-reset keys are discarded as conflicts; only keys they newly add are kept.
@@ -502,13 +500,13 @@ Safe naming: payload inputs get specific, domain-flavored names (`customerId`, `
 
 ### Step Result Envelopes
 
-**Every** step result is wrapped in `{ currentItem, data, success }`. You MUST account for this when writing data selectors or transforms.
+**Every** step result is wrapped in `{ currentItem, data, success }`. Account for it when writing data selectors or transforms.
 
 - **Object selector (or none)** — access via `sourceData.stepId.data`
 - **Array selector (loop)** — array of envelopes: `sourceData.stepId.map(i => i.data)`
 - **Paginated step** — all pages merged into a single `.data` field: access via `sourceData.stepId.data`. Do NOT `.map()` over it — returns a single object if one result, array if multiple (unwrapped from single-element array).
 
-NEVER access step results without `.data`. `sourceData.stepId.results` hits the envelope, not the API response.
+Read step results through `.data`: `sourceData.stepId.results` hits the envelope, not the API response.
 
 ### Data Selectors
 
@@ -561,7 +559,7 @@ All user-provided JS runs in an isolated Deno sandbox.
 
 ### Connections and placeholders
 
-Secrets are referenced by name as `<<systemId_credentialKey>>` and resolved from the selected connection at execution time. You MUST explicitly reference them:
+Secrets are referenced by name as `<<systemId_credentialKey>>` and resolved from the selected connection at execution time. Reference them explicitly:
 
 ```
 System id="stripe", selected connection has secret named: api_key
