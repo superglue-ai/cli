@@ -70,7 +70,7 @@ Some APIs (e.g. Salesforce) use SOAP XML login where credentials are embedded in
 
 ### Parsing XML responses
 
-XML responses (SOAP and other XML APIs) are auto-parsed to an object on `sourceData.stepId.data`. The parser has quirks you MUST account for in transforms and stopConditions — probe the real response with a small page before writing selectors:
+XML responses (SOAP and other XML APIs) are auto-parsed to an object on `sourceData.stepId.data`. Account for these parser quirks in transforms and stopConditions — probe the real response with a small page before writing selectors:
 
 - **Every tag name is UPPERCASED.** `<response><record>` becomes `RESPONSE.RECORD`, regardless of the source casing. Always select uppercase keys.
 - **Single vs multiple children collapse.** One child element parses to an object; multiple with the same tag parse to an array. Normalize before mapping: `const rows = Array.isArray(x) ? x : (x ? [x] : [])`.
@@ -208,7 +208,7 @@ pagination: {
 }
 ```
 
-**Variables** — the matching variable MUST appear in the request (URL, queryParams, headers, or body). Throws if missing.
+**Variables** — the matching variable must appear in the request (URL, queryParams, headers, or body). Throws if missing.
 
 | Type        | Variable                     | Starts at | Increments by            |
 | ----------- | ---------------------------- | --------- | ------------------------ |
