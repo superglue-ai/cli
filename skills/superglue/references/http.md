@@ -34,7 +34,7 @@ For APIs that require the same query key multiple times, use an array value:
 
 ## Authentication
 
-Saved tool steps never inject credentials: place auth headers explicitly with `<<systemId_credentialKey>>` placeholders. `sg system call` adds the `Authorization` header itself for `oauth2` (Bearer), `basic_auth` (Basic), and `api_key` (Bearer) systems; pass your own header only when the API expects a different one.
+Saved tool steps never inject credentials: place auth headers explicitly with `<<systemId_credentialKey>>` placeholders.
 
 ```javascript
 // Bearer token (including OAuth — token refresh is automatic, the step header is not)
