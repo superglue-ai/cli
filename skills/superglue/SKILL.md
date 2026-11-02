@@ -587,6 +587,8 @@ Basic auth auto-encodes: if the value after `Basic ` isn't already base64, the e
 
 **Credential lifecycle:**
 
+OAuth saves provider metadata from both the callback and token response automatically, including company IDs and instance URLs. Ordinary field names become connection secrets, such as `realmId` or `instance_url`; use their `<<systemId_secretName>>` placeholders before asking the user for these values. The `oauth_metadata` secret holds the metadata as JSON under `callback` and `tokenResponse`, including nested fields and names that cannot be secret names. For example, `<<(data) => JSON.parse(data.my_api_oauth_metadata).tokenResponse.team.id>>` reads a nested team ID. Refresh preserves omitted metadata and updates fields the provider returns. Callback data cannot replace OAuth tokens or client configuration.
+
 - Pass all secret values via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
 - Use `sg system connection set --system-id <id> --credentials '{...}'` to save secrets on the current API-key user's connection
 - Use `sg system connection get --system-id <id>` to inspect the current user's secret names and whether each has a non-empty value; secret values are never returned
