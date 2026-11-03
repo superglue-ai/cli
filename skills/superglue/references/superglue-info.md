@@ -104,15 +104,10 @@ When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the s
 
 **API Keys** (`/api-keys`) is a standalone page with a simple own-key editor for superglue API keys used by API, SDK, CLI headless/API-key auth, webhook, and non-OAuth MCP clients. Org users can create, copy, delete, and re-scope their own keys.
 
-**Settings** (`/settings`) is a standalone page with distinct sections. Every user sees **Appearance** and **Agent memory**; the other sections are admin-only:
+**Settings** (`/settings`) has two tabs. Members see only **Personal**, without tabs:
 
-- **Appearance** — light, dark, or system theme.
-- **Organization** — organization name.
-- **Design system** (`/settings/design-system`) — the brand every document follows: colors, fonts, logos, guidelines, HTML, Word, and PowerPoint templates, reference documents, and an import from the company website.
-- **Run settings** — run preferences: draft/single-step run visibility, run result storage, member run visibility, and delete-all-runs.
-- **Notifications** — run-alert channels for Slack and email (on failure, success, completion, or daily/weekly summaries). Slack setup opens `/settings/notifications/slack`; email setup opens `/settings/notifications/email`.
-- **Agent memory** (`/settings#settings-memory`) — every user adds, edits, and deletes their personal and organization memory notes; admins also turn agent memory on or off.
-- **Timeouts** — Enterprise only: organization-level execution, protocol, and connection timeouts.
+- **Personal** — **Appearance** (light, dark, or system theme); **Microsoft Teams** when the deployment has a Teams bot; **Agent autonomy**, the daily briefing and its schedule, when the deployment offers it; **Agent permissions**, whether superglue drafts emails in mailboxes the user connected without asking; and **Agent memory**, the user's personal memory notes.
+- **Organization** (`/settings?tab=organization`, admins only) — the organization name and the **Design system** (`/settings/design-system`): colors, fonts, logos, guidelines, HTML, Word, and PowerPoint templates, reference documents, and an import from the company website; **Organization agent memory**, the organization memory notes and the switch that turns agent memory off for every member; **Tool alerts**, Slack and email alerts when tools fail (`/settings/notifications/slack`, `/settings/notifications/email`); **Run settings**, draft and single-step run visibility, run result storage, member run visibility, and delete all runs; and, on Enterprise, **Timeouts** for execution, protocols, and connections.
 
 ## Internals
 
