@@ -106,7 +106,7 @@ When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the s
 
 **Settings** (`/settings`) has two tabs. Members see only **Personal**, without tabs:
 
-- **Personal** — **Appearance** (light, dark, or system theme); **Microsoft Teams** when the deployment has a Teams bot; **Agent autonomy**, the daily briefing and its schedule, when the deployment offers it; **Agent permissions**, whether superglue drafts emails in mailboxes the user connected without asking; and **Agent memory**, the user's personal memory notes.
+- **Personal** — **Appearance** (light, dark, or system theme); **Microsoft Teams** when the deployment has a Teams bot; **Agent autonomy**, the daily briefing and its schedule, for Enterprise organizations when the deployment offers it; **Agent permissions**, whether superglue drafts emails in mailboxes the user connected without asking; and **Agent memory**, the user's personal memory notes.
 - **Organization** (`/settings?tab=organization`, admins only) — the organization name and the **Design system** (`/settings/design-system`): colors, fonts, logos, guidelines, HTML, Word, and PowerPoint templates, reference documents, and an import from the company website; **Organization agent memory**, the organization memory notes and the switch that turns agent memory off for every member; **Tool alerts**, Slack and email alerts when tools fail (`/settings/notifications/slack`, `/settings/notifications/email`); **Run settings**, draft and single-step run visibility, run result storage, member run visibility, and delete all runs; and, on Enterprise, **Timeouts** for execution, protocols, and connections.
 
 ## Internals
