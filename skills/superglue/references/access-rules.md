@@ -74,7 +74,7 @@ Every user has exactly one base role:
 
 - **`admin`** — built-in editor access to resources except credentials. Credentials require ownership or explicit grants. New organizations give admins no credential wildcard. Credential grants are editable. Name and description cannot be changed. Cannot be deleted.
 - **`member`** — default for org team members. New organizations seed it with a wildcard `editor` grant for tools. Access-rule grants can be narrowed. Name and description cannot be changed. Cannot be deleted.
-- **`service_account`** — API-only users that admins create through `/v1/service-accounts`. Starts with no grants; only its grants are editable. Users cannot be switched to or from it. Service accounts can run granted tools and manage their own credential sets, but cannot log in, use MCP, or read runs.
+- **`service_account`** — API-only users that admins and members create through `/v1/service-accounts`. Members list and delete only the ones they created; admins list and delete all. Starts with no grants; only its grants are editable. Users cannot be switched to or from it. Service accounts can run granted tools and manage their own credential sets, but cannot log in, use MCP, or read runs.
 
 Users can also have additional custom roles on top of their base role. Custom roles are fully editable and can be created/deleted.
 

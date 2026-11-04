@@ -90,7 +90,7 @@ The persistent left sidebar contains these top-level items:
   - **Runs** (`/runs`, detail at `/runs/{runId}`) — execution history for full, draft, and single-step tool runs.
   - **Usage** (`/usage`) — Compute hours for a chosen date range, per day, per project, and per session; admins also see hours per person.
   - **Access Rules** (`/admin/access`) — role and access-rule configuration; admin-only and requires Enterprise. Use the access-rules reference for RBAC behavior, base roles, and personal roles.
-  - **Organization** (`/organization`) — a standalone page without tabs that requires Team or Enterprise. It shows members, invitations, role assignment, and member-management actions; management actions are admin-gated.
+  - **Organization** (`/organization`) — a standalone page without tabs that requires Team or Enterprise. It shows members, invitations, role assignment, and member-management actions; management actions are admin-gated. Members can invite users as members, resend or cancel the invitations they sent, create service accounts, and delete the service accounts they created. Only admins invite admins.
   - **API Keys** (`/api-keys`) — API key management.
   - **Settings** (`/settings`) — appearance and agent memory notes for every user; organization settings for admins.
 
