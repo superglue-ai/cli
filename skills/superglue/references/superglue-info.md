@@ -52,7 +52,7 @@ Two limits are worth stating plainly. Execute reaches the agent, and the agent's
 - **TypeScript/Python SDK** — https://superglue.ai/docs/sdk/overview/
 - **REST API** — https://superglue.ai/docs/api/
 - **MCP Server** — https://superglue.ai/docs/mcp/using-the-mcp/
-- **Microsoft Teams app** — available when the deployment has a Teams bot. Users chat with superglue, approve agent actions in cards, and mention @superglue in project channels. A Teams administrator uploads the app package from the web app URL plus `/teams/superglue-teams.zip`. Each user connects in a personal chat with superglue or under **Settings** → **Personal** → **Microsoft Teams**.
+- **Microsoft Teams app** — available when the deployment has a Teams bot. Users chat with superglue and approve agent actions in cards. A Teams administrator uploads the app package from the web app URL plus `/teams/superglue-teams.zip`. Each user connects in a personal chat with superglue or under **Settings** → **Personal** → **Microsoft Teams**.
 - **CLI** — `npm install -g @superglue/cli` — https://superglue.ai/docs/getting-started/cli-skills/
 
 ### Webhook Triggers
