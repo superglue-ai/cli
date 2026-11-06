@@ -104,7 +104,7 @@ Two types:
 - `{ type: "schedule", prompt, cronExpression, timezone, enabled? }` runs a check on a cron schedule. Every check is a full agent run that costs compute even when nothing is new, so use hourly or slower, and a webhook trigger when the source can call a URL. Confirm the interval and the timezone with the user; do not assume UTC.
 - `{ type: "webhook", prompt, enabled?, verification? }` gives the bot a URL. `sg bots create` and `sg bots update` return the `triggers` with the URL when the command had `--triggers-file`; `sg bots get` also shows it. Each request to the URL starts a check run with the request body as data and returns 202 at once. The URL answers Slack, Microsoft Graph, and Meta verification challenges. The URL contains its secret: give it only to the user who sets up the sending system, and remove and add the trigger to change it. With `verification: { type: "slack", signingSecret }`, the URL accepts only requests that Slack signed with that secret (`x-slack-signature`, at most 5 minutes old) and answers others with 401. Ask the user for the signing secret from the Slack app's Basic Information page. On update, omit `verification` to keep the saved secret and pass `null` to remove it; reads show only `verification: { type: "slack" }`.
 
-Write the prompt as the check itself: the source, what counts as a request, what to skip, and how to build `externalId`.
+Write the prompt as the check itself: the source, what counts as a request, what to skip, and how to build `externalId`. Leave the ticket fields to the check run: do not say how to write `subject` or `body`; the run writes a short subject of its own.
 
 ```json
 [
