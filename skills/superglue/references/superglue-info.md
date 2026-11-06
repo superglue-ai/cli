@@ -73,6 +73,8 @@ If a customer's system requires IP allowlisting for firewall rules, security gro
 
 ## Web App UI Layout
 
+Users see action items as **next steps**: on the start screen, on the Bots page, and in the briefing. Say "next steps" to users; "action item" is the internal name in the API and the VFS.
+
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
 
 Brain contains context-source setup, project folders, playbooks, and files. Files include uploads and the artifacts and spreadsheets that agents write; a file can belong to several projects. Capabilities contains tools, connections, MCP servers, and schedules; tools can be linked to projects, the others configure execution. A system is only the system ID that groups connections and tool steps. Projects are managed separately; a project links brain files and tools, and people with project access get the same access to them; playbooks are org-wide.
@@ -106,7 +108,7 @@ When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the s
 
 **Settings** (`/settings`) has two tabs. Members see only **Personal**, without tabs:
 
-- **Personal** — **Appearance** (light, dark, or system theme); **Microsoft Teams** when the deployment has a Teams bot; **Agent autonomy**, the daily briefing and its schedule, for Enterprise organizations when the deployment offers it; **Agent permissions**, whether superglue drafts emails in mailboxes the user connected without asking; and **Agent memory**, the user's personal memory notes.
+- **Personal** — **Appearance** (light, dark, or system theme); **Microsoft Teams** when the deployment has a Teams bot; **Agent autonomy**, a link to the daily briefing's bot page (`/bots/briefing`) with its schedule, for Enterprise organizations when the deployment offers it; **Agent permissions**, whether superglue drafts emails in mailboxes the user connected without asking; and **Agent memory**, the user's personal memory notes.
 - **Organization** (`/settings?tab=organization`, admins only) — the organization name and the **Design system** (`/settings/design-system`): colors, fonts, logos, guidelines, HTML, Word, and PowerPoint templates, reference documents, and an import from the company website; **Organization agent memory**, the organization memory notes and the switch that turns agent memory off for every member; **Tool alerts**, Slack and email alerts when tools fail (`/settings/notifications/slack`, `/settings/notifications/email`); **Run settings**, draft and single-step run visibility, run result storage, member run visibility, and delete all runs; and, on Enterprise, **Timeouts** for execution, protocols, and connections.
 
 ## Internals
