@@ -5,11 +5,11 @@
 A bot is a standing agent that works on its own. Each bot has its own principal user. Bot runs act as that principal, so a bot can use only the connections, tools, playbooks, and files shared with it. It never uses the access of the person who set it up.
 
 - `sg bots get <botId>` returns `bot` (settings, `principalUserId`, `destinations`, `standingPermissions`), `triggers`, and `access` (the resources shared with the bot). Webhook trigger URLs show only to editors of the bot.
-- `sg bots tickets list <botId>` returns the tickets with status (`open`, `started`, `done`), the run `sessionId`, and `waitingFor` (`input` for an approval, answer, or sign-in, `handoff` after a handoff, `failure` when the run failed or was stopped, otherwise null) and `waitingSummary`, what the person needs to act on.
+- `sg bots tickets list <botId>` returns the tickets with status (`open`, `started`, `done`, `dismissed`), the run `sessionId`, and `waitingFor` (`input` for an approval, answer, or sign-in, `handoff` after a handoff, `failure` when the run failed or was stopped, otherwise null) and `waitingSummary`, what the person needs to act on.
 - The creator owns the bot. Editors of a bot can change it, give it resources, open tickets, open and answer its ticket sessions, and cancel its runs. Making someone an editor gives them use of everything shared with the bot.
 - Admins have no automatic access to bots, because a bot carries the access of its connections.
 
-The only kind today is `support`: the bot takes tickets from clients and works on each one in its own run. A run that ends marks its ticket done; a later update from the requester opens it again.
+The only kind today is `support`: the bot takes tickets from clients and works on each one in its own run. A run that resolves its ticket marks it done; a run that hands it off or ends without saying keeps it in progress. A later update from the requester opens a closed ticket again.
 
 ## Commands
 
