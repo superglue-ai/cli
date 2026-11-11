@@ -53,6 +53,8 @@ JSON string with `query` and optional `params` (or `values`):
 }
 ```
 
+ODBC does not support a `transaction` body. Each statement runs on its own, with no rollback across statements.
+
 ## Authentication
 
 Credentials are embedded directly in the connection URL using `<<systemId_credentialKey>>` placeholders. Nothing is injected automatically.

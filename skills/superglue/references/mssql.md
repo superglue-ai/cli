@@ -83,6 +83,20 @@ JSON string with `query` and optional `params` (or `values`):
 }
 ```
 
+To apply several statements together, send `transaction` instead. The statements run in order on one connection and commit together; the result lists each statement's result in order. Each statement numbers its own parameters from `@param1`. If a statement fails, all of them roll back.
+
+```json
+{
+  "transaction": [
+    { "query": "INSERT INTO orders (customer_id) VALUES (@param1)", "params": [42] },
+    {
+      "query": "UPDATE customers SET order_count = order_count + 1 WHERE id = @param1",
+      "params": [42]
+    }
+  ]
+}
+```
+
 ## Authentication
 
 ### SQL Server Authentication (default)

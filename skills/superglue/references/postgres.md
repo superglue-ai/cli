@@ -42,6 +42,17 @@ JSON string with `query` and optional `params` (or `values`):
 { "query": "SELECT * FROM users WHERE age > $1 AND status = $2", "params": [25, "active"] }
 ```
 
+To apply several statements together, send `transaction` instead. The statements run in order on one connection and commit together; the result lists each statement's rows in order. If a statement fails, all of them roll back.
+
+```json
+{
+  "transaction": [
+    { "query": "INSERT INTO orders (customer_id) VALUES ($1)", "params": [42] },
+    { "query": "UPDATE customers SET order_count = order_count + 1 WHERE id = $1", "params": [42] }
+  ]
+}
+```
+
 ## Authentication
 
 Credentials are embedded directly in the connection URL using `<<systemId_credentialKey>>` placeholders. Nothing is injected automatically.

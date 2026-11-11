@@ -161,7 +161,6 @@ All HTTP responses are read as raw bytes, then classified by byte-level detectio
 
 - **File responses**: formats classified as files by `file-handling.md` are stored as files, and parsed content populates `data` when extraction is available. Later steps can reference them via `file::<stepId>.raw/base64/extracted`.
 - **`application/octet-stream`**: always treated as a file.
-- **Responses over 25 MB**: treated as files as a safety fallback.
 - **RAW + `Content-Disposition: attachment`**: treated as a file.
 - **Inline responses**: formats classified as structured or plain text by `file-handling.md` populate `data` without producing a stored file unless another file rule applies.
 
