@@ -603,7 +603,7 @@ OAuth saves provider metadata from both the callback and token response automati
 
 **Templates:** matched by system id (or connection url) and supply display and OAuth defaults. `sg system find --id <id>` shows the matched template.
 
-- **Preconfigured OAuth** (no user `client_id`/`client_secret` needed): slack, salesforce, asana, notion, airtable, jira, confluence
+- **superglue-managed OAuth** (no user `client_id`/`client_secret` needed): `sg system oauth-apps --system-id <id>` lists an app with `source: "superglue"` when this deployment has one, such as for gmail, googleDrive, outlookMail, microsoftTeams, slack, salesforce, notion, and asana
 - **Common OAuth templates:** gmail, googleDrive, googleCalendar, googleSheets, slack, salesforce, github, jira, confluence, notion, airtable, hubspot, shopify, dropbox, zoom, microsoft
 
 **Custom OAuth (no template):** put the client config on your connection's authentication:
