@@ -73,7 +73,7 @@ If a customer's system requires IP allowlisting for firewall rules, security gro
 
 ## Web App UI Layout
 
-Users see action items as **next steps**: on the start screen, on the Bots page, and in the briefing. Say "next steps" to users; "action item" is the internal name in the API and the VFS.
+Users see action items as **next steps**: on the start screen, on the Agents page, and in the briefing. Say "next steps" to users; "action item" is the internal name in the API and the VFS.
 
 Use this section as the source of truth for high-level web app navigation. Do not invent UI locations that are not listed here.
 
@@ -81,7 +81,7 @@ Brain contains context-source setup, project folders, playbooks, and files. File
 
 The persistent left sidebar contains these top-level items:
 
-- The project switcher and session list — always visible at the top. The switcher selects one project or **All projects**, which scopes the session list and new sessions; `/` starts a session and `/agents/{sessionId}` opens a saved one. New projects are planned with the agent.
+- The project switcher and session list — always visible at the top. The switcher selects one project or **All projects**, which scopes the session list and new sessions; `/` starts a session and `/sessions/{sessionId}` opens a saved one. New projects are planned with the agent.
 - **Brain** (`/brain`) — a file drive: the managed **Documentation** (system documentation and scraped pages) and **Playbooks** folders, one folder per project (`/brain/projects/{projectId}`), and files in no project. Files open at `/brain/files/{fileId}` and playbooks at `/brain/playbooks/{playbookId}`. Word, PowerPoint, and uploaded Excel files open read-only and look as they do in Office. Users upload files and drag them onto project folders to link them. **Setup** on Brain pages opens a dialog that connects context sources with the user's own credentials.
 - **Capabilities** — expandable group for connected and executable resources:
   - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
@@ -108,7 +108,7 @@ When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the s
 
 **Settings** (`/settings`) has two tabs. Members see only **Personal**, without tabs:
 
-- **Personal** — **Appearance** (light, dark, or system theme); **Microsoft Teams** when the deployment has a Teams bot; **Agent autonomy**, a link to the daily briefing's bot page (`/bots/briefing`) with its schedule, for Enterprise organizations when the deployment offers it; **Agent permissions**, whether superglue drafts emails in mailboxes the user connected without asking; and **Agent memory**, the user's personal memory notes.
+- **Personal** — **Appearance** (light, dark, or system theme); **Microsoft Teams** when the deployment has a Teams bot; **Agent autonomy**, a link to the daily briefing's agent page (`/agents/briefing`) with its schedule, for Enterprise organizations when the deployment offers it; **Agent permissions**, whether superglue drafts emails in mailboxes the user connected without asking; and **Agent memory**, the user's personal memory notes.
 - **Organization** (`/settings?tab=organization`, admins only) — the organization name and the **Design system** (`/settings/design-system`): colors, fonts, logos, guidelines, HTML, Word, and PowerPoint templates, reference documents, and an import from the company website; **Organization agent memory**, the organization memory notes and the switch that turns agent memory off for every member; **Tool alerts**, Slack and email alerts when tools fail (`/settings/notifications/slack`, `/settings/notifications/email`); **Run settings**, draft and single-step run visibility, run result storage, member run visibility, and delete all runs; and, on Enterprise, **Timeouts** for execution, protocols, and connections.
 
 ## Internals

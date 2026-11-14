@@ -29,7 +29,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 | `sg skill file-handling`   | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
 | `sg skill access-rules`    | RBAC roles, resource grants, and tool/credential permissions (enterprise only)                       |
 | `sg skill superglue-email` | Custom report and notification emails with attachments through superglue's email service             |
-| `sg skill bots`            | Support bots: settings, standing permissions, schedule and webhook triggers, tickets                 |
+| `sg skill agents`          | Support agents: settings, standing permissions, schedule and webhook triggers, tickets               |
 
 ## Before You Start
 
@@ -266,9 +266,9 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | `tools.writeTask` (superglue module; no id)      | `sg project task create --project <id>`          | Same fields; `--position` places the task in its column                                                  |
 | `tools.writeTask` (superglue module; id)         | `sg project task edit --project <p> --id <t>`    | Updates only the given fields, including `--position`                                                    |
 | `tools.writeProjectLabel` (superglue module)     | `sg project label create` / `label edit`         | Same fields; `sg project label delete` has no module equivalent                                          |
-| `tools.writeBot` (superglue module; no id)       | `sg bots create --kind support --name <n>`       | Same fields; see `sg skill bots`                                                                         |
-| `tools.writeBot` (superglue module; id)          | `sg bots update <botId>`                         | File flags hold the desired destinations, triggers, and standing permissions                             |
-| `tools.createBotTicket` (superglue module)       | `sg bots tickets create <botId>`                 | Same fields; `created: false` when the external ID already has a ticket                                  |
+| `tools.writeAgent` (superglue module; no id)     | `sg agents create --kind support --name <n>`     | Same fields; see `sg skill agents`                                                                       |
+| `tools.writeAgent` (superglue module; id)        | `sg agents update <agentId>`                     | File flags hold the desired destinations, triggers, and standing permissions                             |
+| `tools.createAgentTicket` (superglue module)     | `sg agents tickets create <agentId>`             | Same fields; `created: false` when the external ID already has a ticket                                  |
 | (no direct equivalent)                           | `sg login`, `sg update`, `sg skill`              | CLI-specific setup, updater, and this reference system                                                   |
 
 Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `connect`'s secure input form (CLI accepts secrets through connection commands), and `setup_gateway` (the gateway install command is created in the web app).
