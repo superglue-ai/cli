@@ -53,7 +53,7 @@ Read these on demand — they are authoritative for their topic and kept in sync
 
 **Saving tools**
 
-- Never save a tool without explicit user confirmation. Build + run, present results, then save with `sg tool save --draft <id>` only after the user approves.
+- Never save a tool without explicit user confirmation. Write the config file and run it, present results, then save with `sg tool save --config-file <path>` only after the user approves.
 
 **Non-interactive environments (AI agents, CI)**
 
@@ -103,11 +103,11 @@ Verify with `sg whoami` or `sg system list` — should return authenticated cont
 
 Set via `SUPERGLUE_CLI_PRESET` env var or `config.json` as `"preset"`. Legacy `sg init --preset` still writes this value for existing scripts.
 
-| Preset    | Description                                                                                                 |
-| --------- | ----------------------------------------------------------------------------------------------------------- |
-| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing                                          |
-| `builder` | Runner + build/edit/save tools, call systems, manage connections, MCP servers, schedules, and project tasks |
-| `admin`   | Full access (default)                                                                                       |
+| Preset    | Description                                                                                               |
+| --------- | --------------------------------------------------------------------------------------------------------- |
+| `runner`  | Run saved tools by ID only. Read-only lookups. No building/editing                                        |
+| `builder` | Runner + test and save tools, call systems, manage connections, MCP servers, schedules, and project tasks |
+| `admin`   | Full access (default)                                                                                     |
 
 Blocked commands print a clear error showing the current preset and how to change it.
 
@@ -130,18 +130,19 @@ Blocked commands print a clear error showing the current preset and how to chang
 2. Use `sg system find` for every involved system — note the available secret names and the connection URL
 3. Consult provider documentation for endpoints, authentication, pagination, and response structure.
 4. Use `sg system call` to test 1-2 primary endpoints — verify response structure and field names before building
-5. Call `sg tool build --config '{...}'` with the full tool config (see Reference → Tool Config Schema)
-6. Test with `sg tool run --draft <draftId>`. Use `--include-step-results` to inspect raw step data
-7. Iterate using `sg tool edit --draft <draftId> --patches '[...]'` (see Reference → Tool Editing)
-8. Present results to the user and ask for approval. Only then run `sg tool save --draft <draftId>`
+5. Write the full tool config to a local JSON file, for example `tool.json` (see Reference → Tool Config Schema). Include `inputSchema` for the payload fields the tool expects
+6. Test with `sg tool run --config-file tool.json`. Use `--include-step-results` to inspect raw step data
+7. Iterate by editing the file and running it again
+8. Present results to the user and ask for approval. Only then run `sg tool save --config-file tool.json`
 
 ### Editing a Tool
 
 1. Use `sg tool find --id <toolId>` or `sg tool find <query>` to locate the tool and inspect its current config
 2. Determine whether upstream steps use object or array selectors so you reference `.data` correctly in downstream code
-3. Plan the JSON Patch operations (RFC 6902)
-4. Apply with `sg tool edit --tool <toolId> --patches '[...]'` (or `--draft <draftId>` for drafts)
-5. Re-run to verify behavior
+3. Write the saved config to a file with `sg tool pull <toolId> --out tool.json`
+4. Edit the file. If you change a step's output shape, check whether later `dataSelector` functions and `outputTransform` need updating
+5. Test with `sg tool run --config-file tool.json`. The saved tool stays unchanged until you save
+6. Present results to the user and ask for approval. Only then run `sg tool save --config-file tool.json`, which replaces the config of the saved tool with the same `id`. A field removed from the file (`outputTransform`, `inputSchema`, `outputSchema`) is removed from the saved tool
 
 ### Connecting a System
 
@@ -164,8 +165,10 @@ When selecting an OAuth app on an existing non-OAuth connection, also pass `--au
 
 ```bash
 sg tool run --tool <toolId> --payload '{"userId":"123"}'
-sg tool run --draft <draftId> --payload-file payload.json
+sg tool run --config-file tool.json --payload-file payload.json
 ```
+
+When a saved tool with the config's `id` exists, the run is recorded as a draft run with the tool ID `<id>_draft`. Otherwise the run is recorded under the config's `id`.
 
 Streams live execution logs to the terminal. Use `--include-step-results` for raw per-step responses and `--include-config` for the full config dump.
 
@@ -247,9 +250,9 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 
 | Web agent tool                                   | CLI command                                      | Notes                                                                                                    |
 | ------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| `tools.writeTool` (superglue module; new id)     | `sg tool build --config '{...}'`                 | CLI is not AI-powered — you provide the full JSON config                                                 |
-| `tools.writeTool` (superglue; saved id)          | `sg tool edit --tool <id> --patches '[...]'`     | JSON Patch (RFC 6902). Use `--draft <id>` for drafts                                                     |
-| `tools.runTool`                                  | `sg tool run --tool <id>` / `--draft <id>`       | Add `--include-step-results` to inspect per-step data                                                    |
+| `tools.writeTool` (superglue module; new id)     | `sg tool save --config-file tool.json`           | CLI is not AI-powered — you write the full JSON config file                                              |
+| `tools.writeTool` (superglue; saved id)          | `sg tool pull <id> --out tool.json`, then save   | Edit the file, test it, then `sg tool save --config-file`                                                |
+| `tools.runTool`                                  | `sg tool run --tool <id>` / `--config-file`      | Add `--include-step-results` to inspect per-step data                                                    |
 | `run_command` with `vfs` for `/org/tools/`       | `sg tool find --id <id>` / `sg tool find <q>`    | Full config with `--id`, compact search with a query string                                              |
 | `tools.writeConnection`                          | `sg system connection set --system-id <id>`      | Creates or updates your connection under its namespace                                                   |
 | `run_command` with `vfs` for `/org/connections/` | `sg system find <query>` / `--id <id>`           | Returns your connection's secret names, url, and auth type                                               |
@@ -284,14 +287,12 @@ Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesyst
 **Tool commands:**
 
 ```bash
-sg tool build --config '{"id":"...","steps":[...]}'       # inline JSON
-sg tool build --config tool.json                          # from file
-sg tool build --id my-tool --instruction "..." --steps steps.json --payload '{...}'
-sg tool run --draft <draftId> --payload '{"userId":"123"}'
+sg tool run --config-file tool.json --payload '{"userId":"123"}'   # test a local config file
+sg tool run --config '{"id":"...","steps":[...]}'                  # test inline JSON
 sg tool run --tool my-tool --payload-file payload.json --include-step-results
-sg tool edit --draft <draftId> --patches '[{"op":"replace","path":"/steps/0/config/url","value":"..."}]'
-sg tool edit --tool my-tool --patches patches.json
-sg tool save --draft <draftId>
+sg tool save --config-file tool.json                # create the tool, or replace the saved tool with the same id
+sg tool save --config-file tool.json --id other-id  # save under another id
+sg tool pull my-tool --out tool.json                # write a saved tool's config to a file
 sg tool list
 sg tool find "shopify orders"       # keyword search (compact results)
 sg tool find --id my-tool           # exact lookup (full config)
@@ -352,7 +353,7 @@ sg run get <runId> --fetch-results  # alias for --full
 **File attachments:**
 
 ```bash
-sg tool run --draft <id> --payload '{"data":"file::mysheet"}' --file mysheet=data.xlsx
+sg tool run --config-file tool.json --payload '{"data":"file::mysheet"}' --file mysheet=data.xlsx
 ```
 
 Attach files with repeatable `--file key=path`. Reference in payloads with `file::<key>`. Auto-parsed to JSON where applicable. See `sg skill file-handling` for the full reference syntax including `.raw`, `.base64`, and `.extracted` suffixes.
@@ -613,48 +614,6 @@ sg system connection set --system-id my_api --url https://api.example.com --cred
   --authentication '{"type":"oauth2","clientId":"...","clientSecret":"...","authUrl":"https://example.com/oauth/authorize","tokenUrl":"https://example.com/oauth/token"}'
 ```
 
-### Tool Editing (JSON Patch)
-
-`sg tool edit` applies RFC 6902 JSON Patch operations. Each operation:
-
-```typescript
-{
-  op: "add" | "remove" | "replace" | "move" | "copy" | "test",
-  path: string,   // JSON Pointer, e.g. "/steps/0/config/url"
-  value?: any,    // required for add, replace, test
-  from?: string   // required for move, copy
-}
-```
-
-**Key paths:**
-
-- `/instruction` — tool description
-- `/steps/N` — step at index N
-- `/steps/N/config/url`, `/steps/N/config/method`, `/steps/N/config/headers`, etc.
-- `/steps/N/dataSelector` — JS function controlling input + loop mode
-- `/outputTransform` — final output shaping function
-- `/outputSchema` — optional JSON schema for output
-
-**Operations:**
-
-- `replace` — Change an existing value. **Path must exist** — if the field is `null` or absent, `replace` fails. Prefer `add` when the field might be absent.
-- `add` — Creates if missing, overwrites if present. Append to array with `/steps/-`.
-- `remove` — Delete field or array element.
-- `move` — Reorder or relocate.
-
-**Validation:**
-
-- Never patch `id` — tool IDs and draft IDs are immutable
-- `op` and `path` required; `path` must start with `/`
-- Patches applied **sequentially** — later patches see effects of earlier ones
-- After patches, same validation as building (valid id, steps array, URLs on request steps, transformCode on transform steps)
-
-**Downstream shape changes:** if you change a step's output shape, check if later dataSelectors and `outputTransform` need updating. When removing array elements, subsequent indices shift down.
-
-### Draft Management
-
-Drafts live under the active CLI config directory: local `.superglue/drafts/` when a project config exists, otherwise `~/.superglue/drafts/`. Draft filenames are base64url-encoded draft IDs, so use the `draftPath` returned by `sg tool build` and `sg tool edit` when inspecting raw draft files. Created by `sg tool build`, updated by `sg tool edit`, deleted by `sg tool save`. Ephemeral — not persisted to the superglue API until saved.
-
 ### Deployment
 
 After building and saving, tools can be invoked from code via REST API, SDK, or webhook. See `sg skill integration` for complete SDK (TypeScript/Python), REST API, and webhook examples including retry patterns.
@@ -703,9 +662,11 @@ curl -X POST "https://api.superglue.cloud/v1/hooks/{toolId}?token=$SUPERGLUE_API
 
 For protocol-specific error recovery (HTTP, Postgres, MSSQL, Redis, MongoDB, GraphQL, SFTP/SMB), run `sg skill <protocol>`. General strategies below.
 
-### Tool build fails validation
+Every failed command exits with code 1 and prints its JSON on stderr. This includes a failed `sg tool run`, whose result keeps the same fields as a successful run.
 
-`sg tool build` returns a validation error. Read the message, fix the config, and re-run. Common causes: missing `id`, empty `steps`, missing `url` on request steps, missing `transformCode` on transform steps, `systemId` on the step object instead of `step.config.systemId`, or a key name collision (see Naming Rules) — rename the flagged input or step id.
+### Tool config fails validation
+
+`sg tool run --config-file` or `sg tool save` returns a validation error. Read the message, fix the config, and re-run. Common causes: missing `id` (required to save), empty `steps`, missing `url` on request steps, missing `transformCode` on transform steps, `systemId` on the step object instead of `step.config.systemId`, or a key name collision (see Naming Rules) — rename the flagged input or step id.
 
 ### Tool runs but a step fails
 
