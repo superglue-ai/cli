@@ -54,7 +54,9 @@ mssql://myuser%40myserver:mypassword@myserver.database.windows.net:1433/mydataba
 mssql://user:password@SERVER/database?instanceName=PROLAW
 ```
 
-When an instance name is set, the port is ignored — the instance's port is resolved via the SQL Browser service (UDP 1434), which must be running and reachable. If SQL Browser is unavailable (or the server is reached through the Secure Gateway tunnel, which forwards a single TCP port and cannot carry UDP), have the DBA assign a static TCP port to the instance and connect with `host:port` without an instance name instead.
+When an instance name is set, the port is ignored — the instance's port is resolved via the SQL Browser service (UDP 1434), which must be running and reachable.
+
+Through the Secure Gateway tunnel, which forwards TCP only, never use `instanceName`. Set the gateway target address to the instance instead, for example `'SERVER\PROLAW'` in the gateway config (single quotes, because YAML reads a backslash in double quotes as an escape). The gateway asks SQL Browser on its own network for the instance's TCP port on each connection, so dynamic ports keep working. Keep the system URL as `mssql://<target>:1433/<database>`. If SQL Browser is not running, have the DBA give you the instance's TCP port and use `host:port` as the target.
 
 **Connection parameters** can be appended as query strings:
 
@@ -239,7 +241,7 @@ Defaults are tuned for Azure SQL; on-prem servers usually need adjustments:
 
 - **Self-signed certificates** — on-prem servers rarely have CA-signed certs, so the default `trustServerCertificate=false` fails the TLS handshake. Add `?trustServerCertificate=true` (keeps encryption, skips CA validation).
 - **Old SQL Server versions** — SQL Server 2008/2008 R2 without TLS 1.2 patches cannot complete a modern TLS handshake. Use `?encrypt=false` as a last resort, preferably only over the Secure Gateway tunnel.
-- **Named instances** — use the `?instanceName=` query parameter (see URL Format above); remember SQL Browser (UDP 1434) is required for instance resolution and does not work through the Secure Gateway tunnel.
+- **Named instances** — on direct connections, use the `?instanceName=` query parameter (see URL Format above). Through the Secure Gateway tunnel, put the instance in the gateway target as `host\INSTANCE` instead; the gateway resolves the port through SQL Browser.
 - **Firewalled servers** — on-prem databases are typically not internet-reachable; configure the system with a Secure Gateway tunnel. Direct users to the setup guide at https://superglue.ai/docs/guides/secure-gateway/ — do not describe the setup flow from memory.
 
 ### Retry Behavior
@@ -253,7 +255,7 @@ Default retries from server config. On final failure, error includes query text 
 - Treating a multi-recordset stored procedure result as a flat row array — it is an array of recordset arrays
 - Accessing step result directly instead of via `.data` — database results follow the same envelope as all steps: `sourceData.stepId.data`
 - Not URL-encoding `@` in Azure SQL usernames — `myuser@myserver` must be `myuser%40myserver` in the connection URL
-- Using a named instance through the Secure Gateway tunnel — instance resolution needs UDP 1434, which the tunnel does not forward; use a static TCP port instead
+- Using `instanceName` on a tunneled connection — the tunnel does not forward UDP 1434; put the instance in the gateway target as `host\INSTANCE` instead
 - Forgetting `?trustServerCertificate=true` for on-prem servers with self-signed certificates
 
 ## Error Recovery
@@ -269,6 +271,7 @@ When an MSSQL step fails and the cause is not obvious:
    - Confirm `encrypt=true` is set (required for Azure SQL)
 5. **Check on-prem connection issues** — if connecting to an on-prem server:
    - TLS handshake errors (`self signed certificate`, `unable to verify`) → add `?trustServerCertificate=true`; for unpatched SQL Server 2008-era hosts, `?encrypt=false`
-   - `Failed to connect ... in 15000ms` with a named instance → SQL Browser (UDP 1434) is unreachable; use a static TCP port instead
+   - `Failed to connect ... in 15000ms` with a named instance → SQL Browser (UDP 1434) is unreachable; through the gateway, use a `host\INSTANCE` target, or a static TCP port when SQL Browser is not running
+   - A gateway error saying SQL Server Browser did not answer → the SQL Server Browser service is stopped or the instance name is misspelled
    - `Login failed` with Windows-auth-only servers → set `authType: "ntlm"` and `domain` in credentials, or ask the DBA for a SQL login
 6. **Verify parameter types** — MSSQL infers types from the values passed. Passing a string where a number is expected may cause implicit conversion errors. Ensure `params` values match expected column types.
