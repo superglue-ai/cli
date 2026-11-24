@@ -269,6 +269,7 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | `tools.writeTask` (superglue module; no id)      | `sg project task create --project <id>`          | Same fields; `--position` places the task in its column                                                  |
 | `tools.writeTask` (superglue module; id)         | `sg project task edit --project <p> --id <t>`    | Updates only the given fields, including `--position`                                                    |
 | `tools.writeProjectLabel` (superglue module)     | `sg project label create` / `label edit`         | Same fields; `sg project label delete` has no module equivalent                                          |
+| `tools.writeProjectSowItem` (superglue module)   | `sg project sow create` / `sow edit`             | Same fields; CLI writes set `peopleHoursSource: user`; `sg project sow delete` has no module equivalent  |
 | `tools.writeAgent` (superglue module; no id)     | `sg agents create --kind support --name <n>`     | Same fields; see `sg skill agents`                                                                       |
 | `tools.writeAgent` (superglue module; id)        | `sg agents update <agentId>`                     | File flags hold the desired destinations, triggers, and standing permissions                             |
 | `tools.createAgentTicket` (superglue module)     | `sg agents tickets create <agentId>`             | Same fields; `created: false` when the external ID already has a ticket                                  |
