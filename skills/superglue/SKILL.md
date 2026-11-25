@@ -597,7 +597,7 @@ OAuth saves provider metadata from both the callback and token response automati
 
 - Pass all secret values via `--credentials '{"api_key":"...","client_secret":"..."}'` on create/edit
 - Use `sg system connection set --system-id <id> --credentials '{...}'` to save secrets on the current API-key user's connection
-- Use `sg system connection get --system-id <id>` to inspect the current user's secret names and whether each has a non-empty value; secret values are never returned
+- Use `sg system connection get --system-id <id>` to inspect the current user's secret names and whether each has a non-empty value; secret values are never returned, and a URL password, secret query parameter or stored secret in the URL shows masked (sending the masked URL back unchanged keeps the stored value; any other URL with masked parts is refused)
 - OAuth tokens (`access_token`, `refresh_token`) auto-refresh before each step execution
 - Non-sensitive fields (`client_id`, `auth_url`, `token_url`) can be submitted alongside secrets in the same `--credentials` JSON
 
