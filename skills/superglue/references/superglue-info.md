@@ -83,7 +83,7 @@ Brain contains context-source setup, project folders, playbooks, and files. File
 
 The persistent left sidebar contains these top-level items:
 
-- The project switcher and session list — always visible at the top. The switcher selects one project or **All projects**, which scopes the session list and new sessions; `/` starts a session and `/sessions/{sessionId}` opens a saved one. New projects are planned with the agent.
+- The header card and session list — always visible at the top. The card shows the selected project (its name opens the project page) and the project's task progress. A click elsewhere on the card (or Cmd/Ctrl+P) opens the project switcher: the current organization's projects and **Sessions without a project**. The selected project scopes the session list and new sessions; `/` starts a session and `/sessions/{sessionId}` opens a saved one. New projects are planned with the agent.
 - **Brain** (`/brain`) — a file drive: the managed **Playbooks** folder, one folder per project (`/brain/projects/{projectId}`), and files in no project. Files open at `/brain/files/{fileId}` and playbooks at `/brain/playbooks/{playbookId}`. Word, PowerPoint, and uploaded Excel files open read-only and look as they do in Office. Users upload files and drag them onto project folders to link them. **Setup** on Brain pages opens a dialog that connects context sources with the user's own credentials.
 - **Capabilities** — expandable group for connected and executable resources:
   - **Tools** (`/tools`, detail at `/tools/{toolId}`) — saved tools; opens the tool playground for editing, testing, and running.
@@ -98,13 +98,13 @@ The persistent left sidebar contains these top-level items:
   - **API Keys** (`/api-keys`) — API key management.
   - **Settings** (`/settings`) — appearance and agent memory notes for every user; organization settings for admins.
 
-The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the project switcher starts agent-assisted project planning; projects are created only through the agent. A project's page is its Brain folder (`/brain/projects/{projectId}`), showing the project brief, a status box with task progress and **Open plan**, and the project's **Files**. **Open plan** shows every task on a board or table and filters by label and assignee; each project has its own task labels. Projects support sharing, archive, and deletion; people with project access get the same access to its linked files.
+The right panel's **Project plan** tab shows the selected project's tasks; with a project selected, `/projects` opens it. **New project** in the switcher starts agent-assisted project planning; projects are created only through the agent. A project's page is its Brain folder (`/brain/projects/{projectId}`), showing the project brief, a status box with task progress and **Open plan**, and the project's **Files**. **Open plan** shows every task on a board or table and filters by label and assignee; each project has its own task labels. Projects support sharing, archive, and deletion; people with project access get the same access to its linked files.
 
-Below the navigation, the sidebar shows the current organization menu. Opening it shows the signed-in user's name and email, lists the user's organizations and pending invitations, and contains **Sign Out**. Selecting an organization switches to it.
+Below the navigation, the sidebar shows the account menu with the current organization. It lists the signed-in user's name and email, the organizations to switch to, pending invitations with **Join**, **Manage Plan** where it applies, and **Sign Out**.
 
 While a brain setup step is open, the **Set up brain** button on Brain pages shows the progress and opens the setup dialog.
 
-When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the sidebar, which opens a 15-minute call booking page. The app shows no pricing. For Pro and Team organizations, admins see **Manage Plan** in the organization menu, which opens the Stripe portal. Enterprise organizations see neither. Do not quote prices. For pricing questions, point users to **Upgrade Plan** to book a call. There is no separate Billing page.
+When cloud billing is enabled, Trial organizations see **Upgrade Plan** in the sidebar, which opens a 15-minute call booking page. The app shows no pricing. For Pro and Team organizations, admins see **Manage Plan** in the account menu, which opens the Stripe portal. Enterprise organizations see neither. Do not quote prices. For pricing questions, point users to **Upgrade Plan** to book a call. There is no separate Billing page.
 
 **API Keys** (`/api-keys`) is a standalone page with a simple own-key editor for superglue API keys used by API, SDK, CLI headless/API-key auth, webhook, and non-OAuth MCP clients. Org users can create, copy, delete, and re-scope their own keys.
 
