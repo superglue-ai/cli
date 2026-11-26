@@ -99,7 +99,7 @@ Sharing supports saved tools, connections, projects, playbooks, and files.
 - Recipients can remove their own direct share, including connection shares, without editor access.
 - Sharing a tool shares only the tool. The recipient still needs a connection for every system id it references.
 - Sharing playbooks does not cascade to their tools or connections.
-- Access to a project gives the same access (viewer or editor) to every file and tool linked to it. Removing the file or tool from the project, removing the project access, or archiving the project removes that access. Anyone with access to a project, including viewers, can link a file or tool they can share. Project editors and people who can share a file or tool can remove it from the project. Playbooks and connections are never shared through projects.
+- Access to a project gives the same access (viewer or editor) to every file in it and every tool linked to it. A file is in at most one project. Moving the file out, removing the tool or the project access, or archiving the project removes that access. Anyone with access to a project, including viewers, can add a file or tool they can share. Project editors and people who can share a file or tool can remove it from the project. Playbooks and connections are never shared through projects.
 
 ## Auto-Grant On Resource Creation
 
