@@ -13,23 +13,23 @@ For protocol-specific details (HTTP, databases, Redis, file servers, GraphQL), f
 
 Read these on demand — they are authoritative for their topic and kept in sync with the web agent's skill references.
 
-| `sg skill` command         | When to read                                                                                         |
-| -------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `sg skill superglue-info`  | Company info, interfaces (SDK, REST API, MCP, Web), web UI layout, execution pipeline, internals     |
-| `sg skill integration`     | Deploying tools — SDK (TS/Python) usage, REST API calls, webhook triggers, retry patterns            |
-| `sg skill http`            | HTTP step configuration, auth patterns, file uploads, response handling, pagination, error detection |
-| `sg skill graphql`         | GraphQL step config, schema introspection, error recovery                                            |
-| `sg skill postgres`        | PostgreSQL connection URLs, SSL/TLS handling, schema introspection, parameterized queries            |
-| `sg skill mssql`           | MSSQL / Azure SQL connection URLs, schema introspection, parameterized queries                       |
-| `sg skill odbc`            | ODBC connections (SAP ASE / Sybase via FreeTDS), driver config, positional `?` params                |
-| `sg skill redis`           | Redis command syntax, connection URLs, key type handling                                             |
-| `sg skill mongodb`         | MongoDB connection URLs (mongodb:// / mongodb+srv://), CRUD operations, Extended JSON, aggregation   |
-| `sg skill sftp-smb`        | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                         |
-| `sg skill suitecloud`      | NetSuite SuiteCloud deploys: custom fields, record types, scripts; validate, preview, deploy         |
-| `sg skill file-handling`   | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files     |
-| `sg skill access-rules`    | RBAC roles, resource grants, and tool/credential permissions (enterprise only)                       |
-| `sg skill superglue-email` | Custom report and notification emails with attachments through superglue's email service             |
-| `sg skill agents`          | Support agents: settings, standing permissions, schedule and webhook triggers, tickets               |
+| `sg skill` command         | When to read                                                                                                               |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `sg skill superglue-info`  | Company info, interfaces (SDK, REST API, MCP, Web), web UI layout, execution pipeline, internals                           |
+| `sg skill integration`     | Deploying tools — SDK (TS/Python) usage, REST API calls, webhook triggers, retry patterns                                  |
+| `sg skill http`            | HTTP step configuration, auth patterns, file uploads, response handling, pagination, error detection                       |
+| `sg skill graphql`         | GraphQL step config, schema introspection, error recovery                                                                  |
+| `sg skill postgres`        | PostgreSQL connection URLs, SSL/TLS handling, schema introspection, parameterized queries                                  |
+| `sg skill mssql`           | MSSQL / Azure SQL connection URLs, schema introspection, parameterized queries                                             |
+| `sg skill odbc`            | ODBC connections (SAP ASE / Sybase via FreeTDS), driver config, positional `?` params                                      |
+| `sg skill redis`           | Redis command syntax, connection URLs, key type handling                                                                   |
+| `sg skill mongodb`         | MongoDB connection URLs (mongodb:// / mongodb+srv://), CRUD operations, Extended JSON, aggregation                         |
+| `sg skill sftp-smb`        | SFTP, FTP, and SMB operations, file upload/download semantics, path handling                                               |
+| `sg skill suitecloud`      | NetSuite SuiteCloud deploys: custom fields, record types, scripts; validate, preview, deploy                               |
+| `sg skill file-handling`   | File detection, parsing, `file::` reference syntax, lazy base64 access, transform-produced files                           |
+| `sg skill access-rules`    | RBAC roles, resource grants, and tool/credential permissions (enterprise only)                                             |
+| `sg skill superglue-email` | Custom report and notification emails with attachments through superglue's email service                                   |
+| `sg skill agents`          | Support, migration, integration, status, testing, scope, client, and custom agents: settings, permissions, triggers, items |
 
 ## Before You Start
 
@@ -270,9 +270,9 @@ Agents familiar with the web agent (its native tools and the `superglue` node mo
 | `tools.writeTask` (superglue module; id)         | `sg project task edit --project <p> --id <t>`    | Updates only the given fields, including `--position`                                                    |
 | `tools.writeProjectLabel` (superglue module)     | `sg project label create` / `label edit`         | Same fields; `sg project label delete` has no module equivalent                                          |
 | `tools.writeProjectSowItem` (superglue module)   | `sg project sow create` / `sow edit`             | Same fields; CLI writes set `peopleHoursSource: user`; `sg project sow delete` has no module equivalent  |
-| `tools.writeAgent` (superglue module; no id)     | `sg agents create --kind support --name <n>`     | Same fields; see `sg skill agents`                                                                       |
+| `tools.writeAgent` (superglue module; no id)     | `sg agents create --kind <kind> --name <n>`      | Same fields; see `sg skill agents`                                                                       |
 | `tools.writeAgent` (superglue module; id)        | `sg agents update <agentId>`                     | File flags hold the desired destinations, triggers, and standing permissions                             |
-| `tools.createAgentTicket` (superglue module)     | `sg agents tickets create <agentId>`             | Same fields; `created: false` when the external ID already has a ticket                                  |
+| `tools.createAgentItem` (superglue module)       | `sg agents items create <agentId>`               | Same fields; `created: false` when the external ID already has an item                                   |
 | (no direct equivalent)                           | `sg login`, `sg update`, `sg skill`              | CLI-specific setup, updater, and this reference system                                                   |
 
 Web-agent-only concepts with no CLI equivalent: `run_command`'s virtual filesystem (CLI uses concrete `sg` subcommands), `connect`'s secure input form (CLI accepts secrets through connection commands), and `setup_gateway` (the gateway install command is created in the web app).
